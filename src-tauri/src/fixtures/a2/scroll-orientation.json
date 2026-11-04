@@ -1,0 +1,12 @@
+[
+  { "orientation": "vertical", "overflow": "auto", "decls": [["overflow-x", "hidden"]] },
+  { "orientation": "vertical", "overflow": "scroll", "decls": [["overflow-x", "hidden"]] },
+  { "orientation": "horizontal", "overflow": "auto", "decls": [["overflow-y", "hidden"]] },
+  { "orientation": "horizontal", "overflow": "scroll", "decls": [["overflow-y", "hidden"]] },
+  { "orientation": "both", "overflow": "auto", "decls": [] },
+  { "orientation": "both", "overflow": "scroll", "decls": [] },
+  { "orientation": "vertical", "overflow": "hidden", "decls": [] },
+  { "orientation": "horizontal", "overflow": "visible", "decls": [] },
+  { "orientation": "vertical", "overflow": null, "decls": [] },
+  { "orientation": "horizontal", "overflow": "auto;}x", "decls": [] }
+]

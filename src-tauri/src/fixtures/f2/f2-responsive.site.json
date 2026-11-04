@@ -1,0 +1,276 @@
+{
+  "meta": {
+    "lang": "th",
+    "title": "f2-responsive"
+  },
+  "nodes": {
+    "box": {
+      "id": "box",
+      "props": {
+        "children": [
+          "t2"
+        ],
+        "direction": "column",
+        "gap": 8,
+        "type": "container"
+      },
+      "style": {
+        "backgroundColor": "#eeeeff",
+        "padding": 4.0
+      },
+      "styleBreakpoints": {
+        "foldOpen": {
+          "opacity": 0.5
+        },
+        "phone": {
+          "width": "50%"
+        },
+        "tablet": {
+          "backgroundColor": "#ddddee",
+          "padding": 24.0
+        }
+      },
+      "type": "container"
+    },
+    "bt": {
+      "id": "bt",
+      "props": {
+        "action": "none",
+        "label": "ปุ่มตอบสนอง",
+        "type": "button"
+      },
+      "style": {
+        "borderRadius": 8.0,
+        "fontSize": 16.0
+      },
+      "styleBreakpoints": {
+        "phone": {
+          "backgroundColor": "#00aa00",
+          "borderRadius": 2.0
+        },
+        "tablet": {
+          "fontSize": 18.0
+        }
+      },
+      "type": "button"
+    },
+    "h": {
+      "id": "h",
+      "props": {
+        "content": "หัวเรื่องปรับขนาด",
+        "level": 1,
+        "type": "heading"
+      },
+      "style": {
+        "color": "#111111",
+        "fontSize": 40.0
+      },
+      "styleBreakpoints": {
+        "phone": {
+          "color": "#b00020",
+          "fontSize": 20.0
+        },
+        "tablet": {
+          "fontSize": 28.0
+        }
+      },
+      "type": "heading"
+    },
+    "root": {
+      "id": "root",
+      "props": {
+        "children": [
+          "h",
+          "t",
+          "box",
+          "bt"
+        ],
+        "type": "page"
+      },
+      "style": {},
+      "type": "page"
+    },
+    "t": {
+      "id": "t",
+      "props": {
+        "content": "ข้อความจัดแนว",
+        "type": "text"
+      },
+      "style": {
+        "padding": 8.0,
+        "textAlign": "left"
+      },
+      "styleBreakpoints": {
+        "phone": {
+          "textAlign": "right"
+        },
+        "tablet": {
+          "padding": 16.0,
+          "textAlign": "center"
+        }
+      },
+      "type": "text"
+    },
+    "t2": {
+      "id": "t2",
+      "props": {
+        "content": "ข้อความในกล่อง",
+        "type": "text"
+      },
+      "style": {
+        "margin": 2.0
+      },
+      "styleBreakpoints": {
+        "phone": {
+          "margin": {
+            "b": 10.0,
+            "l": 0.0,
+            "r": 0.0,
+            "t": 10.0
+          }
+        }
+      },
+      "type": "text"
+    }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "name": "หน้าแรก",
+      "nodes": {
+        "box": {
+          "id": "box",
+          "props": {
+            "children": [
+              "t2"
+            ],
+            "direction": "column",
+            "gap": 8,
+            "type": "container"
+          },
+          "style": {
+            "backgroundColor": "#eeeeff",
+            "padding": 4.0
+          },
+          "styleBreakpoints": {
+            "foldOpen": {
+              "opacity": 0.5
+            },
+            "phone": {
+              "width": "50%"
+            },
+            "tablet": {
+              "backgroundColor": "#ddddee",
+              "padding": 24.0
+            }
+          },
+          "type": "container"
+        },
+        "bt": {
+          "id": "bt",
+          "props": {
+            "action": "none",
+            "label": "ปุ่มตอบสนอง",
+            "type": "button"
+          },
+          "style": {
+            "borderRadius": 8.0,
+            "fontSize": 16.0
+          },
+          "styleBreakpoints": {
+            "phone": {
+              "backgroundColor": "#00aa00",
+              "borderRadius": 2.0
+            },
+            "tablet": {
+              "fontSize": 18.0
+            }
+          },
+          "type": "button"
+        },
+        "h": {
+          "id": "h",
+          "props": {
+            "content": "หัวเรื่องปรับขนาด",
+            "level": 1,
+            "type": "heading"
+          },
+          "style": {
+            "color": "#111111",
+            "fontSize": 40.0
+          },
+          "styleBreakpoints": {
+            "phone": {
+              "color": "#b00020",
+              "fontSize": 20.0
+            },
+            "tablet": {
+              "fontSize": 28.0
+            }
+          },
+          "type": "heading"
+        },
+        "root": {
+          "id": "root",
+          "props": {
+            "children": [
+              "h",
+              "t",
+              "box",
+              "bt"
+            ],
+            "type": "page"
+          },
+          "style": {},
+          "type": "page"
+        },
+        "t": {
+          "id": "t",
+          "props": {
+            "content": "ข้อความจัดแนว",
+            "type": "text"
+          },
+          "style": {
+            "padding": 8.0,
+            "textAlign": "left"
+          },
+          "styleBreakpoints": {
+            "phone": {
+              "textAlign": "right"
+            },
+            "tablet": {
+              "padding": 16.0,
+              "textAlign": "center"
+            }
+          },
+          "type": "text"
+        },
+        "t2": {
+          "id": "t2",
+          "props": {
+            "content": "ข้อความในกล่อง",
+            "type": "text"
+          },
+          "style": {
+            "margin": 2.0
+          },
+          "styleBreakpoints": {
+            "phone": {
+              "margin": {
+                "b": 10.0,
+                "l": 0.0,
+                "r": 0.0,
+                "t": 10.0
+              }
+            }
+          },
+          "type": "text"
+        }
+      },
+      "path": "/",
+      "root": "root"
+    }
+  ],
+  "root": "root",
+  "version": 1
+}

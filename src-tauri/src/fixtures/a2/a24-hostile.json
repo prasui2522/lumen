@@ -1,0 +1,132 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "a24-hostile",
+  "lang": "th"
+ },
+ "root": "root",
+ "nodes": {
+  "g": {
+   "id": "g",
+   "type": "buttonGroup",
+   "props": {
+    "type": "buttonGroup",
+    "children": [
+     "h1",
+     "h2",
+     "h3"
+    ]
+   },
+   "style": {},
+   "name": "\"><img src=x onerror=alert(1)>"
+  },
+  "h1": {
+   "id": "h1",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "\"><img src=x onerror=alert(1)>",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": -5
+   }
+  },
+  "h2": {
+   "id": "h2",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "</style><script>x</script>",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 99999
+   },
+   "styleBreakpoints": {
+    "tablet": {
+     "borderRadius": -1
+    }
+   }
+  },
+  "h3": {
+   "id": "h3",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "'x'",
+    "action": "none"
+   },
+   "style": {}
+  },
+  "sp": {
+   "id": "sp",
+   "type": "spinner",
+   "props": {
+    "type": "spinner",
+    "size": 16
+   },
+   "style": {},
+   "name": "\"><img src=x onerror=alert(1)>"
+  },
+  "sa": {
+   "id": "sa",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [],
+    "orientation": "vertical",
+    "label": "\"><img src=x onerror=alert(1)>"
+   },
+   "style": {
+    "width": "100%;}body{display:none",
+    "height": "1px;}x{y:z"
+   },
+   "styleBreakpoints": {
+    "tablet": {
+     "overflow": "auto;}body{display:none"
+    },
+    "phone": {
+     "overflow": "hidden"
+    }
+   }
+  },
+  "ar": {
+   "id": "ar",
+   "type": "aspectRatio",
+   "props": {
+    "type": "aspectRatio",
+    "children": [],
+    "ratio": "16/9"
+   },
+   "style": {
+    "width": "1px}body{x:y"
+   }
+  },
+  "sk": {
+   "id": "sk",
+   "type": "skeleton",
+   "props": {
+    "type": "skeleton"
+   },
+   "style": {
+    "backgroundColor": "red;}body{display:none"
+   }
+  },
+  "root": {
+   "id": "root",
+   "type": "page",
+   "props": {
+    "type": "page",
+    "children": [
+     "g",
+     "sp",
+     "sa",
+     "ar",
+     "sk"
+    ]
+   },
+   "style": {}
+  }
+ }
+}

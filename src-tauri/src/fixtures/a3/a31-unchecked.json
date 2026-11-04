@@ -1,0 +1,54 @@
+{
+  "version": 4,
+  "meta": {
+    "title": "a31",
+    "lang": "th"
+  },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": {
+        "type": "page",
+        "children": [
+          "cb",
+          "cb2",
+          "cb3"
+        ]
+      },
+      "style": {}
+    },
+    "cb": {
+      "id": "cb",
+      "type": "checkbox",
+      "style": {},
+      "props": {
+        "type": "checkbox",
+        "label": "ยอมรับเงื่อนไข",
+        "checked": false
+      }
+    },
+    "cb2": {
+      "id": "cb2",
+      "type": "checkbox",
+      "style": {},
+      "props": {
+        "type": "checkbox",
+        "label": "",
+        "checked": false
+      },
+      "name": "รับข่าวสาร"
+    },
+    "cb3": {
+      "id": "cb3",
+      "type": "checkbox",
+      "style": {},
+      "props": {
+        "type": "checkbox",
+        "label": "",
+        "checked": false
+      }
+    }
+  }
+}

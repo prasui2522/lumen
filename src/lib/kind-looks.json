@@ -1,0 +1,528 @@
+{
+  "comment": "Shared canvas/export look constants (Phase 11 A1.4). ONE source: src-tauri/src/compiler.rs include_str!s this file and src/lib/kind-looks.ts imports it. Edit here only; both sides have tests that bind to it. {{name}} expands to palette[name]. extras = per-type declarations merged over the default styles (G1: an explicit node style wins); css = descendant/pseudo rules emitted once per used type. Container is built from defaults.rs in compiler.rs and is not listed.",
+  "version": 1,
+  "palette": {"ink": "#0f172a", "muted": "#64748b", "line": "#e2e8f0", "surface": "#ffffff", "subtle": "#f1f5f9", "focus": "#0077c2"},
+  "facingBorder": "1px solid {{line}}",
+  "facing": {
+    "sheet:right": "left",
+    "sheet:left": "right",
+    "sheet:top": "bottom",
+    "sheet:bottom": "top",
+    "drawer:bottom": "top",
+    "drawer:top": "bottom",
+    "drawer:left": "right",
+    "drawer:right": "left",
+    "drawer": "top"
+  },
+  "kinds": {
+    "accordion": {
+      "extras": [],
+      "css": [
+        ".t-accordion details{border-bottom:1px solid {{line}}}",
+        ".t-accordion summary{padding:16px 0px 16px 0px;font-weight:500;cursor:pointer}",
+        ".t-accordion details>div{padding:0px 0px 16px 0px}"
+      ]
+    },
+    "alertDialog": {
+      "extras": [
+        ["padding", "24px"],
+        ["border", "1px solid {{line}}"],
+        ["border-radius", "12px"],
+        ["background-color", "{{surface}}"]
+      ],
+      "css": [
+        ".t-alertDialog h2{font-size:18px;font-weight:600;line-height:1.3}",
+        ".t-alertDialog p{font-size:14px;line-height:1.5;color:{{muted}}}",
+        ".t-alertDialog h2+p{margin-top:8px}",
+        ".t-alertDialog>div:last-child{display:flex;flex-direction:row-reverse;justify-content:flex-start;gap:8px;margin-top:16px}",
+        ".t-alertDialog button,.t-alertDialog a.ok,.t-alertDialog a.no{font:inherit;font-size:14px;font-weight:500;padding:8px 16px 8px 16px;border:1px solid {{line}};border-radius:8px;cursor:pointer;text-decoration:none;display:inline-block}",
+        ".t-alertDialog button.ok,.t-alertDialog a.ok{background-color:{{ink}};border-color:{{ink}};color:{{surface}}}",
+        ".t-alertDialog button.no,.t-alertDialog a.no{background-color:{{surface}};color:{{ink}}}"
+      ]
+    },
+    "avatar": {
+      "extras": [
+        ["display", "flex"],
+        ["align-items", "center"],
+        ["justify-content", "center"],
+        ["object-fit", "cover"]
+      ],
+      "css": []
+    },
+    "breadcrumb": {
+      "extras": [],
+      "css": [
+        ".t-breadcrumb ol{display:flex;flex-wrap:wrap;align-items:center;gap:8px;list-style:none}",
+        ".t-breadcrumb li+li::before{content:\"/\";margin-right:8px;color:{{muted}}}",
+        ".t-breadcrumb [aria-current=\"page\"]{font-weight:500}"
+      ]
+    },
+    "bubble": {
+      "extras": [
+        ["padding", "8px 12px 8px 12px"],
+        ["background-color", "{{subtle}}"],
+        ["border-radius", "16px"],
+        ["max-width", "80%"],
+        ["width", "fit-content"]
+      ],
+      "css": []
+    },
+    "collapsible": {
+      "extras": [],
+      "css": [
+        ".t-collapsible summary{font-weight:500;cursor:pointer}",
+        ".t-collapsible summary+div{padding-top:8px}"
+      ]
+    },
+    "dialog": {
+      "extras": [
+        ["padding", "24px"],
+        ["border", "1px solid {{line}}"],
+        ["border-radius", "12px"],
+        ["background-color", "{{surface}}"]
+      ],
+      "css": [
+        ".t-dialog h2{font-size:18px;font-weight:600;line-height:1.3}",
+        ".t-dialog p{font-size:14px;line-height:1.5;color:{{muted}}}",
+        ".t-dialog h2+p{margin-top:8px}"
+      ]
+    },
+    "drawer": {
+      "extras": [
+        ["padding", "24px"],
+        ["border-radius", "12px 12px 0px 0px"],
+        ["background-color", "{{surface}}"]
+      ],
+      "css": [
+        ".t-drawer h2{font-size:18px;font-weight:600;line-height:1.3}",
+        ".t-drawer p{font-size:14px;line-height:1.5;color:{{muted}}}",
+        ".t-drawer h2+p{margin-top:8px}",
+        ":where(.t-drawer[data-side=\"bottom\"]){border-top:1px solid {{line}}}",
+        ":where(.t-drawer[data-side=\"top\"]){border-bottom:1px solid {{line}}}",
+        ":where(.t-drawer[data-side=\"left\"]){border-right:1px solid {{line}}}",
+        ":where(.t-drawer[data-side=\"right\"]){border-left:1px solid {{line}}}",
+        ".t-drawer[data-side=\"bottom\"]{border-right-style:none;border-bottom-style:none;border-left-style:none}",
+        ".t-drawer[data-side=\"top\"]{border-top-style:none;border-right-style:none;border-left-style:none}",
+        ".t-drawer[data-side=\"left\"]{border-top-style:none;border-left-style:none;border-bottom-style:none}",
+        ".t-drawer[data-side=\"right\"]{border-top-style:none;border-right-style:none;border-bottom-style:none}"
+      ]
+    },
+    "dropdownMenu": {
+      "extras": [],
+      "css": [
+        ".t-dropdownMenu summary{display:list-item;list-style-position:inside;width:fit-content;padding:8px 12px 8px 12px;border:1px solid {{line}};border-radius:8px;cursor:pointer}",
+        ".t-dropdownMenu summary+div{margin-top:4px;padding:4px;border:1px solid {{line}};border-radius:8px;background-color:{{surface}};display:flex;flex-direction:column;gap:2px}",
+        ".t-dropdownMenu summary+div>div,.t-dropdownMenu summary+div>a{display:block;padding:6px 8px 6px 8px;border-radius:6px;color:inherit;text-decoration:none}"
+      ]
+    },
+    "empty": {
+      "extras": [
+        ["padding", "24px"],
+        ["border", "1px solid {{line}}"],
+        ["border-radius", "12px"],
+        ["background-color", "{{surface}}"],
+        ["text-align", "center"]
+      ],
+      "css": [
+        ".t-empty h3{font-size:18px;font-weight:600;line-height:1.3}",
+        ".t-empty p{font-size:14px;line-height:1.5;color:{{muted}}}",
+        ".t-empty h3+p{margin-top:4px}",
+        ".t-empty .act{display:inline-block;margin-top:12px;padding:8px 16px 8px 16px;border-radius:8px;background-color:{{ink}};color:{{surface}};font-size:14px;font-weight:500;text-decoration:none}"
+      ]
+    },
+    "hoverCard": {
+      "extras": [
+        ["padding", "16px"],
+        ["border", "1px solid {{line}}"],
+        ["border-radius", "12px"],
+        ["background-color", "{{surface}}"]
+      ],
+      "css": [
+        ".t-hoverCard h3{font-size:16px;font-weight:600;line-height:1.3}",
+        ".t-hoverCard p{font-size:14px;line-height:1.5;color:{{muted}}}",
+        ".t-hoverCard h3+p{margin-top:4px}"
+      ]
+    },
+    "inputGroup": {
+      "extras": [
+        ["display", "flex"],
+        ["align-items", "center"],
+        ["gap", "8px"],
+        ["padding", "0px 12px 0px 12px"],
+        ["border", "1px solid {{line}}"],
+        ["border-radius", "8px"],
+        ["background-color", "{{surface}}"]
+      ],
+      "css": [
+        ".t-inputGroup>span{color:{{muted}}}",
+        ".t-inputGroup input{flex:1 1 0%;min-width:0;padding:8px 0px 8px 0px;border:0;outline:0;background-color:transparent;font:inherit;color:inherit}",
+        ".t-inputGroup:focus-within{outline:2px solid {{focus}};outline-offset:2px}"
+      ]
+    },
+    "inputOtp": {
+      "extras": [
+        ["display", "flex"],
+        ["gap", "8px"],
+        ["flex-wrap", "wrap"]
+      ],
+      "css": [
+        ".t-inputOtp input{width:40px;height:40px;padding:0;text-align:center;border:1px solid {{line}};border-radius:8px;background-color:{{surface}};font:inherit;color:{{ink}}}",
+        ".t-inputOtp input:focus-visible{outline:2px solid {{focus}};outline-offset:2px}"
+      ]
+    },
+    "item": {
+      "extras": [
+        ["padding", "12px 16px 12px 16px"],
+        ["border", "1px solid {{line}}"],
+        ["border-radius", "12px"],
+        ["background-color", "{{surface}}"]
+      ],
+      "css": [
+        ".t-item h3{font-size:16px;font-weight:600;line-height:1.3}",
+        ".t-item p{font-size:14px;line-height:1.5;color:{{muted}}}",
+        ".t-item h3+p{margin-top:4px}"
+      ]
+    },
+    "link": {
+      "extras": [
+        ["text-decoration", "underline"]
+      ],
+      "css": []
+    },
+    "menubar": {
+      "extras": [
+        ["gap", "4px"],
+        ["padding", "4px"],
+        ["border", "1px solid {{line}}"],
+        ["border-radius", "8px"]
+      ],
+      "css": [
+        ".t-menubar summary{padding:6px 12px 6px 12px;border-radius:6px;font-weight:500;cursor:pointer}",
+        ".t-menubar details>div{display:flex;flex-direction:column;gap:2px;padding:4px}",
+        ".t-menubar details>div a,.t-menubar details>div span{display:block;padding:6px 12px 6px 12px;border-radius:4px;color:inherit;text-decoration:none}"
+      ]
+    },
+    "message": {
+      "extras": [
+        ["padding", "8px 12px 8px 12px"],
+        ["background-color", "{{subtle}}"],
+        ["border-radius", "16px"],
+        ["max-width", "80%"],
+        ["width", "fit-content"]
+      ],
+      "css": [
+        ".t-message strong{display:block;font-size:14px;font-weight:600}"
+      ]
+    },
+    "navigationMenu": {
+      "extras": [],
+      "css": [
+        ".t-navigationMenu ul{display:flex;flex-wrap:wrap;gap:8px;list-style:none}",
+        ".t-navigationMenu a,.t-navigationMenu span{display:inline-block;padding:8px 12px 8px 12px;border-radius:8px;font-weight:500}"
+      ]
+    },
+    "pagination": {
+      "extras": [],
+      "css": [
+        ".t-pagination ul{display:flex;flex-wrap:wrap;gap:4px;list-style:none}",
+        ".t-pagination a,.t-pagination span{display:inline-flex;align-items:center;justify-content:center;min-width:36px;min-height:36px;padding:0px 8px 0px 8px;border:1px solid transparent;border-radius:8px;color:inherit;text-decoration:none}",
+        ".t-pagination [aria-current=\"page\"]{border-color:{{line}}}"
+      ]
+    },
+    "popover": {
+      "extras": [],
+      "css": [
+        ".t-popover summary{display:list-item;list-style-position:inside;width:fit-content;padding:8px 12px 8px 12px;border:1px solid {{line}};border-radius:8px;cursor:pointer}",
+        ".t-popover summary+div{margin-top:4px;padding:16px;border:1px solid {{line}};border-radius:8px;background-color:{{surface}}}"
+      ]
+    },
+    "progress": {
+      "extras": [
+        ["-webkit-appearance", "none"],
+        ["appearance", "none"],
+        ["height", "8px"],
+        ["border-radius", "999px"],
+        ["overflow", "hidden"],
+        ["background-color", "{{line}}"]
+      ],
+      "css": [
+        ".t-progress::-webkit-progress-bar{background-color:{{line}};border-radius:999px}",
+        ".t-progress::-webkit-progress-value{background-color:{{ink}};border-radius:999px}",
+        ".t-progress::-moz-progress-bar{background-color:{{ink}};border-radius:999px}"
+      ]
+    },
+    "radio": {
+      "extras": [
+        ["display", "flex"],
+        ["flex-direction", "column"],
+        ["align-items", "flex-start"],
+        ["gap", "8px"]
+      ],
+      "css": [
+        ".t-radio label{display:inline-flex;align-items:center;gap:8px}",
+        ".t-radio input{accent-color:{{ink}}}",
+        ".t-radio input:focus-visible{outline:2px solid {{focus}};outline-offset:2px}"
+      ]
+    },
+    "select": {
+      "extras": [
+        ["width", "100%"],
+        ["padding", "8px 12px 8px 12px"],
+        ["border", "1px solid {{muted}}"],
+        ["border-radius", "8px"],
+        ["background-color", "{{surface}}"],
+        ["font-family", "inherit"],
+        ["-webkit-appearance", "auto"],
+        ["appearance", "auto"]
+      ],
+      "css": [".t-select:focus-visible{outline:2px solid {{focus}};outline-offset:2px}"]
+    },
+    "sheet": {
+      "extras": [
+        ["padding", "24px"],
+        ["border-radius", "0px"],
+        ["background-color", "{{surface}}"]
+      ],
+      "css": [
+        ".t-sheet h2{font-size:18px;font-weight:600;line-height:1.3}",
+        ".t-sheet p{font-size:14px;line-height:1.5;color:{{muted}}}",
+        ".t-sheet h2+p{margin-top:8px}",
+        ":where(.t-sheet[data-side=\"right\"]){border-left:1px solid {{line}}}",
+        ":where(.t-sheet[data-side=\"left\"]){border-right:1px solid {{line}}}",
+        ":where(.t-sheet[data-side=\"top\"]){border-bottom:1px solid {{line}}}",
+        ":where(.t-sheet[data-side=\"bottom\"]){border-top:1px solid {{line}}}",
+        ".t-sheet[data-side=\"right\"]{border-top-style:none;border-right-style:none;border-bottom-style:none}",
+        ".t-sheet[data-side=\"left\"]{border-top-style:none;border-left-style:none;border-bottom-style:none}",
+        ".t-sheet[data-side=\"top\"]{border-top-style:none;border-right-style:none;border-left-style:none}",
+        ".t-sheet[data-side=\"bottom\"]{border-right-style:none;border-bottom-style:none;border-left-style:none}"
+      ]
+    },
+    "slider": {
+      "extras": [
+        ["accent-color", "{{ink}}"]
+      ],
+      "css": []
+    },
+    "spacer": {
+      "extras": [
+        ["width", "100%"]
+      ],
+      "css": []
+    },
+    "tabs": {
+      "extras": [
+        ["position", "relative"],
+        ["flex-wrap", "wrap"],
+        ["gap", "8px"]
+      ],
+      "css": [
+        ".t-tabs>input{position:absolute;opacity:0;width:1px;height:1px;margin:0}",
+        ".t-tabs>label{padding:8px 12px 8px 12px;border-bottom:2px solid transparent;font-weight:500;color:{{muted}};cursor:pointer}",
+        ".t-tabs>input:checked+label{color:{{ink}};border-bottom-color:{{ink}}}",
+        ".t-tabs>input:focus-visible+label{outline:2px solid {{focus}};outline-offset:2px}",
+        ".t-tabs>.p6panel{display:none;flex-basis:100%}"
+      ]
+    },
+    "toggle": {
+      "extras": [
+        ["display", "inline-block"],
+        ["position", "relative"]
+      ],
+      "css": [
+        ".t-toggle input{position:absolute;opacity:0;width:1px;height:1px;margin:0}",
+        ".t-toggle span{display:inline-block;padding:8px 12px 8px 12px;border:1px solid {{line}};border-radius:8px;cursor:pointer}",
+        ".t-toggle input:checked+span{background-color:{{subtle}}}",
+        ".t-toggle input:focus-visible+span{outline:2px solid {{focus}};outline-offset:2px}"
+      ]
+    },
+    "toggleGroup": {
+      "extras": [
+        ["gap", "0px"]
+      ],
+      "css": [
+        ".t-toggleGroup>label{position:relative;display:inline-flex}",
+        ".t-toggleGroup>label+label{margin-left:-1px}",
+        ".t-toggleGroup input{position:absolute;opacity:0;width:1px;height:1px;margin:0}",
+        ".t-toggleGroup span{position:relative;display:inline-block;padding:8px 12px 8px 12px;border:1px solid {{line}};cursor:pointer}",
+        ".t-toggleGroup>label:first-child span{border-radius:8px 0 0 8px}",
+        ".t-toggleGroup>label:last-child span{border-radius:0 8px 8px 0}",
+        ".t-toggleGroup>label:only-child span{border-radius:8px}",
+        ".t-toggleGroup input:checked+span{background-color:{{subtle}}}",
+        ".t-toggleGroup input:focus-visible+span{outline:2px solid {{focus}};outline-offset:2px;z-index:1}"
+      ]
+    },
+    "tooltip": {
+      "extras": [
+        ["display", "flex"],
+        ["align-items", "center"],
+        ["gap", "8px"]
+      ],
+      "css": [
+        ".t-tooltip>[role=\"tooltip\"]{width:fit-content;padding:6px 10px 6px 10px;border-radius:6px;background-color:{{ink}};color:{{surface}};font-size:13px;line-height:1.25}"
+      ]
+    }
+  },
+  "a2": {
+    "comment": "Phase 11 A2.3 (part 1): shared constants for card, alert, separator, skeleton, spinner, aspectRatio, buttonGroup. Kept apart from `kinds` so the A1 tables and their tests are untouched. Same shape as `kinds`; `texts` are generated strings and SVG data. Compiler: type_extras / type_css (badge, aspectRatio, spinner) and per-node extras (separatorVertical). Canvas: src/lib/a2-looks.ts A2_LOOKS / A2_STYLESHEET. Badge (A2.3 part 2) holds only the declarations that are NOT StyleProps keys (align-items, gap); its `display:inline-flex` and the scrollArea `overflow:auto` are default styles (schema.ts / defaults.rs) and must never be repeated here, or the canvas and the export would disagree. `separator` (F8) holds `color:inherit`: a bordered `<hr>` without its own colour draws `currentColor`, which must be the inherited text colour on both sides, not the UA grey. scrollArea (N3) holds only its keyboard focus ring: the export makes it `tabindex=0`, so `:focus-visible` needs a visible outline (literal hex, G5); its axis rule comes from `orientation` and the overflow in force at each breakpoint (a2-looks.ts scrollAxes / compiler.rs scroll_axis_decls).",
+    "texts": {
+      "spinnerLabel": "กำลังโหลด",
+      "spinnerPath": "M21 12a9 9 0 1 1-6.219-8.56"
+    },
+    "kinds": {
+      "separator": { "extras": [["color", "inherit"]], "css": [] },
+      "separatorVertical": {
+        "extras": [
+          ["width", "1px"],
+          ["height", "auto"],
+          ["min-height", "16px"],
+          ["align-self", "stretch"]
+        ],
+        "css": []
+      },
+      "spinner": {
+        "extras": [],
+        "css": [
+          ".t-spinner svg{display:block;animation:t-spin 1s linear infinite}",
+          "@keyframes t-spin{to{transform:rotate(360deg)}}",
+          "@media (prefers-reduced-motion:reduce){.t-spinner svg{animation:none}}"
+        ]
+      },
+      "scrollArea": {
+        "extras": [],
+        "css": [
+          ".t-scrollArea:focus-visible{outline:2px solid #0077c2;outline-offset:2px}"
+        ]
+      },
+      "badge": {
+        "extras": [
+          [
+            "align-items",
+            "center"
+          ],
+          [
+            "gap",
+            "4px"
+          ]
+        ],
+        "css": []
+      },
+      "aspectRatio": {
+        "extras": [],
+        "css": [
+          ".t-aspectRatio>*{width:100%;height:100%}"
+        ]
+      }
+    }
+  },
+  "a3": {
+    "comment": "Phase 11 A3.3: field (label 14/500, description #64748b 14, error #b91c1c 14; literal hex per G2). Phase 11 A3.2: switch (track 40x22 off #cbd5e1 / on #0f172a, white thumb, #64748b borders >= 3:1, input visually hidden but focusable, ring on the track, reduced motion and forced colors handled; literal hex per G2). Phase 11 A3.1: checkbox. The 16px box (border {{muted}} #64748b = 4.76:1 on white, radius 4px, checked #0f172a; A3.1.1: in forced-colors mode the native box is restored, so the system draws the tick) and the white checkmark are compiler constants (appearance:none + a data: SVG on :checked), shared with the canvas (src/lib/a3-looks.ts). Never a style key, never user input. The only url( in any look is this data:image/svg+xml one (tests pin it).",
+    "kinds": {
+      "checkbox": {
+        "extras": [
+          [
+            "align-items",
+            "center"
+          ],
+          [
+            "gap",
+            "8px"
+          ]
+        ],
+        "css": [
+          ".t-checkbox input{-webkit-appearance:none;appearance:none;flex:none;width:16px;height:16px;margin:0px;border:1px solid {{muted}};border-radius:4px;background-color:{{surface}};background-position:center;background-repeat:no-repeat;background-size:12px 12px}",
+          ".t-checkbox input:checked{background-color:{{ink}};border-color:{{ink}};background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E\")}",
+          ".t-checkbox input:focus-visible{outline:2px solid {{focus}};outline-offset:2px}",
+        "@media (forced-colors:active){.t-checkbox input,.t-checkbox input:checked{-webkit-appearance:auto;appearance:auto;background-image:none}}"
+        ]
+      },
+      "switch": {
+        "extras": [
+          ["align-items", "center"],
+          ["gap", "8px"],
+          ["position", "relative"]
+        ],
+        "css": [
+          ".t-switch input{position:absolute;top:0px;left:0px;width:1px;height:1px;margin:0px;padding:0px;opacity:0;overflow:hidden}",
+          ".t-switch .sw-track{position:relative;display:inline-block;flex:none;width:40px;height:22px;border:1px solid #64748b;border-radius:11px;background-color:#cbd5e1;transition:background-color 0.15s ease,border-color 0.15s ease}",
+          ".t-switch .sw-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;border:1px solid #64748b;border-radius:50%;background-color:#ffffff;transition:transform 0.15s ease}",
+          ".t-switch input:checked+.sw-track{background-color:#0f172a;border-color:#0f172a}",
+          ".t-switch input:checked+.sw-track .sw-thumb{transform:translateX(18px);border-color:#ffffff}",
+          ".t-switch input:focus-visible+.sw-track{outline:2px solid #0077c2;outline-offset:2px}",
+          "@media (prefers-reduced-motion:reduce){.t-switch .sw-track,.t-switch .sw-thumb{transition:none}}",
+          "@media (forced-colors:active){.t-switch .sw-track,.t-switch .sw-thumb{forced-color-adjust:none}.t-switch .sw-track{background-color:Canvas;border-color:CanvasText}.t-switch .sw-thumb{background-color:CanvasText;border-color:CanvasText}.t-switch input:checked+.sw-track{background-color:Highlight;border-color:Highlight}.t-switch input:checked+.sw-track .sw-thumb{background-color:HighlightText;border-color:HighlightText}.t-switch input:focus-visible+.sw-track{outline-color:CanvasText}}"
+        ]
+      },
+      "field": {
+        "extras": [],
+        "css": [
+          ".t-field>label,.t-field>.t-field-label{font-size:14px;font-weight:500}",
+          ".t-field>.t-field-d{margin:0px;color:#64748b;font-size:14px}",
+          ".t-field>.t-field-e{margin:0px;color:#b91c1c;font-size:14px}"
+        ]
+      }
+    }
+  },
+  "a4": {
+    "comment": "Phase 11 A4: list (A4.1) + table (A4.2) + icon (A4.5). List check marker uses li::before with a masked data: SVG (no text glyph). list-style:none markers get role=list in the compiler (G5). Table wrapper scrolls horizontally; cell padding 8px. Icon is inline SVG (path data in icon-paths chunk).",
+    "kinds": {
+      "list": {
+        "extras": [],
+        "css": [
+          ".t-list{margin:0px;padding-inline-start:1.25em}",
+          ".t-list--disc{list-style-type:disc}",
+          ".t-list--decimal{list-style-type:decimal}",
+          ".t-list--none{list-style-type:none;padding-inline-start:0px}",
+          ".t-list--check{list-style-type:none;padding-inline-start:0px}",
+          ".t-list--check>li{position:relative;padding-inline-start:1.5em}",
+          ".t-list--check>li::before{content:\"\";position:absolute;inset-inline-start:0px;top:0.35em;width:1em;height:1em;background-color:currentColor;-webkit-mask-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M6.5 11.5 3 8l1.2-1.2 2.3 2.3 5.3-5.3L13 5l-6.5 6.5z'/%3E%3C/svg%3E\");mask-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M6.5 11.5 3 8l1.2-1.2 2.3 2.3 5.3-5.3L13 5l-6.5 6.5z'/%3E%3C/svg%3E\");-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}"
+        ]
+      },
+      "table": {
+        "extras": [],
+        "css": [
+          ".t-tablewrap{overflow-x:auto}",
+          ".t-tablewrap:focus-visible{outline:2px solid #0077c2;outline-offset:2px}",
+          ".t-table{width:100%;border-collapse:collapse}",
+          ".t-table th,.t-table td{padding:8px;border:1px solid {{line}}}",
+          ".t-table--striped tbody tr:nth-child(even){background:#f8fafc}"
+        ]
+      },
+      "icon": {
+        "extras": [],
+        "css": [
+          ".t-icon{display:inline-block;line-height:0;vertical-align:middle}"
+        ]
+      }
+    }
+  },
+  "a5": {
+    "comment": "Phase 11 A5: carousel (A5.1) + chart (A5.3). Carousel: horizontal scroll-snap. Chart: static inline SVG (bar/line/area), width 100%, viewBox 600×300.",
+    "kinds": {
+      "carousel": {
+        "extras": [],
+        "css": [
+          ".t-carousel{-webkit-overflow-scrolling:touch}",
+          ".t-carousel:focus-visible{outline:2px solid #0077c2;outline-offset:2px}"
+        ]
+      },
+      "chart": {
+        "extras": [],
+        "css": [
+          ".t-chart{display:block;width:100%;line-height:0}",
+          ".t-chart svg{display:block;width:100%;height:auto}"
+        ]
+      },
+      "calendar": {
+        "extras": [],
+        "css": [
+          ".t-calendarwrap{display:block;width:100%}",
+          ".t-calendar{width:100%;border-collapse:collapse;table-layout:fixed;font-size:14px}",
+          ".t-calendar caption{caption-side:top;text-align:center;font-weight:600;padding:0.5rem 0}",
+          ".t-calendar th,.t-calendar td{text-align:center;padding:0.35rem 0.25rem;border:1px solid #e2e8f0}",
+          ".t-calendar th{font-weight:600;background:#f8fafc}",
+          ".t-calendar__day--selected{background:#dbeafe;font-weight:600}"
+        ]
+      }
+    }
+  }
+}

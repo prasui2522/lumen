@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "tables": [
+    {
+      "id": "t_users",
+      "name": "users",
+      "columns": [
+        {
+          "id": "u_id",
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": {
+            "kind": "uuid"
+          }
+        }
+      ],
+      "primaryKey": [
+        "u_id"
+      ],
+      "uniques": [],
+      "foreignKeys": []
+    },
+    {
+      "id": "t_teams",
+      "name": "teams",
+      "columns": [
+        {
+          "id": "t_id",
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": {
+            "kind": "uuid"
+          }
+        },
+        {
+          "id": "t_role",
+          "name": "role",
+          "type": "text",
+          "nullable": false
+        }
+      ],
+      "primaryKey": [
+        "t_id"
+      ],
+      "uniques": [
+        {
+          "id": "tu",
+          "columns": [
+            "t_role"
+          ]
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "id": "t_m",
+      "name": "memberships",
+      "columns": [
+        {
+          "id": "m_user",
+          "name": "user_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "id": "m_team",
+          "name": "team_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "id": "m_role",
+          "name": "role",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "id": "m_inv",
+          "name": "invited_by",
+          "type": "uuid",
+          "nullable": true
+        }
+      ],
+      "primaryKey": [
+        "m_user",
+        "m_team"
+      ],
+      "uniques": [
+        {
+          "id": "mu",
+          "columns": [
+            "m_role",
+            "m_inv"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": "f1",
+          "columns": [
+            "m_user"
+          ],
+          "refTableId": "t_users",
+          "refColumns": [
+            "u_id"
+          ],
+          "onDelete": "cascade"
+        },
+        {
+          "id": "f2",
+          "columns": [
+            "m_team"
+          ],
+          "refTableId": "t_teams",
+          "refColumns": [
+            "t_id"
+          ],
+          "onDelete": "cascade"
+        },
+        {
+          "id": "f3",
+          "columns": [
+            "m_inv"
+          ],
+          "refTableId": "t_users",
+          "refColumns": [
+            "u_id"
+          ],
+          "onDelete": "set_null"
+        },
+        {
+          "id": "f4",
+          "columns": [
+            "m_role"
+          ],
+          "refTableId": "t_teams",
+          "refColumns": [
+            "t_role"
+          ],
+          "onDelete": "restrict"
+        }
+      ]
+    }
+  ]
+}

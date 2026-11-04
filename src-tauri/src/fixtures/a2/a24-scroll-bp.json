@@ -1,0 +1,154 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "a24-scroll-bp",
+  "lang": "th"
+ },
+ "root": "root",
+ "nodes": {
+  "s1": {
+   "id": "s1",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [],
+    "orientation": "vertical"
+   },
+   "style": {
+    "height": 100,
+    "overflow": "hidden"
+   },
+   "name": "base hidden, tablet auto",
+   "styleBreakpoints": {
+    "tablet": {
+     "overflow": "auto"
+    }
+   }
+  },
+  "s2": {
+   "id": "s2",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [],
+    "orientation": "horizontal"
+   },
+   "style": {
+    "maxWidth": 200
+   },
+   "name": "auto, hidden, scroll",
+   "styleBreakpoints": {
+    "tablet": {
+     "overflow": "hidden"
+    },
+    "phone": {
+     "overflow": "scroll"
+    }
+   }
+  },
+  "s3": {
+   "id": "s3",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [],
+    "orientation": "both"
+   },
+   "style": {
+    "height": 100,
+    "overflow": "hidden"
+   },
+   "name": "both",
+   "styleBreakpoints": {
+    "tablet": {
+     "overflow": "auto"
+    }
+   }
+  },
+  "s4": {
+   "id": "s4",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [],
+    "orientation": "vertical"
+   },
+   "style": {
+    "height": 100
+   },
+   "name": "fold scroll",
+   "styleBreakpoints": {
+    "foldOpen": {
+     "overflow": "scroll"
+    }
+   }
+  },
+  "s5": {
+   "id": "s5",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [],
+    "orientation": "vertical"
+   },
+   "style": {
+    "height": 100
+   },
+   "name": "tablet visible",
+   "styleBreakpoints": {
+    "tablet": {
+     "overflow": "visible"
+    }
+   }
+  },
+  "s6": {
+   "id": "s6",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [],
+    "orientation": "vertical"
+   },
+   "style": {
+    "height": 100
+   },
+   "name": "control"
+  },
+  "s7": {
+   "id": "s7",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [],
+    "orientation": "horizontal"
+   },
+   "style": {
+    "height": 100,
+    "overflow": "hidden"
+   },
+   "name": "bp without overflow",
+   "styleBreakpoints": {
+    "tablet": {
+     "width": 300
+    }
+   }
+  },
+  "root": {
+   "id": "root",
+   "type": "page",
+   "props": {
+    "type": "page",
+    "children": [
+     "s1",
+     "s2",
+     "s3",
+     "s4",
+     "s5",
+     "s6",
+     "s7"
+    ]
+   },
+   "style": {}
+  }
+ }
+}

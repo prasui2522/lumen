@@ -1,0 +1,65 @@
+{
+  "version": 3,
+  "meta": {
+    "title": "a32",
+    "lang": "th"
+  },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": {
+        "type": "page",
+        "children": [
+          "s1",
+          "s2",
+          "s3",
+          "s4"
+        ]
+      },
+      "style": {}
+    },
+    "s1": {
+      "id": "s1",
+      "type": "switch",
+      "props": {
+        "type": "switch",
+        "label": "เปิดใช้",
+        "checked": true
+      },
+      "style": {}
+    },
+    "s2": {
+      "id": "s2",
+      "type": "switch",
+      "props": {
+        "type": "switch",
+        "label": "Checkbox",
+        "checked": false
+      },
+      "style": {}
+    },
+    "s3": {
+      "id": "s3",
+      "type": "switch",
+      "props": {
+        "type": "switch",
+        "label": "",
+        "checked": false
+      },
+      "style": {},
+      "name": "แจ้งเตือน"
+    },
+    "s4": {
+      "id": "s4",
+      "type": "switch",
+      "props": {
+        "type": "switch",
+        "label": " ",
+        "checked": true
+      },
+      "style": {}
+    }
+  }
+}

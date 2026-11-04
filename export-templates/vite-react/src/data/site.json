@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "meta": { "title": "ตัวอย่าง", "lang": "th" },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": { "type": "page", "children": ["h1", "tabs1", "dlg1"] },
+      "style": { "padding": 24 }
+    },
+    "h1": {
+      "id": "h1",
+      "type": "heading",
+      "props": { "type": "heading", "level": 1, "content": "สวัสดี Vite + TSX" },
+      "style": { "margin": { "b": 16 } }
+    },
+    "tabs1": {
+      "id": "tabs1",
+      "type": "tabs",
+      "props": {
+        "type": "tabs",
+        "active": 0,
+        "items": [
+          { "label": "แท็บ 1", "text": "เนื้อหาแท็บแรก" },
+          { "label": "แท็บ 2", "text": "เนื้อหาแท็บสอง" }
+        ]
+      },
+      "style": { "margin": { "b": 16 } }
+    },
+    "dlg1": {
+      "id": "dlg1",
+      "type": "dialog",
+      "props": {
+        "type": "dialog",
+        "title": "ตัวอย่าง Dialog",
+        "message": "เปิด-ปิดได้ด้วย React",
+        "open": false
+      },
+      "style": {}
+    }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "name": "หน้าแรก",
+      "path": "/",
+      "root": "root",
+      "nodes": {
+        "root": {
+          "id": "root",
+          "type": "page",
+          "props": { "type": "page", "children": ["h1", "tabs1", "dlg1", "toAbout"] },
+          "style": { "padding": 24 }
+        },
+        "h1": {
+          "id": "h1",
+          "type": "heading",
+          "props": { "type": "heading", "level": 1, "content": "สวัสดี Vite + TSX" },
+          "style": { "margin": { "b": 16 } }
+        },
+        "tabs1": {
+          "id": "tabs1",
+          "type": "tabs",
+          "props": {
+            "type": "tabs",
+            "active": 0,
+            "items": [
+              { "label": "แท็บ 1", "text": "เนื้อหาแท็บแรก" },
+              { "label": "แท็บ 2", "text": "เนื้อหาแท็บสอง" }
+            ]
+          },
+          "style": { "margin": { "b": 16 } }
+        },
+        "dlg1": {
+          "id": "dlg1",
+          "type": "dialog",
+          "props": {
+            "type": "dialog",
+            "title": "ตัวอย่าง Dialog",
+            "message": "เปิด-ปิดได้ด้วย React",
+            "open": false
+          },
+          "style": {}
+        },
+        "toAbout": {
+          "id": "toAbout",
+          "type": "link",
+          "props": { "type": "link", "label": "ไปหน้าเกี่ยวกับ", "href": "/about" },
+          "style": { "color": "#0284c7", "margin": { "t": 16 } }
+        }
+      }
+    },
+    {
+      "id": "about",
+      "name": "เกี่ยวกับ",
+      "path": "/about",
+      "root": "aroot",
+      "nodes": {
+        "aroot": {
+          "id": "aroot",
+          "type": "page",
+          "props": { "type": "page", "children": ["ah1", "home"] },
+          "style": { "padding": 24 }
+        },
+        "ah1": {
+          "id": "ah1",
+          "type": "heading",
+          "props": { "type": "heading", "level": 1, "content": "เกี่ยวกับ" },
+          "style": {}
+        },
+        "home": {
+          "id": "home",
+          "type": "link",
+          "props": { "type": "link", "label": "กลับหน้าแรก", "href": "/" },
+          "style": { "color": "#0284c7", "margin": { "t": 16 } }
+        }
+      }
+    }
+  ]
+}

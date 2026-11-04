@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "meta": { "title": "a34", "lang": "th" },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": { "type": "page", "children": ["s"] },
+      "style": {}
+    },
+    "s": {
+      "id": "s",
+      "type": "select",
+      "props": {
+        "type": "select",
+        "value": "A & B",
+        "options": ["A & B", "<C>", "ok"]
+      },
+      "style": {}
+    }
+  }
+}

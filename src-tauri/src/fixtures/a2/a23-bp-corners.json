@@ -1,0 +1,251 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "a23-bp-corners",
+  "lang": "th"
+ },
+ "root": "root",
+ "nodes": {
+  "g1": {
+   "id": "g1",
+   "type": "buttonGroup",
+   "props": {
+    "type": "buttonGroup",
+    "children": [
+     "b1",
+     "b2",
+     "b3"
+    ]
+   },
+   "style": {},
+   "name": "แถว"
+  },
+  "b1": {
+   "id": "b1",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "ก",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 8
+   },
+   "styleBreakpoints": {
+    "tablet": {
+     "borderRadius": 20
+    },
+    "phone": {
+     "borderRadius": 4
+    }
+   }
+  },
+  "b2": {
+   "id": "b2",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "ข",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 8
+   },
+   "styleBreakpoints": {
+    "tablet": {
+     "borderRadius": 20
+    },
+    "phone": {
+     "borderRadius": 4
+    },
+    "foldOpen": {
+     "borderRadius": 6
+    }
+   }
+  },
+  "b3": {
+   "id": "b3",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "ค",
+    "action": "none"
+   },
+   "style": {},
+   "styleBreakpoints": {
+    "tablet": {
+     "borderRadius": 20
+    }
+   }
+  },
+  "g2": {
+   "id": "g2",
+   "type": "buttonGroup",
+   "props": {
+    "type": "buttonGroup",
+    "children": [
+     "c1",
+     "c2",
+     "c3"
+    ],
+    "direction": "column"
+   },
+   "style": {},
+   "name": "คอลัมน์"
+  },
+  "c1": {
+   "id": "c1",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "หนึ่ง",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 8
+   }
+  },
+  "c2": {
+   "id": "c2",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "สอง",
+    "action": "none"
+   },
+   "style": {},
+   "styleBreakpoints": {
+    "tablet": {
+     "borderRadius": 12
+    }
+   }
+  },
+  "c3": {
+   "id": "c3",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "สาม",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 8
+   },
+   "styleBreakpoints": {
+    "tablet": {
+     "borderRadius": 0
+    }
+   }
+  },
+  "g3": {
+   "id": "g3",
+   "type": "buttonGroup",
+   "props": {
+    "type": "buttonGroup",
+    "children": [
+     "d1",
+     "d2",
+     "d3"
+    ]
+   },
+   "style": {},
+   "name": "ผสม"
+  },
+  "d1": {
+   "id": "d1",
+   "type": "badge",
+   "props": {
+    "type": "badge",
+    "label": "ป้าย"
+   },
+   "style": {
+    "borderRadius": 6
+   },
+   "styleBreakpoints": {
+    "phone": {
+     "borderRadius": 14
+    }
+   }
+  },
+  "d2": {
+   "id": "d2",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [],
+    "orientation": "vertical"
+   },
+   "style": {
+    "borderRadius": 6
+   },
+   "styleBreakpoints": {
+    "tablet": {
+     "borderRadius": 10
+    }
+   }
+  },
+  "d3": {
+   "id": "d3",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "ท้าย",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 6
+   },
+   "styleBreakpoints": {
+    "tablet": {
+     "borderRadius": 10
+    },
+    "phone": {
+     "borderRadius": 0
+    }
+   }
+  },
+  "g4": {
+   "id": "g4",
+   "type": "buttonGroup",
+   "props": {
+    "type": "buttonGroup",
+    "children": [
+     "e1"
+    ]
+   },
+   "style": {},
+   "name": "เดี่ยว"
+  },
+  "e1": {
+   "id": "e1",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "เดี่ยว",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 8
+   },
+   "styleBreakpoints": {
+    "tablet": {
+     "borderRadius": 20
+    }
+   }
+  },
+  "root": {
+   "id": "root",
+   "type": "page",
+   "props": {
+    "type": "page",
+    "children": [
+     "g1",
+     "g2",
+     "g3",
+     "g4"
+    ]
+   },
+   "style": {}
+  }
+ }
+}

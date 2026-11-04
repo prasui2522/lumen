@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "tables": [
+    {
+      "id": "t_emp",
+      "name": "employees",
+      "label": "พนักงาน",
+      "columns": [
+        {
+          "id": "e_id",
+          "name": "id",
+          "type": "identity",
+          "nullable": false
+        },
+        {
+          "id": "e_name",
+          "name": "name",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "id": "e_mgr",
+          "name": "manager_id",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "id": "e_mentor",
+          "name": "mentor_id",
+          "type": "integer",
+          "nullable": true
+        }
+      ],
+      "primaryKey": [
+        "e_id"
+      ],
+      "uniques": [],
+      "foreignKeys": [
+        {
+          "id": "f1",
+          "columns": [
+            "e_mgr"
+          ],
+          "refTableId": "t_emp",
+          "refColumns": [
+            "e_id"
+          ],
+          "onDelete": "set_null"
+        },
+        {
+          "id": "f2",
+          "columns": [
+            "e_mentor"
+          ],
+          "refTableId": "t_emp",
+          "refColumns": [
+            "e_id"
+          ],
+          "onDelete": "no_action"
+        }
+      ]
+    }
+  ]
+}

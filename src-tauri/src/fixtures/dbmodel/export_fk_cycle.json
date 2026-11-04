@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "tables": [
+    {
+      "id": "t_people",
+      "name": "people",
+      "columns": [
+        {
+          "id": "pp_id",
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": {
+            "kind": "uuid"
+          }
+        },
+        {
+          "id": "pp_email",
+          "name": "email",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "id": "pp_dept",
+          "name": "department_id",
+          "type": "uuid",
+          "nullable": true
+        }
+      ],
+      "primaryKey": [
+        "pp_id"
+      ],
+      "uniques": [
+        {
+          "id": "u1",
+          "columns": [
+            "pp_email"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": "f1",
+          "columns": [
+            "pp_dept"
+          ],
+          "refTableId": "t_depts",
+          "refColumns": [
+            "d_id"
+          ],
+          "onDelete": "set_null"
+        }
+      ]
+    },
+    {
+      "id": "t_depts",
+      "name": "departments",
+      "columns": [
+        {
+          "id": "d_id",
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": {
+            "kind": "uuid"
+          }
+        },
+        {
+          "id": "d_head",
+          "name": "head_id",
+          "type": "uuid",
+          "nullable": false
+        }
+      ],
+      "primaryKey": [
+        "d_id"
+      ],
+      "uniques": [],
+      "foreignKeys": [
+        {
+          "id": "f2",
+          "columns": [
+            "d_head"
+          ],
+          "refTableId": "t_people",
+          "refColumns": [
+            "pp_id"
+          ],
+          "onDelete": "restrict"
+        }
+      ]
+    },
+    {
+      "id": "t_inv",
+      "name": "invites",
+      "columns": [
+        {
+          "id": "i_id",
+          "name": "id",
+          "type": "identity",
+          "nullable": false
+        },
+        {
+          "id": "i_email",
+          "name": "email",
+          "type": "text",
+          "nullable": false
+        }
+      ],
+      "primaryKey": [
+        "i_id"
+      ],
+      "uniques": [],
+      "foreignKeys": [
+        {
+          "id": "f3",
+          "columns": [
+            "i_email"
+          ],
+          "refTableId": "t_people",
+          "refColumns": [
+            "pp_email"
+          ],
+          "onDelete": "cascade"
+        },
+        {
+          "id": "f4",
+          "columns": [
+            "i_email"
+          ],
+          "refTableId": "t_people",
+          "refColumns": [
+            "pp_email"
+          ],
+          "onDelete": "no_action"
+        }
+      ]
+    }
+  ]
+}

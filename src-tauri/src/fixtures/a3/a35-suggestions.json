@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "meta": { "title": "a35", "lang": "th" },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": { "type": "page", "children": ["a", "b", "c"] },
+      "style": {}
+    },
+    "a": {
+      "id": "a",
+      "type": "input",
+      "props": {
+        "type": "input",
+        "label": "",
+        "placeholder": "เมือง",
+        "suggestions": ["กรุงเทพ", "A & B", "<C>"]
+      },
+      "style": {}
+    },
+    "b": {
+      "id": "b",
+      "type": "input",
+      "props": {
+        "type": "input",
+        "label": "ชื่อ",
+        "placeholder": "",
+        "suggestions": ["หนึ่ง", "สอง"]
+      },
+      "style": {}
+    },
+    "c": {
+      "id": "c",
+      "type": "input",
+      "props": { "type": "input", "label": "", "placeholder": "ว่าง" },
+      "style": {}
+    }
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "tables": [
+    {
+      "id": "t_values",
+      "name": "values",
+      "label": "ค่า",
+      "columns": [
+        {
+          "id": "v_id",
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": {
+            "kind": "uuid"
+          }
+        },
+        {
+          "id": "v_pos",
+          "name": "position",
+          "type": "integer",
+          "nullable": true,
+          "default": {
+            "kind": "literal",
+            "value": "+5"
+          }
+        },
+        {
+          "id": "v_time",
+          "name": "time",
+          "type": "timestamptz",
+          "nullable": true
+        },
+        {
+          "id": "v_json",
+          "name": "json",
+          "type": "json",
+          "nullable": true
+        },
+        {
+          "id": "v_between",
+          "name": "between",
+          "type": "enum",
+          "nullable": true,
+          "values": [
+            "a",
+            "b"
+          ],
+          "label": "ช่วง"
+        }
+      ],
+      "primaryKey": [
+        "v_id"
+      ],
+      "uniques": [
+        {
+          "id": "u1",
+          "columns": [
+            "v_pos",
+            "v_time"
+          ]
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "id": "t_row",
+      "name": "row",
+      "columns": [
+        {
+          "id": "r_id",
+          "name": "id",
+          "type": "identity",
+          "nullable": false
+        },
+        {
+          "id": "r_v",
+          "name": "values_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "id": "r_int",
+          "name": "integer",
+          "type": "integer",
+          "nullable": true,
+          "default": {
+            "kind": "literal",
+            "value": "007"
+          }
+        }
+      ],
+      "primaryKey": [
+        "r_id"
+      ],
+      "uniques": [],
+      "foreignKeys": [
+        {
+          "id": "f1",
+          "columns": [
+            "r_v"
+          ],
+          "refTableId": "t_values",
+          "refColumns": [
+            "v_id"
+          ],
+          "onDelete": "set_null"
+        }
+      ]
+    }
+  ]
+}

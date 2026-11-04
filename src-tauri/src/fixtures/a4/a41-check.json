@@ -1,0 +1,24 @@
+{
+  "version": 4,
+  "meta": { "title": "a41-check", "lang": "th" },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": { "type": "page", "children": ["l1"] },
+      "style": {}
+    },
+    "l1": {
+      "id": "l1",
+      "type": "list",
+      "props": {
+        "type": "list",
+        "items": ["หนึ่ง", "สอง", "สาม"],
+        "ordered": false,
+        "marker": "check"
+      },
+      "style": {}
+    }
+  }
+}

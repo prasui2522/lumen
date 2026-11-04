@@ -1,0 +1,107 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "a23b-default",
+  "lang": "th"
+ },
+ "root": "root",
+ "nodes": {
+  "root": {
+   "id": "root",
+   "type": "page",
+   "props": {
+    "children": [
+     "bd",
+     "bd0",
+     "sa",
+     "sa2",
+     "sa3"
+    ],
+    "type": "page"
+   },
+   "style": {}
+  },
+  "bd": {
+   "id": "bd",
+   "type": "badge",
+   "props": {
+    "label": "ใหม่",
+    "type": "badge"
+   },
+   "style": {}
+  },
+  "bd0": {
+   "id": "bd0",
+   "type": "badge",
+   "props": {
+    "label": "",
+    "type": "badge"
+   },
+   "style": {}
+  },
+  "sa": {
+   "id": "sa",
+   "type": "scrollArea",
+   "props": {
+    "children": [
+     "t1",
+     "t2"
+    ],
+    "orientation": "vertical",
+    "label": "รายการเลื่อน",
+    "type": "scrollArea"
+   },
+   "style": {}
+  },
+  "t1": {
+   "id": "t1",
+   "type": "text",
+   "props": {
+    "content": "หนึ่ง",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "t2": {
+   "id": "t2",
+   "type": "text",
+   "props": {
+    "content": "สอง",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "sa2": {
+   "id": "sa2",
+   "type": "scrollArea",
+   "props": {
+    "children": [
+     "t3"
+    ],
+    "orientation": "horizontal",
+    "type": "scrollArea"
+   },
+   "style": {},
+   "name": "พื้นที่เลื่อนแนวนอน"
+  },
+  "t3": {
+   "id": "t3",
+   "type": "text",
+   "props": {
+    "content": "แนวนอน",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "sa3": {
+   "id": "sa3",
+   "type": "scrollArea",
+   "props": {
+    "children": [],
+    "orientation": "both",
+    "type": "scrollArea"
+   },
+   "style": {}
+  }
+ }
+}

@@ -1,0 +1,471 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "baseline",
+  "lang": "th",
+  "description": ""
+ },
+ "root": "page",
+ "nodes": {
+  "page": {
+   "id": "page",
+   "type": "page",
+   "name": "Page",
+   "props": {
+    "type": "page",
+    "children": [
+     "k-button",
+     "k-link",
+     "k-input",
+     "k-switch",
+     "k-textarea",
+     "k-kbd",
+     "k-avatar",
+     "k-progress",
+     "k-slider",
+     "k-empty",
+     "k-item",
+     "k-marker",
+     "k-bubble",
+     "k-message",
+     "k-select",
+     "k-radio",
+     "k-toggle",
+     "k-toggleGroup",
+     "k-tabs",
+     "k-inputGroup",
+     "k-inputOtp",
+     "k-accordion",
+     "k-collapsible",
+     "k-breadcrumb",
+     "k-pagination",
+     "k-navigationMenu",
+     "k-menubar",
+     "k-dropdownMenu",
+     "k-dialog",
+     "k-alertDialog",
+     "k-sheet",
+     "k-drawer",
+     "k-popover",
+     "k-tooltip",
+     "k-hoverCard"
+    ]
+   },
+   "style": {}
+  },
+  "k-button": {
+   "id": "k-button",
+   "type": "button",
+   "style": {},
+   "props": {
+    "type": "button",
+    "label": "ปุ่ม"
+   }
+  },
+  "k-link": {
+   "id": "k-link",
+   "type": "link",
+   "style": {},
+   "props": {
+    "type": "link",
+    "label": "ลิงก์",
+    "href": "#"
+   }
+  },
+  "k-input": {
+   "id": "k-input",
+   "type": "input",
+   "style": {},
+   "props": {
+    "type": "input",
+    "label": "",
+    "placeholder": "พิมพ์ที่นี่"
+   }
+  },
+  "k-switch": {
+   "id": "k-switch",
+   "type": "switch",
+   "style": {},
+   "props": {
+    "type": "switch",
+    "label": "Checkbox",
+    "checked": false
+   }
+  },
+  "k-textarea": {
+   "id": "k-textarea",
+   "type": "textarea",
+   "style": {},
+   "props": {
+    "type": "textarea",
+    "label": "",
+    "placeholder": "Type here"
+   }
+  },
+  "k-kbd": {
+   "id": "k-kbd",
+   "type": "kbd",
+   "style": {},
+   "props": {
+    "type": "kbd",
+    "text": "Kbd"
+   }
+  },
+  "k-avatar": {
+   "id": "k-avatar",
+   "type": "avatar",
+   "style": {},
+   "props": {
+    "type": "avatar",
+    "src": {
+     "id": ""
+    },
+    "fallback": "A"
+   }
+  },
+  "k-progress": {
+   "id": "k-progress",
+   "type": "progress",
+   "style": {},
+   "props": {
+    "type": "progress",
+    "value": 40
+   }
+  },
+  "k-slider": {
+   "id": "k-slider",
+   "type": "slider",
+   "style": {},
+   "props": {
+    "type": "slider",
+    "value": 40
+   }
+  },
+  "k-empty": {
+   "id": "k-empty",
+   "type": "empty",
+   "style": {},
+   "props": {
+    "type": "empty",
+    "title": "Empty",
+    "message": "Nothing here"
+   }
+  },
+  "k-item": {
+   "id": "k-item",
+   "type": "item",
+   "style": {},
+   "props": {
+    "type": "item",
+    "title": "Item",
+    "description": "Description"
+   }
+  },
+  "k-marker": {
+   "id": "k-marker",
+   "type": "marker",
+   "style": {},
+   "props": {
+    "type": "marker",
+    "text": "Marker"
+   }
+  },
+  "k-bubble": {
+   "id": "k-bubble",
+   "type": "bubble",
+   "style": {},
+   "props": {
+    "type": "bubble",
+    "text": "Message",
+    "align": "start"
+   }
+  },
+  "k-message": {
+   "id": "k-message",
+   "type": "message",
+   "style": {},
+   "props": {
+    "type": "message",
+    "sender": "Name",
+    "text": "Message",
+    "align": "start"
+   }
+  },
+  "k-select": {
+   "id": "k-select",
+   "type": "select",
+   "style": {},
+   "props": {
+    "type": "select",
+    "value": "One",
+    "options": [
+     "One",
+     "Two"
+    ]
+   }
+  },
+  "k-radio": {
+   "id": "k-radio",
+   "type": "radio",
+   "style": {},
+   "props": {
+    "type": "radio",
+    "value": "One",
+    "options": [
+     "One",
+     "Two"
+    ]
+   }
+  },
+  "k-toggle": {
+   "id": "k-toggle",
+   "type": "toggle",
+   "style": {},
+   "props": {
+    "type": "toggle",
+    "label": "Toggle",
+    "pressed": false
+   }
+  },
+  "k-toggleGroup": {
+   "id": "k-toggleGroup",
+   "type": "toggleGroup",
+   "style": {},
+   "props": {
+    "type": "toggleGroup",
+    "active": 0,
+    "items": [
+     "One",
+     "Two"
+    ]
+   }
+  },
+  "k-tabs": {
+   "id": "k-tabs",
+   "type": "tabs",
+   "style": {},
+   "props": {
+    "type": "tabs",
+    "active": 0,
+    "items": [
+     {
+      "label": "Tab 1",
+      "text": "One"
+     },
+     {
+      "label": "Tab 2",
+      "text": "Two"
+     }
+    ]
+   }
+  },
+  "k-inputGroup": {
+   "id": "k-inputGroup",
+   "type": "inputGroup",
+   "style": {},
+   "props": {
+    "type": "inputGroup",
+    "prefix": "",
+    "placeholder": "Type here",
+    "suffix": ""
+   }
+  },
+  "k-inputOtp": {
+   "id": "k-inputOtp",
+   "type": "inputOtp",
+   "style": {},
+   "props": {
+    "type": "inputOtp",
+    "length": 6,
+    "value": ""
+   }
+  },
+  "k-accordion": {
+   "id": "k-accordion",
+   "type": "accordion",
+   "style": {},
+   "props": {
+    "type": "accordion",
+    "open": 0,
+    "items": [
+     {
+      "label": "One",
+      "text": "Content"
+     },
+     {
+      "label": "Two",
+      "text": "Content"
+     }
+    ]
+   }
+  },
+  "k-collapsible": {
+   "id": "k-collapsible",
+   "type": "collapsible",
+   "style": {},
+   "props": {
+    "type": "collapsible",
+    "label": "Details",
+    "text": "Content",
+    "open": true
+   }
+  },
+  "k-breadcrumb": {
+   "id": "k-breadcrumb",
+   "type": "breadcrumb",
+   "style": {},
+   "props": {
+    "type": "breadcrumb",
+    "items": [
+     {
+      "label": "Home",
+      "href": ""
+     },
+     {
+      "label": "Page",
+      "href": ""
+     }
+    ]
+   }
+  },
+  "k-pagination": {
+   "id": "k-pagination",
+   "type": "pagination",
+   "style": {},
+   "props": {
+    "type": "pagination",
+    "active": 0,
+    "items": [
+     "1",
+     "2",
+     "3"
+    ]
+   }
+  },
+  "k-navigationMenu": {
+   "id": "k-navigationMenu",
+   "type": "navigationMenu",
+   "style": {},
+   "props": {
+    "type": "navigationMenu",
+    "items": [
+     {
+      "label": "Home",
+      "href": ""
+     },
+     {
+      "label": "Page",
+      "href": ""
+     }
+    ]
+   }
+  },
+  "k-menubar": {
+   "id": "k-menubar",
+   "type": "menubar",
+   "style": {},
+   "props": {
+    "type": "menubar",
+    "items": [
+     {
+      "label": "File",
+      "text": "Content"
+     },
+     {
+      "label": "Edit",
+      "text": "Content"
+     }
+    ]
+   }
+  },
+  "k-dropdownMenu": {
+   "id": "k-dropdownMenu",
+   "type": "dropdownMenu",
+   "style": {},
+   "props": {
+    "type": "dropdownMenu",
+    "label": "Menu",
+    "items": [
+     "One",
+     "Two"
+    ]
+   }
+  },
+  "k-dialog": {
+   "id": "k-dialog",
+   "type": "dialog",
+   "style": {},
+   "props": {
+    "type": "dialog",
+    "title": "Dialog",
+    "message": "Note",
+    "open": true
+   }
+  },
+  "k-alertDialog": {
+   "id": "k-alertDialog",
+   "type": "alertDialog",
+   "style": {},
+   "props": {
+    "type": "alertDialog",
+    "title": "Alert",
+    "message": "Note",
+    "confirm": "OK",
+    "cancel": "Cancel"
+   }
+  },
+  "k-sheet": {
+   "id": "k-sheet",
+   "type": "sheet",
+   "style": {},
+   "props": {
+    "type": "sheet",
+    "title": "Sheet",
+    "message": "Note",
+    "side": "right",
+    "open": true
+   }
+  },
+  "k-drawer": {
+   "id": "k-drawer",
+   "type": "drawer",
+   "style": {},
+   "props": {
+    "type": "drawer",
+    "title": "Drawer",
+    "message": "Note",
+    "open": true
+   }
+  },
+  "k-popover": {
+   "id": "k-popover",
+   "type": "popover",
+   "style": {},
+   "props": {
+    "type": "popover",
+    "label": "Open",
+    "text": "Note"
+   }
+  },
+  "k-tooltip": {
+   "id": "k-tooltip",
+   "type": "tooltip",
+   "style": {},
+   "props": {
+    "type": "tooltip",
+    "label": "Tip",
+    "tip": "More"
+   }
+  },
+  "k-hoverCard": {
+   "id": "k-hoverCard",
+   "type": "hoverCard",
+   "style": {},
+   "props": {
+    "type": "hoverCard",
+    "title": "Title",
+    "text": "Details"
+   }
+  }
+ }
+}

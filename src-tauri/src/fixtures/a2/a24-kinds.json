@@ -1,0 +1,457 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "a24-kinds",
+  "lang": "th"
+ },
+ "root": "root",
+ "nodes": {
+  "g1": {
+   "id": "g1",
+   "type": "buttonGroup",
+   "props": {
+    "type": "buttonGroup",
+    "children": [
+     "b1",
+     "b2",
+     "b3"
+    ]
+   },
+   "style": {},
+   "name": "สามปุ่ม"
+  },
+  "b1": {
+   "id": "b1",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "หนึ่ง",
+    "action": "none"
+   },
+   "style": {}
+  },
+  "b2": {
+   "id": "b2",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "สอง",
+    "action": "none"
+   },
+   "style": {}
+  },
+  "b3": {
+   "id": "b3",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "สาม",
+    "action": "none"
+   },
+   "style": {}
+  },
+  "g2": {
+   "id": "g2",
+   "type": "buttonGroup",
+   "props": {
+    "type": "buttonGroup",
+    "children": [
+     "r1",
+     "r2",
+     "r3"
+    ]
+   },
+   "style": {},
+   "name": "รัศมี 20"
+  },
+  "r1": {
+   "id": "r1",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "ซ้าย",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 20
+   }
+  },
+  "r2": {
+   "id": "r2",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "กลาง",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 20
+   }
+  },
+  "r3": {
+   "id": "r3",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "ขวา",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 20
+   }
+  },
+  "g3": {
+   "id": "g3",
+   "type": "buttonGroup",
+   "props": {
+    "type": "buttonGroup",
+    "children": [
+     "c1",
+     "c2",
+     "c3"
+    ],
+    "direction": "column"
+   },
+   "style": {},
+   "name": "คอลัมน์"
+  },
+  "c1": {
+   "id": "c1",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "บน",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 20
+   }
+  },
+  "c2": {
+   "id": "c2",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "กลาง",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 20
+   }
+  },
+  "c3": {
+   "id": "c3",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "ล่าง",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 20
+   }
+  },
+  "g4": {
+   "id": "g4",
+   "type": "buttonGroup",
+   "props": {
+    "type": "buttonGroup",
+    "children": [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   },
+   "style": {},
+   "name": "กลางไม่กลม"
+  },
+  "m1": {
+   "id": "m1",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "ก",
+    "action": "none"
+   },
+   "style": {}
+  },
+  "m2": {
+   "id": "m2",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "ข",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 20
+   }
+  },
+  "m3": {
+   "id": "m3",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "ค",
+    "action": "none"
+   },
+   "style": {}
+  },
+  "g5": {
+   "id": "g5",
+   "type": "buttonGroup",
+   "props": {
+    "type": "buttonGroup",
+    "children": [
+     "o1"
+    ]
+   },
+   "style": {},
+   "name": "เดี่ยว"
+  },
+  "o1": {
+   "id": "o1",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "เดี่ยว",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 20
+   }
+  },
+  "sk1": {
+   "id": "sk1",
+   "type": "skeleton",
+   "props": {
+    "type": "skeleton"
+   },
+   "style": {}
+  },
+  "sk2": {
+   "id": "sk2",
+   "type": "skeleton",
+   "props": {
+    "type": "skeleton"
+   },
+   "style": {
+    "width": 200,
+    "height": 32,
+    "borderRadius": 16
+   }
+  },
+  "sp1": {
+   "id": "sp1",
+   "type": "spinner",
+   "props": {
+    "type": "spinner",
+    "size": 24
+   },
+   "style": {}
+  },
+  "sp2": {
+   "id": "sp2",
+   "type": "spinner",
+   "props": {
+    "type": "spinner",
+    "size": 32
+   },
+   "style": {},
+   "name": "กำลังบันทึก"
+  },
+  "ar0": {
+   "id": "ar0",
+   "type": "aspectRatio",
+   "props": {
+    "type": "aspectRatio",
+    "children": [
+     "art0"
+    ],
+    "ratio": "16/9"
+   },
+   "style": {}
+  },
+  "art0": {
+   "id": "art0",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "16/9"
+   },
+   "style": {}
+  },
+  "ar1": {
+   "id": "ar1",
+   "type": "aspectRatio",
+   "props": {
+    "type": "aspectRatio",
+    "children": [
+     "art1"
+    ],
+    "ratio": "4/3"
+   },
+   "style": {}
+  },
+  "art1": {
+   "id": "art1",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "4/3"
+   },
+   "style": {}
+  },
+  "ar2": {
+   "id": "ar2",
+   "type": "aspectRatio",
+   "props": {
+    "type": "aspectRatio",
+    "children": [
+     "art2"
+    ],
+    "ratio": "1/1"
+   },
+   "style": {}
+  },
+  "art2": {
+   "id": "art2",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "1/1"
+   },
+   "style": {}
+  },
+  "ar3": {
+   "id": "ar3",
+   "type": "aspectRatio",
+   "props": {
+    "type": "aspectRatio",
+    "children": [
+     "art3"
+    ],
+    "ratio": "3/2"
+   },
+   "style": {}
+  },
+  "art3": {
+   "id": "art3",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "3/2"
+   },
+   "style": {}
+  },
+  "ar4": {
+   "id": "ar4",
+   "type": "aspectRatio",
+   "props": {
+    "type": "aspectRatio",
+    "children": [
+     "art4"
+    ],
+    "ratio": "21/9"
+   },
+   "style": {}
+  },
+  "art4": {
+   "id": "art4",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "21/9"
+   },
+   "style": {}
+  },
+  "sa1": {
+   "id": "sa1",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [
+     "sat1"
+    ],
+    "orientation": "vertical",
+    "label": "รายการ"
+   },
+   "style": {
+    "height": 120
+   }
+  },
+  "sat1": {
+   "id": "sat1",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "เนื้อหายาว"
+   },
+   "style": {}
+  },
+  "sa2": {
+   "id": "sa2",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [
+     "sat2"
+    ],
+    "orientation": "horizontal"
+   },
+   "style": {
+    "maxWidth": 240
+   },
+   "name": "แถบเลื่อน"
+  },
+  "sat2": {
+   "id": "sat2",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "กว้าง"
+   },
+   "style": {}
+  },
+  "sa3": {
+   "id": "sa3",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [],
+    "orientation": "both"
+   },
+   "style": {
+    "height": 80,
+    "maxWidth": 160
+   }
+  },
+  "root": {
+   "id": "root",
+   "type": "page",
+   "props": {
+    "type": "page",
+    "children": [
+     "g1",
+     "g2",
+     "g3",
+     "g4",
+     "g5",
+     "sk1",
+     "sk2",
+     "sp1",
+     "sp2",
+     "ar0",
+     "ar1",
+     "ar2",
+     "ar3",
+     "ar4",
+     "sa1",
+     "sa2",
+     "sa3"
+    ]
+   },
+   "style": {}
+  }
+ }
+}

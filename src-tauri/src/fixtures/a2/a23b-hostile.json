@@ -1,0 +1,120 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "a23b-hostile",
+  "lang": "th"
+ },
+ "root": "root",
+ "nodes": {
+  "root": {
+   "id": "root",
+   "type": "page",
+   "props": {
+    "children": [
+     "bd1",
+     "bd2",
+     "bd3",
+     "sa1",
+     "sa2"
+    ],
+    "type": "page"
+   },
+   "style": {}
+  },
+  "bd1": {
+   "id": "bd1",
+   "type": "badge",
+   "props": {
+    "label": "</style><b onload=x>",
+    "type": "badge"
+   },
+   "style": {
+    "backgroundColor": "red;}</style><script>",
+    "color": "url(https://evil.test/x.png)"
+   },
+   "name": "\"><script>alert(1)</script>"
+  },
+  "bd2": {
+   "id": "bd2",
+   "type": "badge",
+   "props": {
+    "label": "a&b 'q' \"x\"",
+    "type": "badge"
+   },
+   "style": {
+    "padding": {
+     "t": 2,
+     "r": 6.5,
+     "b": 2,
+     "l": 10
+    },
+    "borderColor": "expression(alert(1))",
+    "borderWidth": 1
+   },
+   "name": "a&b 'q' \"x\""
+  },
+  "bd3": {
+   "id": "bd3",
+   "type": "badge",
+   "props": {
+    "label": "‮กลับ\u0000ศูนย์",
+    "type": "badge"
+   },
+   "style": {
+    "fontFamily": "Arial;}</style>"
+   }
+  },
+  "sa1": {
+   "id": "sa1",
+   "type": "scrollArea",
+   "props": {
+    "children": [
+     "t1"
+    ],
+    "orientation": "vertical",
+    "label": "</style><b onload=x>",
+    "type": "scrollArea"
+   },
+   "style": {
+    "backgroundColor": "linear-gradient(#fff,#000)",
+    "height": "60px;}x{y:z"
+   },
+   "name": "\"><script>alert(1)</script>"
+  },
+  "t1": {
+   "id": "t1",
+   "type": "text",
+   "props": {
+    "content": "a&b 'q' \"x\"",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "sa2": {
+   "id": "sa2",
+   "type": "scrollArea",
+   "props": {
+    "children": [
+     "t2"
+    ],
+    "orientation": "horizontal",
+    "label": "\"onfocus=\"x",
+    "type": "scrollArea"
+   },
+   "style": {
+    "overflow": "auto;}</style>",
+    "maxWidth": "url(x)"
+   },
+   "name": "a&b 'q' \"x\""
+  },
+  "t2": {
+   "id": "t2",
+   "type": "text",
+   "props": {
+    "content": "\"><script>alert(1)</script>",
+    "type": "text"
+   },
+   "style": {}
+  }
+ }
+}

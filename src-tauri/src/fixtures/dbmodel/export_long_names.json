@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "tables": [
+    {
+      "id": "t_long",
+      "name": "aaaaaaaaaaaaaaaaaaaa_very_long_table_name_for_truncation_xxxxxx",
+      "columns": [
+        {
+          "id": "l_id",
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": {
+            "kind": "uuid"
+          }
+        },
+        {
+          "id": "l_c",
+          "name": "cccccccccccccccccccccccccccccc_very_long_column_name_yyyyyyyyyy",
+          "type": "enum",
+          "nullable": false,
+          "values": [
+            "x",
+            "y"
+          ]
+        },
+        {
+          "id": "l_a",
+          "name": "a",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "id": "l_b",
+          "name": "b",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "id": "l_ab",
+          "name": "a_b",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "id": "l_ref",
+          "name": "ref_id",
+          "type": "uuid",
+          "nullable": true
+        }
+      ],
+      "primaryKey": [
+        "l_id"
+      ],
+      "uniques": [
+        {
+          "id": "u1",
+          "columns": [
+            "l_c"
+          ]
+        },
+        {
+          "id": "u2",
+          "columns": [
+            "l_a",
+            "l_b"
+          ]
+        },
+        {
+          "id": "u3",
+          "columns": [
+            "l_ab"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": "f1",
+          "columns": [
+            "l_ref"
+          ],
+          "refTableId": "t_long",
+          "refColumns": [
+            "l_id"
+          ],
+          "onDelete": "cascade"
+        }
+      ]
+    }
+  ]
+}

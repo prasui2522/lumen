@@ -1,0 +1,138 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "f2-responsive",
+  "lang": "th"
+ },
+ "root": "root",
+ "nodes": {
+  "root": {
+   "id": "root",
+   "type": "page",
+   "props": {
+    "type": "page",
+    "children": [
+     "h",
+     "t",
+     "box",
+     "bt"
+    ]
+   },
+   "style": {}
+  },
+  "h": {
+   "id": "h",
+   "type": "heading",
+   "props": {
+    "type": "heading",
+    "level": 1,
+    "content": "หัวเรื่องปรับขนาด"
+   },
+   "style": {
+    "fontSize": 40,
+    "color": "#111111"
+   },
+   "styleBreakpoints": {
+    "tablet": {
+     "fontSize": 28
+    },
+    "phone": {
+     "fontSize": 20,
+     "color": "#b00020"
+    }
+   }
+  },
+  "t": {
+   "id": "t",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "ข้อความจัดแนว"
+   },
+   "style": {
+    "padding": 8,
+    "textAlign": "left"
+   },
+   "styleBreakpoints": {
+    "tablet": {
+     "textAlign": "center",
+     "padding": 16
+    },
+    "phone": {
+     "textAlign": "right"
+    }
+   }
+  },
+  "box": {
+   "id": "box",
+   "type": "container",
+   "props": {
+    "type": "container",
+    "children": [
+     "t2"
+    ],
+    "direction": "column",
+    "gap": 8
+   },
+   "style": {
+    "backgroundColor": "#eeeeff",
+    "padding": 4
+   },
+   "styleBreakpoints": {
+    "tablet": {
+     "padding": 24,
+     "backgroundColor": "#ddddee"
+    },
+    "phone": {
+     "width": "50%"
+    },
+    "foldOpen": {
+     "opacity": 0.5
+    }
+   }
+  },
+  "t2": {
+   "id": "t2",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "ข้อความในกล่อง"
+   },
+   "style": {
+    "margin": 2
+   },
+   "styleBreakpoints": {
+    "phone": {
+     "margin": {
+      "t": 10,
+      "r": 0,
+      "b": 10,
+      "l": 0
+     }
+    }
+   }
+  },
+  "bt": {
+   "id": "bt",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "ปุ่มตอบสนอง",
+    "action": "none"
+   },
+   "style": {
+    "borderRadius": 8,
+    "fontSize": 16
+   },
+   "styleBreakpoints": {
+    "tablet": {
+     "fontSize": 18
+    },
+    "phone": {
+     "borderRadius": 2,
+     "backgroundColor": "#00aa00"
+    }
+   }
+  }
+ }
+}

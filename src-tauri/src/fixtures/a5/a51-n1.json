@@ -1,0 +1,40 @@
+{
+  "version": 4,
+  "meta": { "title": "a51-n1", "lang": "th" },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": { "type": "page", "children": ["c1"] },
+      "style": {}
+    },
+    "c1": {
+      "id": "c1",
+      "type": "carousel",
+      "props": {
+        "type": "carousel",
+        "children": ["s1", "s2", "s3"]
+      },
+      "style": {}
+    },
+    "s1": {
+      "id": "s1",
+      "type": "text",
+      "props": { "type": "text", "content": "One" },
+      "style": {}
+    },
+    "s2": {
+      "id": "s2",
+      "type": "text",
+      "props": { "type": "text", "content": "Two" },
+      "style": {}
+    },
+    "s3": {
+      "id": "s3",
+      "type": "text",
+      "props": { "type": "text", "content": "Three" },
+      "style": {}
+    }
+  }
+}

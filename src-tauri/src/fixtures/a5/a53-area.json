@@ -1,0 +1,20 @@
+{
+  "kind": "area",
+  "categories": [
+    "Q1",
+    "Q2",
+    "Q3"
+  ],
+  "series": [
+    {
+      "name": "รายได้",
+      "values": [
+        10,
+        14,
+        12
+      ],
+      "color": "#2563eb"
+    }
+  ],
+  "caption": "พื้นที่"
+}

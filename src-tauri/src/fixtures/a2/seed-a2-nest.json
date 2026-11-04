@@ -1,0 +1,166 @@
+{
+  "version": 4,
+  "meta": {
+    "title": "seed-a2-nest"
+  },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": {
+        "type": "page",
+        "children": [
+          "sec",
+          "grp",
+          "dangle-card"
+        ]
+      },
+      "style": {}
+    },
+    "sec": {
+      "id": "sec",
+      "type": "section",
+      "props": {
+        "type": "section",
+        "children": [
+          "card1"
+        ]
+      },
+      "style": {}
+    },
+    "card1": {
+      "id": "card1",
+      "type": "card",
+      "props": {
+        "type": "card",
+        "children": [
+          "alert1",
+          "txt1"
+        ],
+        "gap": 4
+      },
+      "style": {}
+    },
+    "alert1": {
+      "id": "alert1",
+      "type": "alert",
+      "props": {
+        "type": "alert",
+        "children": [
+          "ratio1"
+        ]
+      },
+      "style": {}
+    },
+    "ratio1": {
+      "id": "ratio1",
+      "type": "aspectRatio",
+      "props": {
+        "type": "aspectRatio",
+        "children": [
+          "scroll1"
+        ],
+        "ratio": "16/9"
+      },
+      "style": {}
+    },
+    "scroll1": {
+      "id": "scroll1",
+      "type": "scrollArea",
+      "props": {
+        "type": "scrollArea",
+        "children": [
+          "btns"
+        ],
+        "orientation": "vertical",
+        "label": "รายการ"
+      },
+      "style": {}
+    },
+    "btns": {
+      "id": "btns",
+      "type": "buttonGroup",
+      "props": {
+        "type": "buttonGroup",
+        "children": [
+          "b1",
+          "b2"
+        ],
+        "direction": "row"
+      },
+      "style": {}
+    },
+    "b1": {
+      "id": "b1",
+      "type": "button",
+      "props": {
+        "type": "button",
+        "label": "ก",
+        "action": "none"
+      },
+      "style": {}
+    },
+    "b2": {
+      "id": "b2",
+      "type": "button",
+      "props": {
+        "type": "button",
+        "label": "ข",
+        "action": "none"
+      },
+      "style": {}
+    },
+    "txt1": {
+      "id": "txt1",
+      "type": "text",
+      "props": {
+        "type": "text",
+        "content": "ข้อความในการ์ด"
+      },
+      "style": {}
+    },
+    "grp": {
+      "id": "grp",
+      "type": "container",
+      "props": {
+        "type": "container",
+        "children": [
+          "badge1",
+          "hd"
+        ]
+      },
+      "style": {}
+    },
+    "badge1": {
+      "id": "badge1",
+      "type": "badge",
+      "props": {
+        "type": "badge",
+        "label": "ป้าย"
+      },
+      "style": {}
+    },
+    "hd": {
+      "id": "hd",
+      "type": "heading",
+      "props": {
+        "type": "heading",
+        "level": 2,
+        "content": "หัวข้อ"
+      },
+      "style": {}
+    },
+    "dangle-card": {
+      "id": "dangle-card",
+      "type": "card",
+      "props": {
+        "type": "card",
+        "children": [
+          "ghost"
+        ]
+      },
+      "style": {}
+    }
+  }
+}

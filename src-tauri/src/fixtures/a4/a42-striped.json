@@ -1,0 +1,25 @@
+{
+  "version": 4,
+  "meta": { "title": "a42-striped", "lang": "th" },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": { "type": "page", "children": ["t1"] },
+      "style": {}
+    },
+    "t1": {
+      "id": "t1",
+      "type": "table",
+      "props": {
+        "type": "table",
+        "columns": ["X", "Y"],
+        "rows": [["a", "b"], ["c", "d"], ["e", "f"]],
+        "headerRow": true,
+        "striped": true
+      },
+      "style": {}
+    }
+  }
+}

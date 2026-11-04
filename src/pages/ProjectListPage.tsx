@@ -1,0 +1,181 @@
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { AlertCircle, LayoutTemplate, Plus, Search } from "lucide-react";
+import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { AppTooltipProvider } from "@/components/ui/tooltip";
+import { ProjectCard, ProjectCardSkeleton } from "@/components/projects/ProjectCard";
+import { ProjectEmptyState } from "@/components/projects/ProjectEmptyState";
+import { lazyNamed, useMountedOnce, whenIdle } from "@/lib/lazy";
+import {
+  useProjectsStore,
+  type ProjectSummary,
+} from "@/stores/projects-store";
+
+/* Dialogs are lazy chunks: mounted on first open, preloaded at idle. */
+const NewProjectDialog = lazyNamed(() =>
+  import("@/components/projects/NewProjectDialog").then((m) => m.NewProjectDialog),
+);
+const DeleteProjectDialog = lazyNamed(() =>
+  import("@/components/projects/DeleteProjectDialog").then((m) => m.DeleteProjectDialog),
+);
+
+export function ProjectListPage() {
+  const navigate = useNavigate();
+  const projects = useProjectsStore((s) => s.projects);
+  const loading = useProjectsStore((s) => s.loading);
+  const error = useProjectsStore((s) => s.error);
+  const projectsStatus = useProjectsStore((s) => s.projectsStatus);
+  const clearError = useProjectsStore((s) => s.clearError);
+  const refreshProjects = useProjectsStore((s) => s.refreshProjects);
+  const createProject = useProjectsStore((s) => s.createProject);
+  const deleteProject = useProjectsStore((s) => s.deleteProject);
+
+  const [newOpen, setNewOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ProjectSummary | null>(
+    null,
+  );
+  const [filter, setFilter] = useState("");
+  const query = filter.trim().toLowerCase();
+  const shown = useMemo(
+    () => (query ? projects.filter((p) => p.name.toLowerCase().includes(query)) : projects),
+    [projects, query],
+  );
+  const noMatch = query.length > 0 && projects.length > 0 && shown.length === 0;
+
+  // First load only: skeleton cards, revealed after 150 ms so fast loads never flash.
+  const firstLoad = loading && projects.length === 0;
+  const [showSkeleton, setShowSkeleton] = useState(false);
+  useEffect(() => {
+    if (!firstLoad) return;
+    const t = window.setTimeout(() => setShowSkeleton(true), 150);
+    return () => {
+      window.clearTimeout(t);
+      setShowSkeleton(false);
+    };
+  }, [firstLoad]);
+
+  const newMounted = useMountedOnce(newOpen);
+  const deleteMounted = useMountedOnce(pendingDelete !== null);
+
+  useEffect(() => {
+    void refreshProjects();
+  }, [refreshProjects]);
+
+  useEffect(
+    () =>
+      whenIdle(() => {
+        void NewProjectDialog.preload();
+        void DeleteProjectDialog.preload();
+      }),
+    [],
+  );
+
+  return (
+    <AppTooltipProvider>
+    <div className="flex min-h-svh min-w-0 flex-col overflow-x-hidden bg-background">
+      <header className="sticky top-0 z-10 flex h-14 min-w-0 items-center gap-3 overflow-hidden border-b border-border bg-background px-6">
+        <span className="flex shrink-0 items-center gap-2">
+          <span aria-hidden className="grid size-7 place-items-center rounded-md bg-primary text-primary-foreground">
+            <LayoutTemplate className="size-4" />
+          </span>
+          <span className="text-base font-semibold">Web Builder</span>
+        </span>
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          <div className="relative w-full max-w-xs min-w-32">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input
+              value={filter}
+              onChange={(e) => setFilter(e.currentTarget.value)}
+              placeholder="ค้นหาโปรเจกต์…"
+              aria-label="ค้นหาโปรเจกต์"
+              className="h-8 pl-8"
+            />
+          </div>
+          <ThemeToggle />
+          {/* data-focus-fallback: dialogs return focus here if their trigger is gone (e.g. a deleted card). */}
+          <Button type="button" className="shrink-0" data-focus-fallback onClick={() => setNewOpen(true)}>
+            <Plus />
+            สร้างโปรเจกต์
+          </Button>
+        </div>
+      </header>
+
+      <div className="flex min-w-0 flex-1 flex-col overflow-auto scrollbar-thin px-6 py-6">
+        {error ? (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle />
+            <AlertDescription>{error}</AlertDescription>
+            <AlertAction>
+              <Button type="button" variant="ghost" size="xs" onClick={clearError}>
+                ปิด
+              </Button>
+            </AlertAction>
+          </Alert>
+        ) : null}
+
+        {projects.length === 0 && !loading && !error && projectsStatus === "failed" ? (
+          <div className="flex flex-1 items-center justify-center py-16">
+            <Button type="button" variant="outline" onClick={() => void refreshProjects()}>
+              ลองใหม่
+            </Button>
+          </div>
+        ) : projects.length === 0 && !loading && !error && projectsStatus === "ready" ? (
+          <ProjectEmptyState onCreate={() => setNewOpen(true)} />
+        ) : noMatch ? (
+          <p className="py-16 text-center text-sm text-muted-foreground">ไม่พบโปรเจกต์ที่ค้นหา</p>
+        ) : (
+          <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {showSkeleton && firstLoad
+              ? Array.from({ length: 6 }, (_, i) => <ProjectCardSkeleton key={i} />)
+              : null}
+            {shown.map((p) => (
+              <ProjectCard
+                key={p.id}
+                project={p}
+                onRequestDelete={setPendingDelete}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <Suspense fallback={null}>
+      {newMounted ? (
+      <NewProjectDialog
+        open={newOpen}
+        onOpenChange={setNewOpen}
+        busy={loading}
+        onSubmit={async (name) => {
+          const created = await createProject(name);
+          if (created) {
+            setNewOpen(false);
+            navigate(`/editor/${created.id}`);
+          }
+          return created !== null; // false: the dialog unlocks for a retry
+        }}
+      />
+      ) : null}
+
+      {deleteMounted ? (
+      <DeleteProjectDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+        projectName={pendingDelete?.name ?? ""}
+        busy={loading}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          const ok = await deleteProject(pendingDelete.id);
+          if (ok) setPendingDelete(null);
+        }}
+      />
+      ) : null}
+      </Suspense>
+    </div>
+    </AppTooltipProvider>
+  );
+}

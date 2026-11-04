@@ -1,0 +1,169 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "a23-layout-edge",
+  "lang": "th"
+ },
+ "root": "root",
+ "nodes": {
+  "root": {
+   "id": "root",
+   "type": "page",
+   "props": {
+    "children": [
+     "c1",
+     "c2",
+     "c3",
+     "c4",
+     "c5"
+    ],
+    "type": "page"
+   },
+   "style": {}
+  },
+  "c1": {
+   "id": "c1",
+   "type": "card",
+   "props": {
+    "children": [
+     "t1",
+     "t2"
+    ],
+    "gap": 4294967295,
+    "type": "card"
+   },
+   "style": {}
+  },
+  "t1": {
+   "id": "t1",
+   "type": "text",
+   "props": {
+    "content": "ช่องว่างสูงสุด",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "t2": {
+   "id": "t2",
+   "type": "text",
+   "props": {
+    "content": "สอง",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "c2": {
+   "id": "c2",
+   "type": "alert",
+   "props": {
+    "children": [
+     "t3"
+    ],
+    "direction": "row",
+    "gap": 0,
+    "align": "end",
+    "justify": "between",
+    "type": "alert"
+   },
+   "style": {}
+  },
+  "t3": {
+   "id": "t3",
+   "type": "text",
+   "props": {
+    "content": "ชิดท้าย",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "c3": {
+   "id": "c3",
+   "type": "buttonGroup",
+   "props": {
+    "children": [
+     "b1",
+     "b2"
+    ],
+    "gap": 4294967295,
+    "align": "center",
+    "justify": "center",
+    "type": "buttonGroup"
+   },
+   "style": {}
+  },
+  "b1": {
+   "id": "b1",
+   "type": "button",
+   "props": {
+    "label": "ก",
+    "action": "none",
+    "type": "button"
+   },
+   "style": {
+    "borderRadius": 6
+   }
+  },
+  "b2": {
+   "id": "b2",
+   "type": "button",
+   "props": {
+    "label": "ข",
+    "action": "none",
+    "type": "button"
+   },
+   "style": {
+    "borderRadius": 6
+   }
+  },
+  "c4": {
+   "id": "c4",
+   "type": "aspectRatio",
+   "props": {
+    "children": [
+     "t4"
+    ],
+    "ratio": "16/9",
+    "gap": 1,
+    "align": "start",
+    "justify": "end",
+    "direction": "row",
+    "type": "aspectRatio"
+   },
+   "style": {}
+  },
+  "t4": {
+   "id": "t4",
+   "type": "text",
+   "props": {
+    "content": "สี่",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "c5": {
+   "id": "c5",
+   "type": "scrollArea",
+   "props": {
+    "children": [
+     "t5"
+    ],
+    "orientation": "both",
+    "gap": 4294967295,
+    "align": "start",
+    "justify": "between",
+    "direction": "row",
+    "type": "scrollArea"
+   },
+   "style": {}
+  },
+  "t5": {
+   "id": "t5",
+   "type": "text",
+   "props": {
+    "content": "ห้า",
+    "type": "text"
+   },
+   "style": {}
+  }
+ }
+}

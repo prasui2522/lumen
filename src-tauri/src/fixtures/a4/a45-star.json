@@ -1,0 +1,24 @@
+{
+  "version": 4,
+  "meta": { "title": "a45-star", "lang": "th" },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": { "type": "page", "children": ["i1"] },
+      "style": {}
+    },
+    "i1": {
+      "id": "i1",
+      "type": "icon",
+      "props": {
+        "type": "icon",
+        "name": "star",
+        "size": 24,
+        "strokeWidth": 2
+      },
+      "style": {}
+    }
+  }
+}

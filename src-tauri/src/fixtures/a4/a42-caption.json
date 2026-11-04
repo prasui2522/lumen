@@ -1,0 +1,27 @@
+{
+  "version": 4,
+  "meta": { "title": "a42-caption", "lang": "th" },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": { "type": "page", "children": ["t1"] },
+      "style": {}
+    },
+    "t1": {
+      "id": "t1",
+      "type": "table",
+      "name": "Layer name ignored when caption set",
+      "props": {
+        "type": "table",
+        "columns": ["Col"],
+        "rows": [["val"]],
+        "caption": "  Sales Q1  ",
+        "headerRow": false,
+        "striped": false
+      },
+      "style": {}
+    }
+  }
+}

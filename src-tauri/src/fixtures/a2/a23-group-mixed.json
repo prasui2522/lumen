@@ -1,0 +1,248 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "a23-group-mixed",
+  "lang": "th"
+ },
+ "root": "root",
+ "nodes": {
+  "root": {
+   "id": "root",
+   "type": "page",
+   "props": {
+    "children": [
+     "g1",
+     "g2",
+     "g3"
+    ],
+    "type": "page"
+   },
+   "style": {}
+  },
+  "g1": {
+   "id": "g1",
+   "type": "buttonGroup",
+   "props": {
+    "children": [
+     "m1",
+     "m2",
+     "m3",
+     "m4",
+     "m5",
+     "m6"
+    ],
+    "gap": 0,
+    "type": "buttonGroup"
+   },
+   "style": {},
+   "name": "ผสม"
+  },
+  "m1": {
+   "id": "m1",
+   "type": "button",
+   "props": {
+    "label": "ปุ่ม",
+    "action": "none",
+    "type": "button"
+   },
+   "style": {
+    "borderRadius": 10
+   }
+  },
+  "m2": {
+   "id": "m2",
+   "type": "card",
+   "props": {
+    "children": [
+     "m2t"
+    ],
+    "type": "card"
+   },
+   "style": {
+    "borderRadius": 10
+   }
+  },
+  "m2t": {
+   "id": "m2t",
+   "type": "text",
+   "props": {
+    "content": "การ์ดในกลุ่ม",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "m3": {
+   "id": "m3",
+   "type": "input",
+   "props": {
+    "label": "ช่อง",
+    "placeholder": "พิมพ์",
+    "type": "input"
+   },
+   "style": {
+    "borderRadius": 10
+   }
+  },
+  "m4": {
+   "id": "m4",
+   "type": "badge",
+   "props": {
+    "label": "ป้าย",
+    "type": "badge"
+   },
+   "style": {
+    "borderRadius": 10
+   }
+  },
+  "m5": {
+   "id": "m5",
+   "type": "spinner",
+   "props": {
+    "size": 16,
+    "type": "spinner"
+   },
+   "style": {}
+  },
+  "m6": {
+   "id": "m6",
+   "type": "alert",
+   "props": {
+    "children": [],
+    "type": "alert"
+   },
+   "style": {
+    "borderRadius": 10
+   },
+   "visible": false
+  },
+  "g2": {
+   "id": "g2",
+   "type": "buttonGroup",
+   "props": {
+    "children": [
+     "n1",
+     "n2",
+     "n3",
+     "n4"
+    ],
+    "direction": "column",
+    "gap": 2,
+    "type": "buttonGroup"
+   },
+   "style": {}
+  },
+  "n1": {
+   "id": "n1",
+   "type": "text",
+   "props": {
+    "content": "ข้อความ",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "n2": {
+   "id": "n2",
+   "type": "skeleton",
+   "props": {
+    "type": "skeleton"
+   },
+   "style": {
+    "borderRadius": 10
+   }
+  },
+  "n3": {
+   "id": "n3",
+   "type": "separator",
+   "props": {
+    "orientation": "horizontal",
+    "type": "separator"
+   },
+   "style": {
+    "borderRadius": 10
+   }
+  },
+  "n4": {
+   "id": "n4",
+   "type": "scrollArea",
+   "props": {
+    "children": [
+     "n4t"
+    ],
+    "orientation": "vertical",
+    "type": "scrollArea"
+   },
+   "style": {
+    "borderRadius": 10
+   }
+  },
+  "n4t": {
+   "id": "n4t",
+   "type": "text",
+   "props": {
+    "content": "เลื่อน",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "g3": {
+   "id": "g3",
+   "type": "buttonGroup",
+   "props": {
+    "children": [
+     "o1",
+     "o2"
+    ],
+    "type": "buttonGroup"
+   },
+   "style": {}
+  },
+  "o1": {
+   "id": "o1",
+   "type": "link",
+   "props": {
+    "label": "ลิงก์",
+    "href": "#",
+    "type": "link"
+   },
+   "style": {
+    "borderRadius": 10
+   }
+  },
+  "o2": {
+   "id": "o2",
+   "type": "buttonGroup",
+   "props": {
+    "children": [
+     "o3",
+     "o4"
+    ],
+    "type": "buttonGroup"
+   },
+   "style": {}
+  },
+  "o3": {
+   "id": "o3",
+   "type": "button",
+   "props": {
+    "label": "ใน1",
+    "action": "none",
+    "type": "button"
+   },
+   "style": {
+    "borderRadius": 10
+   }
+  },
+  "o4": {
+   "id": "o4",
+   "type": "button",
+   "props": {
+    "label": "ใน2",
+    "action": "none",
+    "type": "button"
+   },
+   "style": {
+    "borderRadius": 10
+   }
+  }
+ }
+}

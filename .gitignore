@@ -1,0 +1,44 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Added 2026-11-04 (baseline after F2)
+node_modules/
+target/
+dist/
+.vite/
+*.tsbuildinfo
+# private Xvfb / pid / log files
+*.pid
+*.log
+.Xauthority*
+*.xvfb
+# large binaries / app bundles
+*.AppImage
+*.deb
+*.rpm
+*.dmg
+*.msi
+*.app/
+src-tauri/target/

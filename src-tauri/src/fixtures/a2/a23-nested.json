@@ -1,0 +1,210 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "a23-nested",
+  "lang": "th"
+ },
+ "root": "root",
+ "nodes": {
+  "root": {
+   "id": "root",
+   "type": "page",
+   "props": {
+    "children": [
+     "sec",
+     "cont"
+    ],
+    "type": "page"
+   },
+   "style": {}
+  },
+  "sec": {
+   "id": "sec",
+   "type": "section",
+   "props": {
+    "children": [
+     "card"
+    ],
+    "type": "section"
+   },
+   "style": {}
+  },
+  "card": {
+   "id": "card",
+   "type": "card",
+   "props": {
+    "children": [
+     "alert",
+     "tail"
+    ],
+    "gap": 4,
+    "type": "card"
+   },
+   "style": {}
+  },
+  "alert": {
+   "id": "alert",
+   "type": "alert",
+   "props": {
+    "children": [
+     "grp",
+     "sk2"
+    ],
+    "type": "alert"
+   },
+   "style": {}
+  },
+  "grp": {
+   "id": "grp",
+   "type": "buttonGroup",
+   "props": {
+    "children": [
+     "gb1",
+     "ar",
+     "gb2"
+    ],
+    "type": "buttonGroup"
+   },
+   "style": {},
+   "name": "กลุ่มซ้อน"
+  },
+  "gb1": {
+   "id": "gb1",
+   "type": "button",
+   "props": {
+    "label": "ซ้าย",
+    "action": "none",
+    "type": "button"
+   },
+   "style": {
+    "borderRadius": 8
+   }
+  },
+  "gb2": {
+   "id": "gb2",
+   "type": "button",
+   "props": {
+    "label": "ขวา",
+    "action": "none",
+    "type": "button"
+   },
+   "style": {
+    "borderRadius": 8
+   }
+  },
+  "ar": {
+   "id": "ar",
+   "type": "aspectRatio",
+   "props": {
+    "children": [
+     "inner",
+     "sk"
+    ],
+    "ratio": "4/3",
+    "type": "aspectRatio"
+   },
+   "style": {
+    "width": 120
+   }
+  },
+  "inner": {
+   "id": "inner",
+   "type": "card",
+   "props": {
+    "children": [
+     "sp"
+    ],
+    "type": "card"
+   },
+   "style": {}
+  },
+  "sp": {
+   "id": "sp",
+   "type": "spinner",
+   "props": {
+    "size": 32,
+    "type": "spinner"
+   },
+   "style": {}
+  },
+  "sk": {
+   "id": "sk",
+   "type": "skeleton",
+   "props": {
+    "type": "skeleton"
+   },
+   "style": {}
+  },
+  "sk2": {
+   "id": "sk2",
+   "type": "skeleton",
+   "props": {
+    "type": "skeleton"
+   },
+   "style": {}
+  },
+  "tail": {
+   "id": "tail",
+   "type": "text",
+   "props": {
+    "content": "ท้ายการ์ด",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "cont": {
+   "id": "cont",
+   "type": "container",
+   "props": {
+    "children": [
+     "cg"
+    ],
+    "direction": "row",
+    "type": "container"
+   },
+   "style": {}
+  },
+  "cg": {
+   "id": "cg",
+   "type": "buttonGroup",
+   "props": {
+    "children": [
+     "k1",
+     "k2"
+    ],
+    "direction": "column",
+    "type": "buttonGroup"
+   },
+   "style": {}
+  },
+  "k1": {
+   "id": "k1",
+   "type": "card",
+   "props": {
+    "children": [
+     "kt"
+    ],
+    "type": "card"
+   },
+   "style": {}
+  },
+  "kt": {
+   "id": "kt",
+   "type": "text",
+   "props": {
+    "content": "ในการ์ด",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "k2": {
+   "id": "k2",
+   "type": "alert",
+   "props": {
+    "children": [],
+    "type": "alert"
+   },
+   "style": {}
+  }
+ }
+}

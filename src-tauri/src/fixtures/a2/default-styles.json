@@ -1,0 +1,66 @@
+{
+  "card": {
+    "display": "flex",
+    "width": "100%",
+    "padding": 24,
+    "backgroundColor": "#ffffff",
+    "borderRadius": 12,
+    "borderWidth": 1,
+    "borderColor": "#e2e8f0",
+    "borderStyle": "solid"
+  },
+  "alert": {
+    "display": "flex",
+    "width": "100%",
+    "padding": 16,
+    "backgroundColor": "#f8fafc",
+    "borderRadius": 8,
+    "borderWidth": 1,
+    "borderColor": "#e2e8f0",
+    "borderStyle": "solid"
+  },
+  "badge": {
+    "display": "inline-flex",
+    "padding": {
+      "t": 2,
+      "r": 10,
+      "b": 2,
+      "l": 10
+    },
+    "backgroundColor": "#0f172a",
+    "color": "#ffffff",
+    "fontSize": 12,
+    "fontWeight": 500,
+    "borderRadius": 200
+  },
+  "separator": {
+    "display": "block",
+    "width": "100%",
+    "height": 1,
+    "backgroundColor": "#e2e8f0"
+  },
+  "skeleton": {
+    "display": "block",
+    "width": "100%",
+    "height": 16,
+    "backgroundColor": "#e2e8f0",
+    "borderRadius": 6
+  },
+  "spinner": {
+    "display": "inline-block",
+    "color": "#0f172a"
+  },
+  "aspectRatio": {
+    "display": "flex",
+    "width": "100%",
+    "overflow": "hidden"
+  },
+  "scrollArea": {
+    "display": "flex",
+    "width": "100%",
+    "overflow": "auto"
+  },
+  "buttonGroup": {
+    "display": "flex"
+  }
+}

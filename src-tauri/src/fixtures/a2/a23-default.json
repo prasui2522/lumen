@@ -1,0 +1,178 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "a23-default",
+  "lang": "th"
+ },
+ "root": "root",
+ "nodes": {
+  "root": {
+   "id": "root",
+   "type": "page",
+   "props": {
+    "children": [
+     "card",
+     "alert",
+     "sh",
+     "sv",
+     "sk",
+     "sp",
+     "ar",
+     "bg"
+    ],
+    "type": "page"
+   },
+   "style": {}
+  },
+  "card": {
+   "id": "card",
+   "type": "card",
+   "props": {
+    "children": [
+     "ch",
+     "ct"
+    ],
+    "type": "card"
+   },
+   "style": {}
+  },
+  "ch": {
+   "id": "ch",
+   "type": "heading",
+   "props": {
+    "level": 2,
+    "content": "หัวข้อการ์ด",
+    "type": "heading"
+   },
+   "style": {}
+  },
+  "ct": {
+   "id": "ct",
+   "type": "text",
+   "props": {
+    "content": "รายละเอียดในการ์ด",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "alert": {
+   "id": "alert",
+   "type": "alert",
+   "props": {
+    "children": [
+     "at"
+    ],
+    "type": "alert"
+   },
+   "style": {}
+  },
+  "at": {
+   "id": "at",
+   "type": "text",
+   "props": {
+    "content": "ข้อความแจ้งเตือน",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "sh": {
+   "id": "sh",
+   "type": "separator",
+   "props": {
+    "orientation": "horizontal",
+    "type": "separator"
+   },
+   "style": {}
+  },
+  "sv": {
+   "id": "sv",
+   "type": "separator",
+   "props": {
+    "orientation": "vertical",
+    "type": "separator"
+   },
+   "style": {}
+  },
+  "sk": {
+   "id": "sk",
+   "type": "skeleton",
+   "props": {
+    "type": "skeleton"
+   },
+   "style": {}
+  },
+  "sp": {
+   "id": "sp",
+   "type": "spinner",
+   "props": {
+    "size": 24,
+    "type": "spinner"
+   },
+   "style": {}
+  },
+  "ar": {
+   "id": "ar",
+   "type": "aspectRatio",
+   "props": {
+    "children": [
+     "art"
+    ],
+    "ratio": "16/9",
+    "type": "aspectRatio"
+   },
+   "style": {}
+  },
+  "art": {
+   "id": "art",
+   "type": "text",
+   "props": {
+    "content": "16:9",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "bg": {
+   "id": "bg",
+   "type": "buttonGroup",
+   "props": {
+    "children": [
+     "b1",
+     "b2",
+     "b3"
+    ],
+    "type": "buttonGroup"
+   },
+   "style": {}
+  },
+  "b1": {
+   "id": "b1",
+   "type": "button",
+   "props": {
+    "label": "หนึ่ง",
+    "action": "none",
+    "type": "button"
+   },
+   "style": {}
+  },
+  "b2": {
+   "id": "b2",
+   "type": "button",
+   "props": {
+    "label": "สอง",
+    "action": "none",
+    "type": "button"
+   },
+   "style": {}
+  },
+  "b3": {
+   "id": "b3",
+   "type": "button",
+   "props": {
+    "label": "สาม",
+    "action": "none",
+    "type": "button"
+   },
+   "style": {}
+  }
+ }
+}

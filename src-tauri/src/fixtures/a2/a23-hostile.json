@@ -1,0 +1,204 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "a23-hostile",
+  "lang": "th"
+ },
+ "root": "root",
+ "nodes": {
+  "root": {
+   "id": "root",
+   "type": "page",
+   "props": {
+    "children": [
+     "card",
+     "alert",
+     "sh",
+     "sv",
+     "sk",
+     "sp1",
+     "sp2",
+     "sp3",
+     "ar",
+     "bg"
+    ],
+    "type": "page"
+   },
+   "style": {}
+  },
+  "card": {
+   "id": "card",
+   "type": "card",
+   "props": {
+    "children": [
+     "ch"
+    ],
+    "type": "card"
+   },
+   "style": {
+    "backgroundColor": "red;}</style><script>",
+    "borderColor": "url(https://evil.test/x.png)"
+   },
+   "name": "\"><script>alert(1)</script>"
+  },
+  "ch": {
+   "id": "ch",
+   "type": "heading",
+   "props": {
+    "level": 2,
+    "content": "</style><b onload=x>",
+    "type": "heading"
+   },
+   "style": {}
+  },
+  "alert": {
+   "id": "alert",
+   "type": "alert",
+   "props": {
+    "children": [
+     "at"
+    ],
+    "type": "alert"
+   },
+   "style": {
+    "backgroundColor": "linear-gradient(#fff,#000)"
+   },
+   "name": "a&b 'q' \"x\""
+  },
+  "at": {
+   "id": "at",
+   "type": "text",
+   "props": {
+    "content": "\"><script>alert(1)</script>",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "sh": {
+   "id": "sh",
+   "type": "separator",
+   "props": {
+    "orientation": "horizontal",
+    "type": "separator"
+   },
+   "style": {
+    "backgroundColor": "expression(alert(1))"
+   },
+   "name": "\"><script>alert(1)</script>"
+  },
+  "sv": {
+   "id": "sv",
+   "type": "separator",
+   "props": {
+    "orientation": "vertical",
+    "type": "separator"
+   },
+   "style": {
+    "width": "1px;}x{y:z"
+   },
+   "name": "</style><b onload=x>"
+  },
+  "sk": {
+   "id": "sk",
+   "type": "skeleton",
+   "props": {
+    "type": "skeleton"
+   },
+   "style": {
+    "backgroundColor": "url(x)"
+   },
+   "name": "a&b 'q' \"x\""
+  },
+  "sp1": {
+   "id": "sp1",
+   "type": "spinner",
+   "props": {
+    "size": 24,
+    "type": "spinner"
+   },
+   "style": {
+    "color": "red;}</style>"
+   },
+   "name": "\"><script>alert(1)</script>"
+  },
+  "sp2": {
+   "id": "sp2",
+   "type": "spinner",
+   "props": {
+    "size": 24,
+    "type": "spinner"
+   },
+   "style": {},
+   "name": "   "
+  },
+  "sp3": {
+   "id": "sp3",
+   "type": "spinner",
+   "props": {
+    "size": 999999,
+    "type": "spinner"
+   },
+   "style": {},
+   "name": "a&b 'q' \"x\""
+  },
+  "ar": {
+   "id": "ar",
+   "type": "aspectRatio",
+   "props": {
+    "children": [
+     "art"
+    ],
+    "ratio": "16/9",
+    "type": "aspectRatio"
+   },
+   "style": {},
+   "name": "</style><b onload=x>"
+  },
+  "art": {
+   "id": "art",
+   "type": "text",
+   "props": {
+    "content": "a&b 'q' \"x\"",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "bg": {
+   "id": "bg",
+   "type": "buttonGroup",
+   "props": {
+    "children": [
+     "b1",
+     "b2"
+    ],
+    "type": "buttonGroup"
+   },
+   "style": {},
+   "name": "\"><script>alert(1)</script>"
+  },
+  "b1": {
+   "id": "b1",
+   "type": "button",
+   "props": {
+    "label": "\"><script>alert(1)</script>",
+    "action": "none",
+    "type": "button"
+   },
+   "style": {
+    "borderRadius": 8
+   }
+  },
+  "b2": {
+   "id": "b2",
+   "type": "button",
+   "props": {
+    "label": "</style><b onload=x>",
+    "action": "none",
+    "type": "button"
+   },
+   "style": {
+    "borderRadius": 8
+   }
+  }
+ }
+}

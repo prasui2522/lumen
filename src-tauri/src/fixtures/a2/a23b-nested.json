@@ -1,0 +1,172 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "a23b-nested",
+  "lang": "th"
+ },
+ "root": "root",
+ "nodes": {
+  "root": {
+   "id": "root",
+   "type": "page",
+   "props": {
+    "children": [
+     "card"
+    ],
+    "type": "page"
+   },
+   "style": {}
+  },
+  "card": {
+   "id": "card",
+   "type": "card",
+   "props": {
+    "children": [
+     "bd",
+     "sa"
+    ],
+    "type": "card"
+   },
+   "style": {}
+  },
+  "bd": {
+   "id": "bd",
+   "type": "badge",
+   "props": {
+    "label": "สถานะ",
+    "type": "badge"
+   },
+   "style": {}
+  },
+  "sa": {
+   "id": "sa",
+   "type": "scrollArea",
+   "props": {
+    "children": [
+     "al",
+     "grp"
+    ],
+    "orientation": "vertical",
+    "label": "ซ้อน",
+    "type": "scrollArea"
+   },
+   "style": {
+    "height": 120
+   },
+   "name": "ภายใน"
+  },
+  "al": {
+   "id": "al",
+   "type": "alert",
+   "props": {
+    "children": [
+     "bd2",
+     "sa2"
+    ],
+    "type": "alert"
+   },
+   "style": {}
+  },
+  "bd2": {
+   "id": "bd2",
+   "type": "badge",
+   "props": {
+    "label": "ในแจ้งเตือน",
+    "type": "badge"
+   },
+   "style": {}
+  },
+  "sa2": {
+   "id": "sa2",
+   "type": "scrollArea",
+   "props": {
+    "children": [
+     "t"
+    ],
+    "orientation": "both",
+    "type": "scrollArea"
+   },
+   "style": {
+    "height": 40
+   }
+  },
+  "t": {
+   "id": "t",
+   "type": "text",
+   "props": {
+    "content": "ซ้อนสอง",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "grp": {
+   "id": "grp",
+   "type": "buttonGroup",
+   "props": {
+    "children": [
+     "gb1",
+     "gbd",
+     "gsa",
+     "gb2"
+    ],
+    "type": "buttonGroup"
+   },
+   "style": {}
+  },
+  "gb1": {
+   "id": "gb1",
+   "type": "button",
+   "props": {
+    "label": "ซ้าย",
+    "action": "none",
+    "type": "button"
+   },
+   "style": {
+    "borderRadius": 8
+   }
+  },
+  "gbd": {
+   "id": "gbd",
+   "type": "badge",
+   "props": {
+    "label": "ป้ายในกลุ่ม",
+    "type": "badge"
+   },
+   "style": {}
+  },
+  "gsa": {
+   "id": "gsa",
+   "type": "scrollArea",
+   "props": {
+    "children": [
+     "gt"
+    ],
+    "orientation": "vertical",
+    "type": "scrollArea"
+   },
+   "style": {},
+   "name": "ในกลุ่ม"
+  },
+  "gt": {
+   "id": "gt",
+   "type": "text",
+   "props": {
+    "content": "เลื่อนในกลุ่ม",
+    "type": "text"
+   },
+   "style": {}
+  },
+  "gb2": {
+   "id": "gb2",
+   "type": "button",
+   "props": {
+    "label": "ขวา",
+    "action": "none",
+    "type": "button"
+   },
+   "style": {
+    "borderRadius": 8
+   }
+  }
+ }
+}

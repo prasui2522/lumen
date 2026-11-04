@@ -1,0 +1,230 @@
+{
+  "version": 4,
+  "meta": {
+    "title": "seed-a2",
+    "lang": "th"
+  },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": {
+        "type": "page",
+        "children": [
+          "card1",
+          "alert1",
+          "badge1",
+          "sep-h",
+          "sep-v",
+          "skel1",
+          "spin1",
+          "ratio1",
+          "scroll1",
+          "bg1"
+        ]
+      },
+      "style": {}
+    },
+    "card1": {
+      "id": "card1",
+      "type": "card",
+      "props": {
+        "type": "card",
+        "children": [
+          "card-h",
+          "card-p"
+        ],
+        "direction": "column",
+        "gap": 16,
+        "align": "stretch",
+        "justify": "start"
+      },
+      "style": {}
+    },
+    "card-h": {
+      "id": "card-h",
+      "type": "heading",
+      "props": {
+        "type": "heading",
+        "level": 2,
+        "content": "หัวข้อการ์ด"
+      },
+      "style": {}
+    },
+    "card-p": {
+      "id": "card-p",
+      "type": "text",
+      "props": {
+        "type": "text",
+        "content": "รายละเอียดในการ์ด"
+      },
+      "style": {}
+    },
+    "alert1": {
+      "id": "alert1",
+      "type": "alert",
+      "props": {
+        "type": "alert",
+        "children": [
+          "alert-t"
+        ],
+        "direction": "row",
+        "gap": 8,
+        "align": "center",
+        "justify": "between"
+      },
+      "style": {}
+    },
+    "alert-t": {
+      "id": "alert-t",
+      "type": "text",
+      "props": {
+        "type": "text",
+        "content": "ข้อความแจ้งเตือน"
+      },
+      "style": {}
+    },
+    "badge1": {
+      "id": "badge1",
+      "type": "badge",
+      "props": {
+        "type": "badge",
+        "label": "ใหม่"
+      },
+      "style": {}
+    },
+    "sep-h": {
+      "id": "sep-h",
+      "type": "separator",
+      "props": {
+        "type": "separator",
+        "orientation": "horizontal"
+      },
+      "style": {}
+    },
+    "sep-v": {
+      "id": "sep-v",
+      "type": "separator",
+      "props": {
+        "type": "separator",
+        "orientation": "vertical"
+      },
+      "style": {}
+    },
+    "skel1": {
+      "id": "skel1",
+      "type": "skeleton",
+      "props": {
+        "type": "skeleton"
+      },
+      "style": {}
+    },
+    "spin1": {
+      "id": "spin1",
+      "type": "spinner",
+      "props": {
+        "type": "spinner",
+        "size": 24
+      },
+      "style": {}
+    },
+    "ratio1": {
+      "id": "ratio1",
+      "type": "aspectRatio",
+      "props": {
+        "type": "aspectRatio",
+        "children": [
+          "ratio-t"
+        ],
+        "ratio": "16/9",
+        "direction": "column",
+        "gap": 0,
+        "align": "center",
+        "justify": "center"
+      },
+      "style": {}
+    },
+    "ratio-t": {
+      "id": "ratio-t",
+      "type": "text",
+      "props": {
+        "type": "text",
+        "content": "16:9"
+      },
+      "style": {}
+    },
+    "scroll1": {
+      "id": "scroll1",
+      "type": "scrollArea",
+      "props": {
+        "type": "scrollArea",
+        "children": [
+          "scroll-t"
+        ],
+        "orientation": "vertical",
+        "label": "รายการเลื่อน",
+        "direction": "column",
+        "gap": 4,
+        "align": "stretch",
+        "justify": "start"
+      },
+      "style": {
+        "height": 120
+      }
+    },
+    "scroll-t": {
+      "id": "scroll-t",
+      "type": "text",
+      "props": {
+        "type": "text",
+        "content": "เนื้อหายาว"
+      },
+      "style": {}
+    },
+    "bg1": {
+      "id": "bg1",
+      "type": "buttonGroup",
+      "props": {
+        "type": "buttonGroup",
+        "children": [
+          "bg-a",
+          "bg-b",
+          "bg-c"
+        ],
+        "direction": "row",
+        "gap": 0
+      },
+      "style": {}
+    },
+    "bg-a": {
+      "id": "bg-a",
+      "type": "button",
+      "props": {
+        "type": "button",
+        "label": "หนึ่ง"
+      },
+      "style": {}
+    },
+    "bg-b": {
+      "id": "bg-b",
+      "type": "button",
+      "props": {
+        "type": "button",
+        "label": "สอง"
+      },
+      "style": {
+        "borderRadius": 20
+      }
+    },
+    "bg-c": {
+      "id": "bg-c",
+      "type": "button",
+      "props": {
+        "type": "button",
+        "label": "สาม"
+      },
+      "style": {}
+    }
+  }
+}

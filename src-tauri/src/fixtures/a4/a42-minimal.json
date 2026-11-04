@@ -1,0 +1,25 @@
+{
+  "version": 4,
+  "meta": { "title": "a42-minimal", "lang": "th" },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": { "type": "page", "children": ["t1"] },
+      "style": {}
+    },
+    "t1": {
+      "id": "t1",
+      "type": "table",
+      "props": {
+        "type": "table",
+        "columns": ["A", "B"],
+        "rows": [["1", "2"], ["3", "4"]],
+        "headerRow": true,
+        "striped": false
+      },
+      "style": {}
+    }
+  }
+}

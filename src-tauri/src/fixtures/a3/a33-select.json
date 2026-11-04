@@ -1,0 +1,31 @@
+{
+  "version": 4,
+  "meta": { "title": "a33", "lang": "th" },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": { "type": "page", "children": ["f1"] },
+      "style": {}
+    },
+    "f1": {
+      "id": "f1",
+      "type": "field",
+      "props": {
+        "type": "field",
+        "label": "ชื่อ",
+        "description": "คำอธิบายสั้น",
+        "error": "จำเป็น",
+        "children": ["c1"]
+      },
+      "style": {}
+    },
+    "c1": {
+      "id": "c1",
+      "type": "select",
+      "props": { "type": "select", "value": "One", "options": ["One", "Two"] },
+      "style": {}
+    }
+  }
+}
