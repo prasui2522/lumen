@@ -38,6 +38,7 @@ export type SectionId =
   | "typography"
   | "background"
   | "border"
+  | "effects"
   | "display";
 
 export const STYLE_SECTIONS: readonly { id: SectionId; label: string }[] = [
@@ -49,6 +50,8 @@ export const STYLE_SECTIONS: readonly { id: SectionId; label: string }[] = [
   { id: "typography", label: "ตัวอักษร" },
   { id: "background", label: "พื้นหลัง" },
   { id: "border", label: "เส้นขอบ" },
+  // B2.2: after เส้นขอบ (PHASE-11-SPEC §9.B Panel UX). Fields rendered by EffectsSection.
+  { id: "effects", label: "เอฟเฟกต์" },
 ];
 
 export type ControlKind =

@@ -92,6 +92,11 @@ const CalendarRenderChunk = lazyNamed(() =>
     return m.CalendarRenderLazyAnchor;
   }),
 );
+
+/** B2.2: lazy shadow editor — must NOT land in the initial JS chunk. */
+const ShadowSubGroup = lazyNamed(() =>
+  import("@/components/editor/effects-panels").then((m) => m.ShadowSubGroup),
+);
 import {
   applyOps,
   propOp,
@@ -283,6 +288,16 @@ function PanelBody({
       <NodePropsSection node={node} locked={locked} />
 
       {STYLE_SECTIONS.map((sec) => {
+        if (sec.id === "effects") {
+          return (
+            <EffectsSection
+              key={sec.id}
+              node={node}
+              locked={locked}
+              segment={segment}
+            />
+          );
+        }
         const fields = fieldsFor(sec.id, node.type);
         if (fields.length === 0) return null; // hide section entirely (§1)
         return (
@@ -1084,6 +1099,78 @@ type SectionProps = {
   locked: boolean;
   segment: StyleSegment;
 };
+
+
+/** B2.2: เอฟเฟกต์ section — เงา sub-group (lazy); more sub-groups in later B slices. */
+const EffectsSection = memo(function EffectsSection({
+  node,
+  locked,
+  segment,
+}: {
+  node: Node;
+  locked: boolean;
+  segment: StyleSegment;
+}) {
+  const collapsed = useEditorStore((s) => !!s.collapsedStyleSections["effects"]);
+  const toggle = useEditorStore((s) => s.toggleStyleSection);
+  const bp = segment === "desktop" ? undefined : segment;
+  const onBreakpoint = segment !== "desktop";
+  const overridden = onBreakpoint
+    ? breakpointKeySet(node, segment, "boxShadow")
+    : node.style?.boxShadow !== undefined;
+  const layers = onBreakpoint
+    ? overridden
+      ? node.styleBreakpoints?.[segment]?.boxShadow
+      : node.style?.boxShadow
+    : node.style?.boxShadow;
+  const bodyId = "sf-sec-effects";
+  const resetSection = () => writeStyle(node.id, "boxShadow", undefined, bp);
+
+  return (
+    <section className="border-t border-sidebar-border py-2">
+      <div className="flex h-8 items-center justify-between">
+        <button
+          type="button"
+          className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+          aria-expanded={!collapsed}
+          aria-controls={bodyId}
+          onClick={() => toggle("effects")}
+        >
+          {collapsed ? <ChevronRight className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+          <span
+            aria-hidden
+            className={
+              overridden
+                ? "size-1.5 shrink-0 rounded-full bg-primary"
+                : "size-1.5 shrink-0 rounded-full bg-transparent"
+            }
+          />
+          เอฟเฟกต์
+        </button>
+        {overridden && !locked ? (
+          <Button type="button" variant="ghost" size="xs" onClick={resetSection}>
+            {onBreakpoint ? "ใช้ค่าหลัก" : "รีเซ็ต"}
+          </Button>
+        ) : null}
+      </div>
+      {collapsed ? null : (
+        <div id={bodyId} className="mt-1 space-y-2">
+          <Suspense fallback={<p className="text-[11px] text-muted-foreground">กำลังโหลด…</p>}>
+            <ShadowSubGroup
+              nodeId={node.id}
+              layers={layers}
+              locked={locked}
+              bp={bp}
+              overridden={overridden}
+              onReset={resetSection}
+              resetLabel={onBreakpoint ? "ใช้ค่าหลัก" : "คืนค่าเริ่มต้น"}
+            />
+          </Suspense>
+        </div>
+      )}
+    </section>
+  );
+});
 
 const StyleSection = memo(function StyleSection({
   id,

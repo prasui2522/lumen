@@ -7,6 +7,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { PipetteIcon } from "lucide-react";
+import { Slider as SliderPrimitive } from "radix-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -14,11 +15,19 @@ import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { COLOR_PRESETS } from "@/lib/style-fields";
+import {
+  COLOR_ERR_NO_TRANSPARENT,
+  COLOR_ERR_T69,
+  COLOR_RE,
+  formatColor,
+  parseColorParts,
+  toOpaqueHex6,
+  withPreservedAlpha,
+} from "@/lib/color-hex";
 import { useRafCommit } from "@/components/editor/style/useRafCommit";
 import { beginHistoryGroup, endHistoryGroup, revertHistoryGroup } from "@/lib/history";
 
-/** Accepts #rgb, #rrggbb, transparent (spec §2.2). */
-export const COLOR_RE = /^(#[0-9a-f]{3}|#[0-9a-f]{6}|transparent)$/i;
+export { COLOR_RE } from "@/lib/color-hex";
 
 const CHECKER: CSSProperties = {
   backgroundImage: "conic-gradient(#cbd5e1 25%, #ffffff 0 50%, #cbd5e1 0 75%, #ffffff 0)",
@@ -36,11 +45,17 @@ const PRESET_NAMES: Record<string, string> = {
   "#f8fafc": "ขาวอมเทา",
 };
 
-function toHex6(v: string | undefined): string | null {
-  if (!v) return null;
-  if (/^#[0-9a-f]{6}$/i.test(v)) return v.toLowerCase();
-  const m = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(v);
-  return m ? `#${m[1]}${m[1]}${m[2]}${m[2]}${m[3]}${m[3]}`.toLowerCase() : null;
+/** Swatch fill: checker under translucent colours. */
+function swatchStyle(value: string | undefined): CSSProperties {
+  if (!value || value === "transparent") return CHECKER;
+  const parts = parseColorParts(value);
+  if (!parts) return CHECKER;
+  if (parts.alpha >= 100) return { backgroundColor: parts.rgb };
+  return {
+    ...CHECKER,
+    backgroundImage: `${CHECKER.backgroundImage}, linear-gradient(${formatColor(parts.rgb, parts.alpha)}, ${formatColor(parts.rgb, parts.alpha)})`,
+    backgroundSize: "8px 8px, 100% 100%",
+  };
 }
 
 /** Hex text draft: commit on blur/Enter when the regex passes (spec §3). */
@@ -78,19 +93,9 @@ type Props = {
 };
 
 /**
- * Color row (UI-REFRESH S4c): swatch chip = PopoverTrigger, inline hex input
- * for fast typing. Popover: presets (roving tabindex, Thai tooltips), hex
- * input, เลือกจากระบบ… (native picker) and โปร่งใส where allowed.
- *
- * Writes: preset / transparent / valid hex = one write each (setNodeStyle
- * no-ops on the current value → no dirty, no undo entry). Opening/closing the
- * popover writes nothing. A native-picker session is ONE undo step: a history
- * group opens when เลือกจากระบบ… is pressed, live `input` events are
- * rAF-coalesced into it, and it closes on the native `change`, on window
- * refocus (GTK dialog closed), on popover close, before any other write from
- * this field, or on unmount. A session that ends on the start color (or never
- * changed it) is reverted → no undo entry, not dirty. The hidden native input
- * lives in the row, not the popover, so closing the popover can't drop events.
+ * Color row (UI-REFRESH S4c + B2.1 alpha): swatch chip = PopoverTrigger, inline
+ * hex input. Popover: presets, hex (#rgb/#rgba/#rrggbb/#rrggbbaa), alpha slider
+ * T56, เลือกจากระบบ… and โปร่งใส where allowed. Value stored lowercase.
  */
 export function useColorField({
   id,
@@ -102,13 +107,13 @@ export function useColorField({
   muted,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const hex = toHex6(value);
+  const hex = toOpaqueHex6(value);
+  const parts = parseColorParts(value);
   const errId = `${id}-err`;
   const popHexId = `${id}-phex`;
   const popErrId = `${id}-perr`;
-  const errText = allowTransparentToggle
-    ? "รูปแบบสีไม่ถูกต้อง (#rgb, #rrggbb, transparent)"
-    : "รูปแบบสีไม่ถูกต้อง (#rgb, #rrggbb)";
+  const alphaId = `${id}-alpha`;
+  const errText = allowTransparentToggle ? COLOR_ERR_T69 : COLOR_ERR_NO_TRANSPARENT;
 
   // ---- native picker session (one history group) ----
   const nativeRef = useRef<HTMLInputElement>(null);
@@ -125,24 +130,23 @@ export function useColorField({
     if (!p) return;
     pick.current = null;
     window.removeEventListener("focus", onWinFocus);
-    if (p.last === undefined || p.last === toHex6(p.start)) revertHistoryGroup(p.token);
+    // Session that never changed the stored value → no undo entry.
+    if (p.last === undefined || p.last === p.start) revertHistoryGroup(p.token);
     endHistoryGroup(p.token);
   };
   const endPick = useCallback(() => endPickRef.current(), []);
-  // Stable listener identity so removeEventListener matches.
   const onWinFocusRef = useRef(() => setTimeout(() => endPickRef.current(), 0));
   const onWinFocus = onWinFocusRef.current;
 
   useEffect(() => {
     const el = nativeRef.current;
-    el?.addEventListener("change", endPick); // native change = picker closed/confirmed
+    el?.addEventListener("change", endPick);
     return () => {
       el?.removeEventListener("change", endPick);
       endPick();
     };
   }, [endPick]);
 
-  /** Every discrete write from this field closes a pending picker session first. */
   const commit = (v: string) => {
     endPick();
     onCommit(v);
@@ -166,9 +170,35 @@ export function useColorField({
   const inline = useHexDraft(commit);
   const pop = useHexDraft(commit);
 
-  // ---- presets (roving tabindex, unchanged behaviour) ----
-  // Transparent only where it makes sense (background); the โปร่งใส toggle
-  // covers it, so the preset grid never repeats it.
+  // ---- alpha slider (T56): pointer drag = one write on release ----
+  const [alphaDraft, setAlphaDraft] = useState<number | null>(null);
+  const alphaDragging = useRef(false);
+  const alphaDraftRef = useRef<number | null>(null);
+  const alphaStartRef = useRef<string | undefined>(undefined);
+
+  const finishAlphaDrag = () => {
+    if (!alphaDragging.current) return;
+    alphaDragging.current = false;
+    const a = alphaDraftRef.current;
+    alphaDraftRef.current = null;
+    setAlphaDraft(null);
+    if (a == null || !parts) return;
+    const next = formatColor(parts.rgb, a);
+    if (next !== alphaStartRef.current) commit(next);
+  };
+
+  const onAlphaChange = (a: number) => {
+    setAlphaDraft(a);
+    if (alphaDragging.current) {
+      alphaDraftRef.current = a;
+      return;
+    }
+    // Keyboard step: one write, coalesced by the style history key.
+    if (!parts) return;
+    commit(formatColor(parts.rgb, a));
+  };
+
+  // ---- presets (roving tabindex) ----
   const presets = COLOR_PRESETS.filter((c) => c !== "transparent");
   const presetRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const activeIdx = Math.max(
@@ -200,23 +230,25 @@ export function useColorField({
     if (!o) {
       endPick();
       pop.reset();
+      finishAlphaDrag();
     }
     setOpen(o);
   };
-  // Node became locked while open → close.
   if (open && disabled) setOpen(false);
+
+  const showAlpha = !!parts && value !== "transparent";
+  const alphaPct = alphaDraft ?? parts?.alpha ?? 100;
 
   const control = (
     <>
       <Popover open={open} onOpenChange={onOpenChange}>
-        {/* No Tooltip on the chip: focus returns here on close and would re-open it. */}
         <PopoverTrigger asChild>
           <button
             type="button"
             aria-label={`เลือกสี: ${label}`}
             disabled={disabled}
             className="relative size-[22px] shrink-0 overflow-hidden rounded border border-input outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            style={hex ? { backgroundColor: hex } : CHECKER}
+            style={swatchStyle(value)}
             title="เลือกสี"
           />
         </PopoverTrigger>
@@ -225,8 +257,6 @@ export function useColorField({
           className="w-56 gap-2 p-2.5"
           aria-label={`สี: ${label}`}
           onEscapeKeyDown={(e) => {
-            // First Esc in the popover hex field reverts its draft and keeps
-            // the popover open; the next Esc closes (focus → trigger).
             if (pop.draft !== null && e.target instanceof HTMLElement && e.target.id === popHexId) {
               e.preventDefault();
               pop.reset();
@@ -263,9 +293,6 @@ export function useColorField({
                         style={{ backgroundColor: c }}
                       />
                     </TooltipTrigger>
-                    {/* The popover auto-focuses the active swatch, which opens its
-                        tooltip — the top dismiss layer. Esc must still close
-                        the popover in one press (focus → trigger). */}
                     <TooltipContent onEscapeKeyDown={() => onOpenChange(false)}>
                       {name} <span className="font-mono">{c}</span>
                     </TooltipContent>
@@ -297,6 +324,55 @@ export function useColorField({
               </p>
             ) : null}
           </div>
+          {showAlpha ? (
+            <div className="space-y-1">
+              <p id={`${alphaId}-lbl`} className="text-[11px] font-medium text-muted-foreground">
+                ความโปร่งของสี
+              </p>
+              <div className="flex items-center gap-2">
+                <SliderPrimitive.Root
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={[alphaPct]}
+                  disabled={disabled}
+                  data-slot="slider"
+                  aria-labelledby={`${alphaId}-lbl`}
+                  className="relative flex h-7 min-w-0 flex-1 touch-none items-center select-none data-disabled:opacity-50"
+                  onPointerDown={() => {
+                    if (disabled || alphaDragging.current) return;
+                    alphaDragging.current = true;
+                    alphaStartRef.current = value;
+                    alphaDraftRef.current = null;
+                  }}
+                  onValueChange={([a]) => onAlphaChange(a)}
+                  onValueCommit={finishAlphaDrag}
+                  onPointerUp={finishAlphaDrag}
+                  onPointerCancel={finishAlphaDrag}
+                  onLostPointerCapture={finishAlphaDrag}
+                >
+                  <SliderPrimitive.Track
+                    data-slot="slider-track"
+                    className="relative h-1 w-full grow overflow-hidden rounded-full bg-muted"
+                  >
+                    <SliderPrimitive.Range
+                      data-slot="slider-range"
+                      className="absolute h-full bg-primary"
+                    />
+                  </SliderPrimitive.Track>
+                  <SliderPrimitive.Thumb
+                    data-slot="slider-thumb"
+                    aria-label="ความโปร่งของสี"
+                    onBlur={finishAlphaDrag}
+                    className="relative block size-3 shrink-0 rounded-full border border-ring bg-white ring-ring/50 focus-visible:ring-ring transition-[color,box-shadow] select-none after:absolute after:-inset-2 hover:ring-3 focus-visible:ring-2 focus-visible:outline-hidden active:ring-3 disabled:pointer-events-none"
+                  />
+                </SliderPrimitive.Root>
+                <span className="w-8 shrink-0 text-right font-mono text-[11px] text-muted-foreground tabular-nums">
+                  {alphaPct}%
+                </span>
+              </div>
+            </div>
+          ) : null}
           <div className="flex items-center gap-1.5">
             <Button
               type="button"
@@ -318,7 +394,7 @@ export function useColorField({
                 pressed={value === "transparent"}
                 disabled={disabled}
                 onPressedChange={(p) => {
-                  if (p) commit("transparent"); // un-pressing is a no-op
+                  if (p) commit("transparent");
                 }}
               >
                 <span
@@ -332,7 +408,6 @@ export function useColorField({
           </div>
         </PopoverContent>
       </Popover>
-      {/* Native picker target (opened by เลือกจากระบบ…); outside the popover on purpose. */}
       <input
         ref={nativeRef}
         type="color"
@@ -341,7 +416,7 @@ export function useColorField({
         disabled={disabled}
         value={hex ?? "#000000"}
         onChange={(e) => {
-          const v = e.currentTarget.value.toLowerCase();
+          const v = withPreservedAlpha(e.currentTarget.value.toLowerCase(), value);
           if (pick.current) pick.current.last = v;
           live.schedule(v);
         }}

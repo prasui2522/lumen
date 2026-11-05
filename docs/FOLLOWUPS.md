@@ -171,3 +171,7 @@ None of these blocks A1.3. Each is a later decision or a known limit.
 94. **Low (B1 accept, 2026-11-05).** Harden Chromium/CDP flakes that pass alone / on rerun but fail under parallel `bun test` load:
     1. `src/lib/a25-canvas-browser.test.ts` — `scrollArea` wheel/drag probe: under the full suite once returned `scrollTop === 0` (`toBeGreaterThan(0)`); solo ×5 was 4 pass / 1 timeout-cluster. Likely CDP race or a leftover headless profile. Harden (wait for layout, assert with retry, or serialise browser cases) so parallel load is reliable.
     2. A3.2 Chromium timeouts: browser cases that once failed in parallel then passed alone / on rerun. Same class — isolate or raise the wait so the full suite stays green without a manual rerun.
+
+95. **Low (B2 accept, 2026-11-05).** Carry into B3 Designer GUI pass:
+    1. Re-verify shadow editor **blur slider drag = one undo**, **focus-after-remove** on a neighbour layer, and an **export pixel check** of compiled `box-shadow` (real-app XTEST under B2 did not fully exercise the expanded layer UI).
+    2. **Template-side `tsc`:** run `tsc --noEmit` in `export-templates/vite-react` (read-only, no installs) when touching the Vite export template; note pass/fail in the slice report. (B2 ran it at accept — see commit body / progress.)
