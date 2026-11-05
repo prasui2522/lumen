@@ -128,10 +128,11 @@ describe("A2.1 key parity: schema.ts vs defaults.rs / compiler.rs", () => {
     for (const n of A2_NAMES) expect(DEFAULT_STYLES[n as NodeType]).toEqual(GOLDEN[n]);
   });
 
-  test("schema.ts adds no StyleProps key (still the 20 keys)", () => {
+  test("schema.ts StyleProps key count (B1.2: 21 with boxShadow)", () => {
     const body = between(SCHEMA, "export type StyleProps = {", /\n};/);
     const keys = [...body.matchAll(/^  (\w+)\??:/gm)].map((m) => m[1]!);
-    expect(keys.length).toBe(20);
+    expect(keys.length).toBe(21);
+    expect(keys).toContain("boxShadow");
   });
 });
 

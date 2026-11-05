@@ -553,7 +553,47 @@ export type StyleProps = {
   borderStyle?: "solid" | "none";
   opacity?: number;
   overflow?: "visible" | "hidden" | "auto" | "scroll";
+  /** B1.2 (§4.2): layered box-shadow. Empty array ≡ unset. */
+  boxShadow?: BoxShadowLayer[];
 };
+
+/** B1.2: one `box-shadow` layer. Colour via `css_color` (hex3/4/6/8 / transparent / currentColor). */
+export type BoxShadowLayer = {
+  x?: number;
+  y?: number;
+  blur?: number;
+  spread?: number;
+  color?: string;
+  inset?: boolean;
+};
+
+/**
+ * B1 (§4.5.1): every StyleProps key, in struct order. Parity tests regex-scan
+ * `defaults.rs` for each key's snake_case field in the struct / `is_empty` / `overlay_style`.
+ */
+export const STYLE_KEYS = [
+  "display",
+  "width",
+  "height",
+  "minHeight",
+  "maxWidth",
+  "margin",
+  "padding",
+  "backgroundColor",
+  "color",
+  "fontFamily",
+  "fontSize",
+  "fontWeight",
+  "lineHeight",
+  "textAlign",
+  "borderRadius",
+  "borderWidth",
+  "borderColor",
+  "borderStyle",
+  "opacity",
+  "overflow",
+  "boxShadow",
+] as const satisfies readonly (keyof StyleProps)[];
 
 export type BoxSpacing =
   | number

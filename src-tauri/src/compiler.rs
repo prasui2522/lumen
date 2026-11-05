@@ -20,7 +20,7 @@
 use crate::defaults::{
     a2_layout_defaults, a3_layout_defaults, a5_layout_defaults, default_styles, heading_font_size, resolved_style, Align, AssetRef, BoxSpacing,
     ButtonAction, ContainerPropDefaults, CssSize, Direction, FontWeight, Justify, LineOrientation, Node, ScrollOrientation,
-    EdgeAlign, AspectRatioValue, NodeProps, NodeType, ObjectFit, PageDocument, SheetSide, StyleProps,
+    EdgeAlign, AspectRatioValue, NodeProps, NodeType, ObjectFit, PageDocument, SheetSide, StyleProps, BoxShadowLayer,
     DEFAULT_IMAGE_OBJECT_FIT,
 };
 use serde::Deserialize;
@@ -795,6 +795,72 @@ fn container_layout(dir: Direction, gap: u32, align: Align, justify: Justify) ->
 }
 
 /// StyleProps → CSS declarations (same mapping as node-view.tsx `styleToCss`).
+
+/// B1.1 (§9.B): colour validator for **new** colour-bearing keys.
+/// Accepts `#rgb` / `#rgba` / `#rrggbb` / `#rrggbbaa`, `transparent`, `currentColor`
+/// (any ASCII case). Returns a lowercase hex form (or the two keywords as written
+/// below), or `None` when the value is rejected. Never runs `css_safe` — structured
+/// colour keys must not accept free-form CSS.
+pub fn css_color(s: &str) -> Option<String> {
+    let t = s.trim();
+    if t.is_empty() {
+        return None;
+    }
+    let lower = t.to_ascii_lowercase();
+    if lower == "transparent" {
+        return Some("transparent".into());
+    }
+    if lower == "currentcolor" {
+        return Some("currentColor".into());
+    }
+    if !lower.starts_with('#') {
+        return None;
+    }
+    let hex = &lower[1..];
+    let ok = matches!(hex.len(), 3 | 4 | 6 | 8) && hex.bytes().all(|b| b.is_ascii_hexdigit());
+    if !ok {
+        return None;
+    }
+    Some(format!("#{hex}"))
+}
+
+fn clamp_f(n: f64, lo: f64, hi: f64) -> f64 {
+    if !n.is_finite() {
+        return 0.0;
+    }
+    n.clamp(lo, hi)
+}
+
+/// B1.2: compile `boxShadow` layers → a `box-shadow` value, or `None` if nothing remains.
+/// Caps (§4.2): ≤ 6 layers; x/y ±200; blur 0–200; spread ±100; colour via `css_color`.
+/// Hostile / invalid layers (bad colour, empty after clamp) are dropped; no panic.
+fn box_shadow_css(layers: &[BoxShadowLayer]) -> Option<String> {
+    let mut out: Vec<String> = Vec::new();
+    for layer in layers.iter().take(6) {
+        let color = match layer.color.as_deref().and_then(css_color) {
+            Some(c) => c,
+            None => continue, // no / bad colour → drop layer
+        };
+        let x = clamp_f(layer.x.unwrap_or(0.0), -200.0, 200.0);
+        let y = clamp_f(layer.y.unwrap_or(0.0), -200.0, 200.0);
+        let blur = clamp_f(layer.blur.unwrap_or(0.0), 0.0, 200.0);
+        let spread = clamp_f(layer.spread.unwrap_or(0.0), -100.0, 100.0);
+        let mut part = String::new();
+        if layer.inset == Some(true) {
+            part.push_str("inset ");
+        }
+        part.push_str(&format!("{} {} {} {} {}", px(x), px(y), px(blur), px(spread), color));
+        out.push(part);
+    }
+    if out.is_empty() {
+        None
+    } else {
+        Some(out.join(", "))
+    }
+}
+
+pub(crate) fn decls_for_test(s: &StyleProps) -> Vec<(&'static str, String)> { decls(s) }
+
 fn decls(s: &StyleProps) -> Vec<(&'static str, String)> {
     let mut d: Vec<(&'static str, String)> = Vec::new();
     let mut push = |k: &'static str, v: Option<String>| {
@@ -835,6 +901,7 @@ fn decls(s: &StyleProps) -> Vec<(&'static str, String)> {
     push("border-style", s.border_style.as_deref().map(css_safe));
     push("opacity", s.opacity.map(num));
     push("overflow", s.overflow.as_deref().map(css_safe));
+    push("box-shadow", s.box_shadow.as_ref().and_then(|layers| box_shadow_css(layers)));
     d
 }
 
@@ -2931,3 +2998,7 @@ mod f2_tests;
 #[cfg(test)]
 #[path = "compiler_b0_tests.rs"]
 mod b0_tests;
+
+#[cfg(test)]
+#[path = "compiler_b1_tests.rs"]
+mod b1_tests;

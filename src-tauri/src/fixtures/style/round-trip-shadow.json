@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "meta": { "title": "b1-shadow", "lang": "th" },
+  "root": "p",
+  "nodes": {
+    "p": {
+      "id": "p",
+      "type": "page",
+      "props": { "type": "page", "children": ["t"] },
+      "style": {}
+    },
+    "t": {
+      "id": "t",
+      "type": "text",
+      "props": { "type": "text", "content": "เงา" },
+      "style": {
+        "boxShadow": [
+          { "x": 0, "y": 6, "blur": 0, "spread": 0, "color": "#0369a1" },
+          { "x": 0, "y": 10, "blur": 12, "spread": 0, "color": "#00000033" }
+        ]
+      },
+      "styleBreakpoints": {
+        "phone": {
+          "boxShadow": [
+            { "x": 0, "y": 2, "blur": 4, "spread": 0, "color": "#00000066", "inset": true }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -18,6 +18,52 @@ function boxCss(prefix: "margin" | "padding", box: BoxSpacing | undefined, out: 
   if (box.l !== undefined) out[`${prefix}Left`] = `${box.l}px`;
 }
 
+
+function cssColor(raw: string | undefined): string | undefined {
+  if (raw === undefined) return undefined;
+  const t = raw.trim();
+  if (!t) return undefined;
+  const lower = t.toLowerCase();
+  if (lower === "transparent") return "transparent";
+  if (lower === "currentcolor") return "currentColor";
+  if (!lower.startsWith("#")) return undefined;
+  const hex = lower.slice(1);
+  if (![3, 4, 6, 8].includes(hex.length)) return undefined;
+  if (![...hex].every((c) => /[0-9a-f]/i.test(c))) return undefined;
+  return `#${hex}`;
+}
+
+function clampNum(n: number, lo: number, hi: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(hi, Math.max(lo, n));
+}
+
+function pxNum(n: number): string {
+  let body: string;
+  if (!Number.isFinite(n)) body = "0";
+  else if (Number.isInteger(n) && Math.abs(n) < 1e15) body = String(n);
+  else body = n.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+  return `${body}px`;
+}
+
+function boxShadowToCss(
+  layers: import("./site-types").BoxShadowLayer[] | undefined,
+): string | undefined {
+  if (!layers || layers.length === 0) return undefined;
+  const out: string[] = [];
+  for (const layer of layers.slice(0, 6)) {
+    const color = cssColor(layer.color);
+    if (!color) continue;
+    const x = clampNum(layer.x ?? 0, -200, 200);
+    const y = clampNum(layer.y ?? 0, -200, 200);
+    const blur = clampNum(layer.blur ?? 0, 0, 200);
+    const spread = clampNum(layer.spread ?? 0, -100, 100);
+    const inset = layer.inset === true ? "inset " : "";
+    out.push(`${inset}${pxNum(x)} ${pxNum(y)} ${pxNum(blur)} ${pxNum(spread)} ${color}`);
+  }
+  return out.length > 0 ? out.join(", ") : undefined;
+}
+
 /** Map builder StyleProps → React inline styles (v1: no Tailwind utility rewrite). */
 export function styleToReact(style: StyleProps | undefined): CSSProperties {
   if (!style) return {};
@@ -46,6 +92,8 @@ export function styleToReact(style: StyleProps | undefined): CSSProperties {
   if (style.borderStyle) out.borderStyle = style.borderStyle as CSSProperties["borderStyle"];
   if (style.opacity !== undefined) out.opacity = style.opacity;
   if (style.overflow) out.overflow = style.overflow as CSSProperties["overflow"];
+  const shadow = boxShadowToCss(style.boxShadow);
+  if (shadow) out.boxShadow = shadow;
   return out;
 }
 

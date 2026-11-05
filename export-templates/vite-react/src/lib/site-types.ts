@@ -24,6 +24,17 @@ export type StyleProps = {
   borderStyle?: string;
   opacity?: number;
   overflow?: string;
+  /** B1.2: layered box-shadow (same shape as builder StyleProps). */
+  boxShadow?: BoxShadowLayer[];
+};
+
+export type BoxShadowLayer = {
+  x?: number;
+  y?: number;
+  blur?: number;
+  spread?: number;
+  color?: string;
+  inset?: boolean;
 };
 
 export type SiteNode = {

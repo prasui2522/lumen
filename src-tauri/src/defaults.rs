@@ -729,6 +729,28 @@ pub enum ButtonAction {
     None,
 }
 
+/// B1.2 (§4.2): one `box-shadow` layer. All subfields optional; empty list ≡ unset.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BoxShadowLayer {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub x: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub y: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blur: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spread: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inset: Option<bool>,
+}
+
+fn skip_empty_box_shadow(v: &Option<Vec<BoxShadowLayer>>) -> bool {
+    v.as_ref().map_or(true, |layers| layers.is_empty())
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StyleProps {
@@ -772,6 +794,9 @@ pub struct StyleProps {
     pub opacity: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub overflow: Option<String>,
+    /// B1.2: layered box-shadow. Empty vec is treated as unset (see `skip_empty_box_shadow`).
+    #[serde(default, skip_serializing_if = "skip_empty_box_shadow")]
+    pub box_shadow: Option<Vec<BoxShadowLayer>>,
 }
 
 impl StyleProps {
@@ -797,6 +822,7 @@ impl StyleProps {
             && self.border_style.is_none()
             && self.opacity.is_none()
             && self.overflow.is_none()
+            && self.box_shadow.as_ref().map_or(true, |v| v.is_empty())
     }
 }
 
@@ -1682,6 +1708,9 @@ fn overlay_style(base: &mut StyleProps, over: &StyleProps) {
     }
     if over.overflow.is_some() {
         base.overflow = over.overflow.clone();
+    }
+    if over.box_shadow.is_some() {
+        base.box_shadow = over.box_shadow.clone();
     }
 }
 

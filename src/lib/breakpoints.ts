@@ -18,7 +18,18 @@ export function cleanStyle(style: StyleProps | undefined): StyleProps | undefine
   if (!style) return undefined;
   const out: StyleProps = {};
   for (const [key, value] of Object.entries(style)) {
-    if (value !== undefined) (out as Record<string, unknown>)[key] = value;
+    if (value === undefined) continue;
+    // B1.2: empty array/object ≡ unset (boxShadow [] must not keep a breakpoint alive).
+    if (Array.isArray(value) && value.length === 0) continue;
+    if (
+      value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value as object).length === 0
+    ) {
+      continue;
+    }
+    (out as Record<string, unknown>)[key] = value;
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }
