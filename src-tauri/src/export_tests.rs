@@ -53,6 +53,16 @@ fn export_zip_is_vite_tsx_project() {
     assert!(names.contains(&"src/lib/render-node.tsx".to_string()));
     assert!(names.contains(&"src/lib/icon-paths.ts".to_string()));
     assert!(names.contains(&"src/data/site.json".to_string()));
+    // B0: the shared generator's block ships as src/styles/site.css (imported once by main.tsx)
+    assert!(names.contains(&"src/styles/site.css".to_string()));
+    let (o2, _) = plain();
+    assert_eq!(read_entry(&mut z, "src/styles/site.css"), build_site_css(&rich(), &o2).unwrap());
+    // B0.1 item 1: kinds.css (static `.t-x` rules of switch / checkbox / spinner), imported before site.css
+    assert!(names.contains(&"src/styles/kinds.css".to_string()));
+    assert_eq!(read_entry(&mut z, "src/styles/kinds.css"), crate::export::build_kinds_css(&rich(), &o2).unwrap());
+    let main = read_entry(&mut z, "src/main.tsx");
+    let (ki, si) = (main.find("import \"./styles/kinds.css\";").expect("kinds import"), main.find("import \"./styles/site.css\";").expect("site import"));
+    assert!(ki < si, "kinds.css before site.css");
     assert!(names.contains(&"public/assets/.keep".to_string()));
     assert!(
         !names.contains(&"THIRD-PARTY-NOTICES.txt".to_string()),

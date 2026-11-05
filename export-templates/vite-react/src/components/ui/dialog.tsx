@@ -23,26 +23,36 @@ export function DialogOverlay({
 export function DialogContent({
   className,
   children,
+  pageAttr,
+  pageAttrValue,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  /** B0.2 item 1: portal host carries data-wb-page so scoped hook rules still match the dialog box. */
+  pageAttr?: string;
+  pageAttrValue?: string;
+}) {
+  // Radix portals to document.body; wrap the portaled tree so [data-wb-page] [data-wb-id] still matches.
+  const hostProps = pageAttr && pageAttrValue ? { [pageAttr]: pageAttrValue } : {};
   return (
     <DialogPortal>
-      <DialogOverlay />
-      <DialogPrimitive.Content
-        className={cn(
-          "fixed top-1/2 left-1/2 z-50 w-[min(100%-2rem,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[var(--border)] bg-white p-6 shadow-lg",
-          className,
-        )}
-        {...props}
-      >
-        {children}
-        <DialogPrimitive.Close
-          className="absolute top-3 right-3 rounded p-1 text-[var(--muted)] hover:bg-slate-100"
-          aria-label="Close"
+      <div {...hostProps}>
+        <DialogOverlay />
+        <DialogPrimitive.Content
+          className={cn(
+            "fixed top-1/2 left-1/2 z-50 w-[min(100%-2rem,28rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[var(--border)] bg-white p-6 shadow-lg",
+            className,
+          )}
+          {...props}
         >
-          <X className="size-4" />
-        </DialogPrimitive.Close>
-      </DialogPrimitive.Content>
+          {children}
+          <DialogPrimitive.Close
+            className="absolute top-3 right-3 rounded p-1 text-[var(--muted)] hover:bg-slate-100"
+            aria-label="Close"
+          >
+            <X className="size-4" />
+          </DialogPrimitive.Close>
+        </DialogPrimitive.Content>
+      </div>
     </DialogPortal>
   );
 }

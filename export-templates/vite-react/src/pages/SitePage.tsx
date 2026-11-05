@@ -1,6 +1,5 @@
 import site from "@/data/site.json";
 import { RenderNode } from "@/lib/render-node";
-import { breakpointCss } from "@/lib/style";
 import type { SiteDocument, SitePage as Page } from "@/lib/site-types";
 
 const doc = site as unknown as SiteDocument;
@@ -23,11 +22,9 @@ export function SitePage({ pagePath }: { pagePath: string }) {
   const page = resolvePage(pagePath);
   const title = doc.meta?.title ? `${page.name} · ${doc.meta.title}` : page.name;
   if (typeof document !== "undefined") document.title = title;
-  const bpCss = breakpointCss(page.nodes);
   return (
     <main>
-      {bpCss ? <style data-wb-breakpoints="">{bpCss}</style> : null}
-      <RenderNode id={page.root} ctx={{ nodes: page.nodes, assetFiles: doc.assetFiles }} />
+      <RenderNode id={page.root} ctx={{ nodes: page.nodes, assetFiles: doc.assetFiles, baseDefaults: doc.baseDefaults, headingFontSizes: doc.headingFontSizes, pageRoot: page.root, pageId: page.id }} />
     </main>
   );
 }

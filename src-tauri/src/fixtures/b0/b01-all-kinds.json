@@ -1,0 +1,1292 @@
+{
+ "version": 4,
+ "meta": {
+  "title": "b01-all-kinds",
+  "lang": "th"
+ },
+ "root": "root",
+ "nodes": {
+  "k0-k-button": {
+   "id": "k0-k-button",
+   "type": "button",
+   "style": {
+    "fontSize": 18,
+    "borderRadius": 8
+   },
+   "props": {
+    "type": "button",
+    "label": "ปุ่ม"
+   },
+   "styleBreakpoints": {
+    "phone": {
+     "fontSize": 14,
+     "backgroundColor": "#222222"
+    }
+   }
+  },
+  "k0-k-link": {
+   "id": "k0-k-link",
+   "type": "link",
+   "style": {},
+   "props": {
+    "type": "link",
+    "label": "ลิงก์",
+    "href": "#"
+   }
+  },
+  "k0-k-input": {
+   "id": "k0-k-input",
+   "type": "input",
+   "style": {},
+   "props": {
+    "type": "input",
+    "label": "",
+    "placeholder": "พิมพ์ที่นี่"
+   }
+  },
+  "k0-k-switch": {
+   "id": "k0-k-switch",
+   "type": "switch",
+   "style": {},
+   "props": {
+    "type": "switch",
+    "label": "Checkbox",
+    "checked": false
+   }
+  },
+  "k0-k-textarea": {
+   "id": "k0-k-textarea",
+   "type": "textarea",
+   "style": {},
+   "props": {
+    "type": "textarea",
+    "label": "",
+    "placeholder": "Type here"
+   }
+  },
+  "k0-k-kbd": {
+   "id": "k0-k-kbd",
+   "type": "kbd",
+   "style": {},
+   "props": {
+    "type": "kbd",
+    "text": "Kbd"
+   }
+  },
+  "k0-k-avatar": {
+   "id": "k0-k-avatar",
+   "type": "avatar",
+   "style": {},
+   "props": {
+    "type": "avatar",
+    "src": {
+     "id": ""
+    },
+    "fallback": "A"
+   }
+  },
+  "k0-k-progress": {
+   "id": "k0-k-progress",
+   "type": "progress",
+   "style": {},
+   "props": {
+    "type": "progress",
+    "value": 40
+   }
+  },
+  "k0-k-slider": {
+   "id": "k0-k-slider",
+   "type": "slider",
+   "style": {},
+   "props": {
+    "type": "slider",
+    "value": 40
+   }
+  },
+  "k0-k-empty": {
+   "id": "k0-k-empty",
+   "type": "empty",
+   "style": {},
+   "props": {
+    "type": "empty",
+    "title": "Empty",
+    "message": "Nothing here"
+   }
+  },
+  "k0-k-item": {
+   "id": "k0-k-item",
+   "type": "item",
+   "style": {},
+   "props": {
+    "type": "item",
+    "title": "Item",
+    "description": "Description"
+   }
+  },
+  "k0-k-marker": {
+   "id": "k0-k-marker",
+   "type": "marker",
+   "style": {},
+   "props": {
+    "type": "marker",
+    "text": "Marker"
+   }
+  },
+  "k0-k-bubble": {
+   "id": "k0-k-bubble",
+   "type": "bubble",
+   "style": {},
+   "props": {
+    "type": "bubble",
+    "text": "Message",
+    "align": "start"
+   }
+  },
+  "k0-k-message": {
+   "id": "k0-k-message",
+   "type": "message",
+   "style": {},
+   "props": {
+    "type": "message",
+    "sender": "Name",
+    "text": "Message",
+    "align": "start"
+   }
+  },
+  "k0-k-select": {
+   "id": "k0-k-select",
+   "type": "select",
+   "style": {},
+   "props": {
+    "type": "select",
+    "value": "One",
+    "options": [
+     "One",
+     "Two"
+    ]
+   }
+  },
+  "k0-k-radio": {
+   "id": "k0-k-radio",
+   "type": "radio",
+   "style": {},
+   "props": {
+    "type": "radio",
+    "value": "One",
+    "options": [
+     "One",
+     "Two"
+    ]
+   }
+  },
+  "k0-k-toggle": {
+   "id": "k0-k-toggle",
+   "type": "toggle",
+   "style": {},
+   "props": {
+    "type": "toggle",
+    "label": "Toggle",
+    "pressed": false
+   }
+  },
+  "k0-k-toggleGroup": {
+   "id": "k0-k-toggleGroup",
+   "type": "toggleGroup",
+   "style": {},
+   "props": {
+    "type": "toggleGroup",
+    "active": 0,
+    "items": [
+     "One",
+     "Two"
+    ]
+   }
+  },
+  "k0-k-tabs": {
+   "id": "k0-k-tabs",
+   "type": "tabs",
+   "style": {},
+   "props": {
+    "type": "tabs",
+    "active": 0,
+    "items": [
+     {
+      "label": "Tab 1",
+      "text": "One"
+     },
+     {
+      "label": "Tab 2",
+      "text": "Two"
+     }
+    ]
+   }
+  },
+  "k0-k-inputGroup": {
+   "id": "k0-k-inputGroup",
+   "type": "inputGroup",
+   "style": {},
+   "props": {
+    "type": "inputGroup",
+    "prefix": "",
+    "placeholder": "Type here",
+    "suffix": ""
+   }
+  },
+  "k0-k-inputOtp": {
+   "id": "k0-k-inputOtp",
+   "type": "inputOtp",
+   "style": {},
+   "props": {
+    "type": "inputOtp",
+    "length": 6,
+    "value": ""
+   }
+  },
+  "k0-k-accordion": {
+   "id": "k0-k-accordion",
+   "type": "accordion",
+   "style": {},
+   "props": {
+    "type": "accordion",
+    "open": 0,
+    "items": [
+     {
+      "label": "One",
+      "text": "Content"
+     },
+     {
+      "label": "Two",
+      "text": "Content"
+     }
+    ]
+   }
+  },
+  "k0-k-collapsible": {
+   "id": "k0-k-collapsible",
+   "type": "collapsible",
+   "style": {},
+   "props": {
+    "type": "collapsible",
+    "label": "Details",
+    "text": "Content",
+    "open": true
+   }
+  },
+  "k0-k-breadcrumb": {
+   "id": "k0-k-breadcrumb",
+   "type": "breadcrumb",
+   "style": {},
+   "props": {
+    "type": "breadcrumb",
+    "items": [
+     {
+      "label": "Home",
+      "href": ""
+     },
+     {
+      "label": "Page",
+      "href": ""
+     }
+    ]
+   }
+  },
+  "k0-k-pagination": {
+   "id": "k0-k-pagination",
+   "type": "pagination",
+   "style": {},
+   "props": {
+    "type": "pagination",
+    "active": 0,
+    "items": [
+     "1",
+     "2",
+     "3"
+    ]
+   }
+  },
+  "k0-k-navigationMenu": {
+   "id": "k0-k-navigationMenu",
+   "type": "navigationMenu",
+   "style": {},
+   "props": {
+    "type": "navigationMenu",
+    "items": [
+     {
+      "label": "Home",
+      "href": ""
+     },
+     {
+      "label": "Page",
+      "href": ""
+     }
+    ]
+   }
+  },
+  "k0-k-menubar": {
+   "id": "k0-k-menubar",
+   "type": "menubar",
+   "style": {},
+   "props": {
+    "type": "menubar",
+    "items": [
+     {
+      "label": "File",
+      "text": "Content"
+     },
+     {
+      "label": "Edit",
+      "text": "Content"
+     }
+    ]
+   }
+  },
+  "k0-k-dropdownMenu": {
+   "id": "k0-k-dropdownMenu",
+   "type": "dropdownMenu",
+   "style": {},
+   "props": {
+    "type": "dropdownMenu",
+    "label": "Menu",
+    "items": [
+     "One",
+     "Two"
+    ]
+   }
+  },
+  "k0-k-dialog": {
+   "id": "k0-k-dialog",
+   "type": "dialog",
+   "style": {
+    "width": 300,
+    "backgroundColor": "#fef3c7"
+   },
+   "props": {
+    "type": "dialog",
+    "title": "Dialog",
+    "message": "Note",
+    "open": true
+   },
+   "styleBreakpoints": {
+    "phone": {
+     "width": 220,
+     "backgroundColor": "#ffffff"
+    },
+    "tablet": {
+     "width": 360,
+     "backgroundColor": "#dbeafe"
+    }
+   }
+  },
+  "k0-k-alertDialog": {
+   "id": "k0-k-alertDialog",
+   "type": "alertDialog",
+   "style": {},
+   "props": {
+    "type": "alertDialog",
+    "title": "Alert",
+    "message": "Note",
+    "confirm": "OK",
+    "cancel": "Cancel"
+   }
+  },
+  "k0-k-sheet": {
+   "id": "k0-k-sheet",
+   "type": "sheet",
+   "style": {},
+   "props": {
+    "type": "sheet",
+    "title": "Sheet",
+    "message": "Note",
+    "side": "right",
+    "open": true
+   }
+  },
+  "k0-k-drawer": {
+   "id": "k0-k-drawer",
+   "type": "drawer",
+   "style": {},
+   "props": {
+    "type": "drawer",
+    "title": "Drawer",
+    "message": "Note",
+    "open": true
+   }
+  },
+  "k0-k-popover": {
+   "id": "k0-k-popover",
+   "type": "popover",
+   "style": {},
+   "props": {
+    "type": "popover",
+    "label": "Open",
+    "text": "Note"
+   }
+  },
+  "k0-k-tooltip": {
+   "id": "k0-k-tooltip",
+   "type": "tooltip",
+   "style": {},
+   "props": {
+    "type": "tooltip",
+    "label": "Tip",
+    "tip": "More"
+   }
+  },
+  "k0-k-hoverCard": {
+   "id": "k0-k-hoverCard",
+   "type": "hoverCard",
+   "style": {},
+   "props": {
+    "type": "hoverCard",
+    "title": "Title",
+    "text": "Details"
+   }
+  },
+  "k1-card1": {
+   "id": "k1-card1",
+   "type": "card",
+   "props": {
+    "type": "card",
+    "children": [
+     "k1-card-h",
+     "k1-card-p"
+    ],
+    "direction": "column",
+    "gap": 16,
+    "align": "stretch",
+    "justify": "start"
+   },
+   "style": {}
+  },
+  "k1-card-h": {
+   "id": "k1-card-h",
+   "type": "heading",
+   "props": {
+    "type": "heading",
+    "level": 2,
+    "content": "หัวข้อการ์ด"
+   },
+   "style": {
+    "fontSize": 32
+   },
+   "styleBreakpoints": {
+    "phone": {
+     "fontSize": 20,
+     "color": "#b00020"
+    },
+    "tablet": {
+     "fontSize": 28
+    }
+   }
+  },
+  "k1-card-p": {
+   "id": "k1-card-p",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "รายละเอียดในการ์ด"
+   },
+   "style": {}
+  },
+  "k1-alert1": {
+   "id": "k1-alert1",
+   "type": "alert",
+   "props": {
+    "type": "alert",
+    "children": [
+     "k1-alert-t"
+    ],
+    "direction": "row",
+    "gap": 8,
+    "align": "center",
+    "justify": "between"
+   },
+   "style": {}
+  },
+  "k1-alert-t": {
+   "id": "k1-alert-t",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "ข้อความแจ้งเตือน"
+   },
+   "style": {}
+  },
+  "k1-badge1": {
+   "id": "k1-badge1",
+   "type": "badge",
+   "props": {
+    "type": "badge",
+    "label": "ใหม่"
+   },
+   "style": {}
+  },
+  "k1-sep-h": {
+   "id": "k1-sep-h",
+   "type": "separator",
+   "props": {
+    "type": "separator",
+    "orientation": "horizontal"
+   },
+   "style": {}
+  },
+  "k1-sep-v": {
+   "id": "k1-sep-v",
+   "type": "separator",
+   "props": {
+    "type": "separator",
+    "orientation": "vertical"
+   },
+   "style": {}
+  },
+  "k1-skel1": {
+   "id": "k1-skel1",
+   "type": "skeleton",
+   "props": {
+    "type": "skeleton"
+   },
+   "style": {}
+  },
+  "k1-spin1": {
+   "id": "k1-spin1",
+   "type": "spinner",
+   "props": {
+    "type": "spinner",
+    "size": 24
+   },
+   "style": {}
+  },
+  "k1-ratio1": {
+   "id": "k1-ratio1",
+   "type": "aspectRatio",
+   "props": {
+    "type": "aspectRatio",
+    "children": [
+     "k1-ratio-t"
+    ],
+    "ratio": "16/9",
+    "direction": "column",
+    "gap": 0,
+    "align": "center",
+    "justify": "center"
+   },
+   "style": {}
+  },
+  "k1-ratio-t": {
+   "id": "k1-ratio-t",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "16:9"
+   },
+   "style": {}
+  },
+  "k1-scroll1": {
+   "id": "k1-scroll1",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [
+     "k1-scroll-t"
+    ],
+    "orientation": "vertical",
+    "label": "รายการเลื่อน",
+    "direction": "column",
+    "gap": 4,
+    "align": "stretch",
+    "justify": "start"
+   },
+   "style": {
+    "height": 120
+   }
+  },
+  "k1-scroll-t": {
+   "id": "k1-scroll-t",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "เนื้อหายาว"
+   },
+   "style": {}
+  },
+  "k1-bg1": {
+   "id": "k1-bg1",
+   "type": "buttonGroup",
+   "props": {
+    "type": "buttonGroup",
+    "children": [
+     "k1-bg-a",
+     "k1-bg-b",
+     "k1-bg-c"
+    ],
+    "direction": "row",
+    "gap": 0
+   },
+   "style": {}
+  },
+  "k1-bg-a": {
+   "id": "k1-bg-a",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "หนึ่ง"
+   },
+   "style": {}
+  },
+  "k1-bg-b": {
+   "id": "k1-bg-b",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "สอง"
+   },
+   "style": {
+    "borderRadius": 20
+   }
+  },
+  "k1-bg-c": {
+   "id": "k1-bg-c",
+   "type": "button",
+   "props": {
+    "type": "button",
+    "label": "สาม"
+   },
+   "style": {}
+  },
+  "k2-card": {
+   "id": "k2-card",
+   "type": "card",
+   "style": {},
+   "props": {
+    "type": "card",
+    "children": [
+     "k2-card-t"
+    ]
+   }
+  },
+  "k2-card-t": {
+   "id": "k2-card-t",
+   "type": "text",
+   "style": {},
+   "props": {
+    "type": "text",
+    "content": "ในการ์ด"
+   }
+  },
+  "k2-alert": {
+   "id": "k2-alert",
+   "type": "alert",
+   "style": {},
+   "props": {
+    "type": "alert",
+    "children": [
+     "k2-alert-t"
+    ]
+   }
+  },
+  "k2-alert-t": {
+   "id": "k2-alert-t",
+   "type": "text",
+   "style": {},
+   "props": {
+    "type": "text",
+    "content": "ข้อความแจ้งเตือน"
+   }
+  },
+  "k2-badge": {
+   "id": "k2-badge",
+   "type": "badge",
+   "style": {},
+   "props": {
+    "type": "badge",
+    "label": "ป้าย"
+   }
+  },
+  "k2-sep": {
+   "id": "k2-sep",
+   "type": "separator",
+   "style": {},
+   "props": {
+    "type": "separator",
+    "orientation": "horizontal"
+   }
+  },
+  "k2-skel": {
+   "id": "k2-skel",
+   "type": "skeleton",
+   "style": {},
+   "props": {
+    "type": "skeleton"
+   }
+  },
+  "k2-spin": {
+   "id": "k2-spin",
+   "type": "spinner",
+   "style": {},
+   "props": {
+    "type": "spinner",
+    "size": 24
+   }
+  },
+  "k2-ratio": {
+   "id": "k2-ratio",
+   "type": "aspectRatio",
+   "style": {},
+   "props": {
+    "type": "aspectRatio",
+    "ratio": "16/9",
+    "children": [
+     "k2-ratio-sp"
+    ]
+   }
+  },
+  "k2-ratio-sp": {
+   "id": "k2-ratio-sp",
+   "type": "spacer",
+   "style": {},
+   "props": {
+    "type": "spacer",
+    "size": 32
+   }
+  },
+  "k2-scroll": {
+   "id": "k2-scroll",
+   "type": "scrollArea",
+   "style": {},
+   "props": {
+    "type": "scrollArea",
+    "orientation": "vertical",
+    "children": [
+     "k2-scroll-t"
+    ]
+   }
+  },
+  "k2-scroll-t": {
+   "id": "k2-scroll-t",
+   "type": "text",
+   "style": {},
+   "props": {
+    "type": "text",
+    "content": "เลื่อนได้"
+   }
+  },
+  "k2-group": {
+   "id": "k2-group",
+   "type": "buttonGroup",
+   "style": {},
+   "props": {
+    "type": "buttonGroup",
+    "children": [
+     "k2-group-b1",
+     "k2-group-in",
+     "k2-group-b2"
+    ]
+   }
+  },
+  "k2-group-b1": {
+   "id": "k2-group-b1",
+   "type": "button",
+   "style": {},
+   "props": {
+    "type": "button",
+    "label": "ปุ่ม"
+   }
+  },
+  "k2-group-in": {
+   "id": "k2-group-in",
+   "type": "input",
+   "style": {},
+   "props": {
+    "type": "input",
+    "label": "",
+    "placeholder": "พิมพ์ที่นี่"
+   }
+  },
+  "k2-group-b2": {
+   "id": "k2-group-b2",
+   "type": "button",
+   "style": {},
+   "props": {
+    "type": "button",
+    "label": "ปุ่ม"
+   }
+  },
+  "k3-cb": {
+   "id": "k3-cb",
+   "type": "checkbox",
+   "style": {},
+   "props": {
+    "type": "checkbox",
+    "label": "ยอมรับเงื่อนไข",
+    "checked": true
+   }
+  },
+  "k4-s1": {
+   "id": "k4-s1",
+   "type": "switch",
+   "props": {
+    "type": "switch",
+    "label": "เปิดใช้",
+    "checked": true
+   },
+   "style": {}
+  },
+  "k4-s2": {
+   "id": "k4-s2",
+   "type": "switch",
+   "props": {
+    "type": "switch",
+    "label": "Checkbox",
+    "checked": false
+   },
+   "style": {}
+  },
+  "k4-s3": {
+   "id": "k4-s3",
+   "type": "switch",
+   "props": {
+    "type": "switch",
+    "label": "",
+    "checked": false
+   },
+   "style": {},
+   "name": "แจ้งเตือน"
+  },
+  "k4-s4": {
+   "id": "k4-s4",
+   "type": "switch",
+   "props": {
+    "type": "switch",
+    "label": " ",
+    "checked": true
+   },
+   "style": {}
+  },
+  "k5-f1": {
+   "id": "k5-f1",
+   "type": "field",
+   "props": {
+    "type": "field",
+    "label": "ชื่อ",
+    "description": "คำอธิบายสั้น",
+    "error": "จำเป็น",
+    "children": [
+     "k5-c1"
+    ]
+   },
+   "style": {}
+  },
+  "k5-c1": {
+   "id": "k5-c1",
+   "type": "checkbox",
+   "props": {
+    "type": "checkbox",
+    "label": "ยอมรับ",
+    "checked": false
+   },
+   "style": {}
+  },
+  "k6-l1": {
+   "id": "k6-l1",
+   "type": "list",
+   "props": {
+    "type": "list",
+    "items": [
+     "หนึ่ง",
+     "สอง",
+     "สาม"
+    ],
+    "ordered": false,
+    "marker": "check"
+   },
+   "style": {}
+  },
+  "k7-t1": {
+   "id": "k7-t1",
+   "type": "table",
+   "props": {
+    "type": "table",
+    "columns": [
+     "X",
+     "Y"
+    ],
+    "rows": [
+     [
+      "a",
+      "b"
+     ],
+     [
+      "c",
+      "d"
+     ],
+     [
+      "e",
+      "f"
+     ]
+    ],
+    "headerRow": true,
+    "striped": true
+   },
+   "style": {}
+  },
+  "k8-i1": {
+   "id": "k8-i1",
+   "type": "icon",
+   "props": {
+    "type": "icon",
+    "name": "check",
+    "label": "ติ๊กถูก <ok>&\"",
+    "size": 32,
+    "strokeWidth": 1.5
+   },
+   "style": {
+    "color": "#0284c7"
+   }
+  },
+  "k9-c1": {
+   "id": "k9-c1",
+   "type": "carousel",
+   "props": {
+    "type": "carousel",
+    "children": [
+     "k9-s1",
+     "k9-s2",
+     "k9-s3"
+    ]
+   },
+   "style": {
+    "height": 160
+   },
+   "styleBreakpoints": {
+    "phone": {
+     "height": 100
+    },
+    "tablet": {
+     "height": 140
+    }
+   }
+  },
+  "k9-s1": {
+   "id": "k9-s1",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "One"
+   },
+   "style": {}
+  },
+  "k9-s2": {
+   "id": "k9-s2",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "Two"
+   },
+   "style": {}
+  },
+  "k9-s3": {
+   "id": "k9-s3",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "Three"
+   },
+   "style": {}
+  },
+  "k10-sa0": {
+   "id": "k10-sa0",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [
+     "k10-x0a",
+     "k10-x0b",
+     "k10-x0c"
+    ],
+    "orientation": "vertical"
+   },
+   "style": {
+    "height": 60
+   }
+  },
+  "k10-x0a": {
+   "id": "k10-x0a",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว a"
+   },
+   "style": {}
+  },
+  "k10-x0b": {
+   "id": "k10-x0b",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว b"
+   },
+   "style": {}
+  },
+  "k10-x0c": {
+   "id": "k10-x0c",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว c"
+   },
+   "style": {}
+  },
+  "k10-sa1": {
+   "id": "k10-sa1",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [
+     "k10-x1"
+    ],
+    "orientation": "horizontal"
+   },
+   "style": {
+    "maxWidth": 200
+   }
+  },
+  "k10-x1": {
+   "id": "k10-x1",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "กว้าง"
+   },
+   "style": {
+    "width": 600
+   }
+  },
+  "k10-sa2": {
+   "id": "k10-sa2",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [
+     "k10-x2"
+    ],
+    "orientation": "both"
+   },
+   "style": {
+    "height": 60,
+    "maxWidth": 200
+   }
+  },
+  "k10-x2": {
+   "id": "k10-x2",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว 2"
+   },
+   "style": {
+    "width": 600
+   }
+  },
+  "k10-sa3": {
+   "id": "k10-sa3",
+   "type": "scrollArea",
+   "props": {
+    "type": "scrollArea",
+    "children": [
+     "k10-x3"
+    ],
+    "orientation": "vertical"
+   },
+   "style": {
+    "height": 60,
+    "overflow": "hidden"
+   }
+  },
+  "k10-x3": {
+   "id": "k10-x3",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว บรรทัดยาว 3"
+   },
+   "style": {}
+  },
+  "k10-c0": {
+   "id": "k10-c0",
+   "type": "carousel",
+   "props": {
+    "type": "carousel",
+    "children": []
+   },
+   "style": {}
+  },
+  "k10-c1": {
+   "id": "k10-c1",
+   "type": "carousel",
+   "props": {
+    "type": "carousel",
+    "children": [
+     "k10-cs"
+    ]
+   },
+   "style": {}
+  },
+  "k10-cs": {
+   "id": "k10-cs",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "สไลด์หนึ่ง"
+   },
+   "style": {}
+  },
+  "k10-tb": {
+   "id": "k10-tb",
+   "type": "table",
+   "props": {
+    "type": "table",
+    "columns": [
+     "ก",
+     "ข"
+    ],
+    "rows": [
+     [
+      "1",
+      "2"
+     ]
+    ],
+    "headerRow": true,
+    "striped": false
+   },
+   "style": {}
+  },
+  "k10-c2": {
+   "id": "k10-c2",
+   "type": "carousel",
+   "name": "แกลเลอรี",
+   "props": {
+    "type": "carousel",
+    "children": [
+     "k10-cs2"
+    ]
+   },
+   "style": {}
+  },
+  "k10-cs2": {
+   "id": "k10-cs2",
+   "type": "text",
+   "props": {
+    "type": "text",
+    "content": "สไลด์สอง"
+   },
+   "style": {}
+  },
+  "k11-f1": {
+   "id": "k11-f1",
+   "type": "field",
+   "props": {
+    "type": "field",
+    "label": "ชื่อ",
+    "description": "คำอธิบายสั้น",
+    "error": "จำเป็น",
+    "children": [
+     "k11-c1"
+    ]
+   },
+   "style": {}
+  },
+  "k11-c1": {
+   "id": "k11-c1",
+   "type": "input",
+   "props": {
+    "type": "input",
+    "label": "",
+    "placeholder": "พิมพ์ชื่อ"
+   },
+   "style": {}
+  },
+  "root": {
+   "id": "root",
+   "type": "page",
+   "props": {
+    "type": "page",
+    "children": [
+     "k0-k-button",
+     "k0-k-link",
+     "k0-k-input",
+     "k0-k-switch",
+     "k0-k-textarea",
+     "k0-k-kbd",
+     "k0-k-avatar",
+     "k0-k-progress",
+     "k0-k-slider",
+     "k0-k-empty",
+     "k0-k-item",
+     "k0-k-marker",
+     "k0-k-bubble",
+     "k0-k-message",
+     "k0-k-select",
+     "k0-k-radio",
+     "k0-k-toggle",
+     "k0-k-toggleGroup",
+     "k0-k-tabs",
+     "k0-k-inputGroup",
+     "k0-k-inputOtp",
+     "k0-k-accordion",
+     "k0-k-collapsible",
+     "k0-k-breadcrumb",
+     "k0-k-pagination",
+     "k0-k-navigationMenu",
+     "k0-k-menubar",
+     "k0-k-dropdownMenu",
+     "k0-k-dialog",
+     "k0-k-alertDialog",
+     "k0-k-sheet",
+     "k0-k-drawer",
+     "k0-k-popover",
+     "k0-k-tooltip",
+     "k0-k-hoverCard",
+     "k1-card1",
+     "k1-alert1",
+     "k1-badge1",
+     "k1-sep-h",
+     "k1-sep-v",
+     "k1-skel1",
+     "k1-spin1",
+     "k1-ratio1",
+     "k1-scroll1",
+     "k1-bg1",
+     "k2-card",
+     "k2-alert",
+     "k2-badge",
+     "k2-sep",
+     "k2-skel",
+     "k2-spin",
+     "k2-ratio",
+     "k2-scroll",
+     "k2-group",
+     "k3-cb",
+     "k4-s1",
+     "k4-s2",
+     "k4-s3",
+     "k4-s4",
+     "k5-f1",
+     "k6-l1",
+     "k7-t1",
+     "k8-i1",
+     "k9-c1",
+     "k10-sa0",
+     "k10-sa1",
+     "k10-sa2",
+     "k10-sa3",
+     "k10-c0",
+     "k10-c1",
+     "k10-c2",
+     "k10-tb",
+     "k11-f1"
+    ]
+   },
+   "style": {}
+  }
+ }
+}

@@ -225,6 +225,24 @@ pub fn build_site_json(doc: &PageDocument, asset_exts: &HashMap<String, String>)
     if !files.is_empty() {
         root.insert("assetFiles".into(), Value::Object(files));
     }
+    // B0 (FOLLOWUPS 92 item 2, shared base-defaults source): the type defaults the static export puts in `.t-x`
+    // (defaults.rs `default_styles`), for every kind used on any page, plus the heading sizes per level. The Vite
+    // renderer lays a node's own style over these instead of keeping its own copy.
+    let mut used: std::collections::BTreeMap<&'static str, Value> = std::collections::BTreeMap::new();
+    for page in &pages {
+        for node in page.nodes.values() {
+            let name = crate::compiler::type_name(node.node_type);
+            if !used.contains_key(name) {
+                let d = crate::defaults::default_styles(node.node_type);
+                used.insert(name, serde_json::to_value(&d).map_err(|e| format!("serialize defaults: {e}"))?);
+            }
+        }
+    }
+    root.insert("baseDefaults".into(), json!(used));
+    root.insert(
+        "headingFontSizes".into(),
+        json!((1u8..=6).map(crate::defaults::heading_font_size).collect::<Vec<f64>>()),
+    );
     serde_json::to_string_pretty(&Value::Object(root)).map_err(|e| format!("site.json: {e}"))
 }
 
@@ -237,6 +255,40 @@ fn zip_put(zw: &mut ZipWriter<Cursor<Vec<u8>>>, name: &str, bytes: &[u8]) -> Res
     zw.start_file(name, file).map_err(err)?;
     zw.write_all(bytes).map_err(ioerr)?;
     Ok(())
+}
+
+/// B0 (§9.B B-prelude P1): `src/styles/site.css` = the shared generator's block (`compiler::style_css`) for each
+/// exported page, in page order. A one-page site gets exactly the bytes its static `styles.css` ends with.
+pub fn build_site_css(doc: &PageDocument, opts: &CompileOptions) -> Result<String, String> {
+    let mut out = String::new();
+    for page in pages_for_export(doc) {
+        let pdoc = PageDocument {
+            version: doc.version,
+            meta: doc.meta.clone(),
+            root: page.root.clone(),
+            nodes: page.nodes.clone(),
+            pages: Vec::new(),
+        };
+        // B0.2 item 3: scope by the real ProjectPage.id (not the root node id).
+        let mut o = opts.clone();
+        o.page_id = Some(page.id.clone());
+        out.push_str(&crate::compiler::style_css(&pdoc, &o)?);
+    }
+    out.push('\n');
+    Ok(out)
+}
+
+/// B0.1 item 1: `src/styles/kinds.css`, the static `.t-x` rules of the kinds the Vite template draws with the
+/// static markup (switch, checkbox, spinner), once per site. Imported by `main.tsx` before `site.css`.
+pub fn build_kinds_css(doc: &PageDocument, opts: &CompileOptions) -> Result<String, String> {
+    let mut used = std::collections::BTreeSet::new();
+    for page in pages_for_export(doc) {
+        let pdoc = PageDocument { version: doc.version, meta: doc.meta.clone(), root: page.root.clone(), nodes: page.nodes.clone(), pages: Vec::new() };
+        used.extend(crate::compiler::markup_kind_types(&pdoc, opts)?);
+    }
+    let mut out = crate::compiler::markup_kinds_css(&used);
+    out.push('\n');
+    Ok(out)
 }
 
 /// Build the Vite project zip in memory.
@@ -256,6 +308,12 @@ pub fn build_zip(
 
     let site = build_site_json(doc, &opts.asset_exts)?;
     zip_put(&mut zw, "src/data/site.json", site.as_bytes())?;
+    // B0: generated per document, never a template file (imported once by `src/main.tsx`).
+    let site_css = build_site_css(doc, opts)?;
+    zip_put(&mut zw, "src/styles/site.css", site_css.as_bytes())?;
+    // B0.1 item 1: static `.t-x` rules of the markup kinds (imported before site.css).
+    let kinds_css = build_kinds_css(doc, opts)?;
+    zip_put(&mut zw, "src/styles/kinds.css", kinds_css.as_bytes())?;
 
     zw.add_directory(
         "public/assets/",

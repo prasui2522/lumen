@@ -78,6 +78,9 @@ pub struct CompileOptions {
     pub page_markers: HashMap<String, String>,
     /// Export stylesheet href (`styles.css` or `login.css`). Default `styles.css`.
     pub export_css_href: Option<String>,
+    /// B0.2 item 3: the ProjectPage.id that scopes every hook rule (`data-wb-page`). Preview and
+    /// per-page export set this. When absent, a single-page doc uses `"home"` (same as `pages_for_export`).
+    pub page_id: Option<String>,
 }
 
 pub fn compile_value(value: &Value, opts: &CompileOptions) -> Result<String, String> {
@@ -136,6 +139,9 @@ fn build(doc: &PageDocument, opts: &CompileOptions) -> Result<(String, String), 
         dyn_css: String::new(),
         group_slots: HashMap::new(),
         control_attrs: HashMap::new(),
+        hook_base: String::new(),
+        pending_hook: None,
+        page_attr_done: false,
     };
     c.render(&doc.root, 0);
 
@@ -161,25 +167,142 @@ fn build(doc: &PageDocument, opts: &CompileOptions) -> Result<(String, String), 
         css.push_str(PREVIEW_BUTTON_FEEDBACK);
     }
     css.push_str(&c.node_css);
-    // Base, then tablet, then phone, then fold-open. A narrower width query
-    // wins over tablet; fold-open wins only when the segments query matches,
-    // because it is last. No width stand-in for fold-open.
-    if !c.bp_tablet.is_empty() {
-        css.push_str("@media (max-width:1024px){");
-        css.push_str(&c.bp_tablet);
-        css.push('}');
-    }
-    if !c.bp_phone.is_empty() {
-        css.push_str("@media (max-width:719px){");
-        css.push_str(&c.bp_phone);
-        css.push('}');
-    }
-    if !c.bp_fold.is_empty() {
-        css.push_str("@media (horizontal-viewport-segments: 2){");
-        css.push_str(&c.bp_fold);
-        css.push('}');
-    }
+    // B0: everything after the node rules comes from the ONE shared generator (§9.B P1).
+    css.push_str(&c.style_block());
     Ok((css, c.body))
+}
+
+/// B0 (§9.B B-prelude P1): the shared style-CSS generator. The block `compile_export` / Preview append after the
+/// node rules, and that the Vite export writes (byte for byte, per page) into `src/styles/site.css`.
+pub fn style_css(doc: &PageDocument, opts: &CompileOptions) -> Result<String, String> {
+    let root = doc.nodes.get(&doc.root).ok_or_else(|| "ไม่พบโหนดราก (root)".to_string())?;
+    if root.node_type != NodeType::Page {
+        return Err("โหนดรากต้องเป็นหน้า (page)".into());
+    }
+    let mut c = Compiler {
+        doc,
+        opts,
+        body: String::new(),
+        node_css: String::new(),
+        bp_tablet: String::new(),
+        bp_phone: String::new(),
+        bp_fold: String::new(),
+        used_types: BTreeSet::new(),
+        used_levels: BTreeSet::new(),
+        visiting: HashSet::new(),
+        next_class: 1,
+        next_uid: 1,
+        dyn_css: String::new(),
+        group_slots: HashMap::new(),
+        control_attrs: HashMap::new(),
+        hook_base: String::new(),
+        pending_hook: None,
+        page_attr_done: false,
+    };
+    c.render(&doc.root, 0);
+    Ok(c.style_block())
+}
+
+/// B0.1 item 1: kinds the Vite template draws with the static export's own markup (`.t-switch` track and thumb,
+/// `.t-checkbox` input, `.t-spinner` svg). Their `.t-x` type rules ship in the zip as `src/styles/kinds.css`
+/// (imported before `site.css`), so the generator's state / at-rules for them have the same base under them.
+pub(crate) const MARKUP_KINDS: [NodeType; 3] = [NodeType::Switch, NodeType::Checkbox, NodeType::Spinner];
+
+/// B0.1 item 1: the `.t-x` type rules (same bytes as `styles.css`) of the markup kinds a document uses.
+pub fn markup_kind_types(doc: &PageDocument, opts: &CompileOptions) -> Result<BTreeSet<u8>, String> {
+    let root = doc.nodes.get(&doc.root).ok_or_else(|| "ไม่พบโหนดราก (root)".to_string())?;
+    if root.node_type != NodeType::Page {
+        return Err("โหนดรากต้องเป็นหน้า (page)".into());
+    }
+    let mut c = Compiler {
+        doc,
+        opts,
+        body: String::new(),
+        node_css: String::new(),
+        bp_tablet: String::new(),
+        bp_phone: String::new(),
+        bp_fold: String::new(),
+        used_types: BTreeSet::new(),
+        used_levels: BTreeSet::new(),
+        visiting: HashSet::new(),
+        next_class: 1,
+        next_uid: 1,
+        dyn_css: String::new(),
+        group_slots: HashMap::new(),
+        control_attrs: HashMap::new(),
+        hook_base: String::new(),
+        pending_hook: None,
+        page_attr_done: false,
+    };
+    c.render(&doc.root, 0);
+    Ok(MARKUP_KINDS.iter().map(|t| *t as u8).filter(|t| c.used_types.contains(t)).collect())
+}
+
+/// `.t-x` rules for the given used markup kinds, in `ALL_TYPES` order.
+pub fn markup_kinds_css(used: &BTreeSet<u8>) -> String {
+    let mut out = String::new();
+    for t in ALL_TYPES {
+        if MARKUP_KINDS.contains(&t) && used.contains(&(t as u8)) {
+            out.push_str(&type_rule(t));
+        }
+    }
+    out
+}
+
+impl Compiler<'_> {
+    /// §7.2 order: hook base restatements → state rules → `@keyframes` → breakpoint blocks (tablet, phone,
+    /// fold-open: a narrower width query wins over tablet; fold-open wins only when the segments query
+    /// matches, because it is last; no width stand-in) → other at-rules (`@supports`) →
+    /// `@media (prefers-reduced-motion: reduce)` → `@media (forced-colors: active)`.
+    fn style_block(&self) -> String {
+        let mut state = String::new();
+        let mut keyframes = String::new();
+        let mut other_at = String::new();
+        let mut reduced = String::new();
+        let mut forced = String::new();
+        for t in ALL_TYPES {
+            if !self.used_types.contains(&(t as u8)) {
+                continue;
+            }
+            for r in type_gen_rules(t) {
+                let bucket = if r.starts_with("@keyframes") {
+                    &mut keyframes
+                } else if r.starts_with("@media (prefers-reduced-motion") {
+                    &mut reduced
+                } else if r.starts_with("@media (forced-colors") {
+                    &mut forced
+                } else if r.starts_with('@') {
+                    &mut other_at
+                } else {
+                    &mut state
+                };
+                bucket.push_str(r);
+            }
+        }
+        let mut css = String::new();
+        css.push_str(&self.hook_base);
+        css.push_str(&state);
+        css.push_str(&keyframes);
+        if !self.bp_tablet.is_empty() {
+            css.push_str("@media (max-width:1024px){");
+            css.push_str(&self.bp_tablet);
+            css.push('}');
+        }
+        if !self.bp_phone.is_empty() {
+            css.push_str("@media (max-width:719px){");
+            css.push_str(&self.bp_phone);
+            css.push('}');
+        }
+        if !self.bp_fold.is_empty() {
+            css.push_str("@media (horizontal-viewport-segments: 2){");
+            css.push_str(&self.bp_fold);
+            css.push('}');
+        }
+        css.push_str(&other_at);
+        css.push_str(&reduced);
+        css.push_str(&forced);
+        css
+    }
 }
 
 fn assemble(doc: &PageDocument, opts: &CompileOptions, css: CssMode<'_>, body: &str) -> String {
@@ -304,7 +427,7 @@ const PREVIEW_BUTTON_FEEDBACK: &str = ".t-button{cursor:pointer}.t-button:active
     NodeType::Calendar,
 ];
 
-fn type_name(t: NodeType) -> &'static str {
+pub(crate) fn type_name(t: NodeType) -> &'static str {
     match t {
         NodeType::Page => "page",
         NodeType::Section => "section",
@@ -378,8 +501,14 @@ const KIND_LOOKS_JSON: &str = include_str!("../../src/lib/kind-looks.json");
 pub(crate) struct KindLook {
     /// Declarations merged over the type's default styles (a node's own style wins, G1).
     pub extras: Vec<(&'static str, String)>,
-    /// Descendant / pseudo-class rules, emitted once per used type right after `.t-x`.
+    /// Descendant / pseudo-class rules (every entry, in file order).
     pub css: String,
+    /// What `.t-x` is followed by in the type rules: `css` minus `gen_rules` (B0).
+    pub type_css: String,
+    /// B0 (§9.B B-prelude P1): a2 / a3 / a4 / a5 entries that are state rules (`:focus-visible`) or at-rules
+    /// (`@keyframes`, `@media (prefers-reduced-motion…)`, `@media (forced-colors…)`). They are emitted by the
+    /// shared style generator (`style_block`), not after `.t-x`.
+    pub gen_rules: Vec<String>,
 }
 
 pub(crate) struct KindLooks {
@@ -442,7 +571,7 @@ fn parse_kind_looks_checked(json: &str) -> Result<KindLooks, String> {
         .collect();
     let kinds = parse_kind_table(&section(&v, "kinds", "kinds")?, &palette).ok_or("kind-looks.json: malformed `kinds` table")?;
     let a2 = section(&v, "a2", "a2")?;
-    let a2_kinds = parse_kind_table(&section(&a2, "kinds", "a2.kinds")?, &palette).ok_or("kind-looks.json: malformed `a2.kinds` table")?;
+    let a2_kinds = parse_kind_table_split(&section(&a2, "kinds", "a2.kinds")?, &palette, true).ok_or("kind-looks.json: malformed `a2.kinds` table")?;
     let a2_texts: HashMap<String, String> = section(&a2, "texts", "a2.texts")?
         .as_object()
         .ok_or("kind-looks.json: `a2.texts` must be an object")?
@@ -461,11 +590,11 @@ fn parse_kind_looks_checked(json: &str) -> Result<KindLooks, String> {
         .map(|s| expand_tokens(s, &palette))
         .ok_or("kind-looks.json: `facingBorder` must be a string")?;
     let a3 = section(&v, "a3", "a3")?;
-    let a3_kinds = parse_kind_table(&section(&a3, "kinds", "a3.kinds")?, &palette).ok_or("kind-looks.json: malformed `a3.kinds` table")?;
+    let a3_kinds = parse_kind_table_split(&section(&a3, "kinds", "a3.kinds")?, &palette, true).ok_or("kind-looks.json: malformed `a3.kinds` table")?;
     let a4 = section(&v, "a4", "a4")?;
-    let a4_kinds = parse_kind_table(&section(&a4, "kinds", "a4.kinds")?, &palette).ok_or("kind-looks.json: malformed `a4.kinds` table")?;
+    let a4_kinds = parse_kind_table_split(&section(&a4, "kinds", "a4.kinds")?, &palette, true).ok_or("kind-looks.json: malformed `a4.kinds` table")?;
     let a5 = section(&v, "a5", "a5")?;
-    let a5_kinds = parse_kind_table(&section(&a5, "kinds", "a5.kinds")?, &palette).ok_or("kind-looks.json: malformed `a5.kinds` table")?;
+    let a5_kinds = parse_kind_table_split(&section(&a5, "kinds", "a5.kinds")?, &palette, true).ok_or("kind-looks.json: malformed `a5.kinds` table")?;
     Ok(KindLooks { kinds, facing_border, facing, a2_kinds, a2_texts, a3_kinds, a4_kinds, a5_kinds })
 }
 
@@ -476,6 +605,15 @@ fn parse_kind_looks(json: &str) -> Option<KindLooks> {
 }
 
 fn parse_kind_table(table: &Value, palette: &HashMap<String, String>) -> Option<HashMap<&'static str, KindLook>> {
+    parse_kind_table_split(table, palette, false)
+}
+
+/// B0: a rule the shared generator owns (state pseudo-class or at-rule).
+fn is_generator_rule(r: &str) -> bool {
+    r.starts_with('@') || r.contains(":focus-visible") || r.contains(":hover") || r.contains(":active")
+}
+
+fn parse_kind_table_split(table: &Value, palette: &HashMap<String, String>, split: bool) -> Option<HashMap<&'static str, KindLook>> {
     let mut kinds = HashMap::new();
     for (name, k) in table.as_object()? {
         let name: &'static str = Box::leak(name.clone().into_boxed_str());
@@ -486,10 +624,18 @@ fn parse_kind_table(table: &Value, palette: &HashMap<String, String>) -> Option<
             extras.push((key, expand_tokens(pair.get(1)?.as_str()?, palette)));
         }
         let mut css = String::new();
+        let mut type_css = String::new();
+        let mut gen_rules = Vec::new();
         for r in k.get("css")?.as_array()? {
-            css.push_str(&expand_tokens(r.as_str()?, palette));
+            let r = expand_tokens(r.as_str()?, palette);
+            css.push_str(&r);
+            if split && is_generator_rule(&r) {
+                gen_rules.push(r);
+            } else {
+                type_css.push_str(&r);
+            }
         }
-        kinds.insert(name, KindLook { extras, css });
+        kinds.insert(name, KindLook { extras, css, type_css, gen_rules });
     }
     Some(kinds)
 }
@@ -502,6 +648,9 @@ pub(crate) fn kind_looks() -> &'static KindLooks {
 }
 
 /// Descendant / pseudo-class rules for the A1 fidelity pass (see `kind-looks.json`).
+#[cfg(test)]
+pub(crate) fn type_css_for_test(t: NodeType) -> &'static str { type_css(t) }
+
 fn type_css(t: NodeType) -> &'static str {
     let l = kind_looks();
     l.kinds
@@ -510,7 +659,22 @@ fn type_css(t: NodeType) -> &'static str {
         .or_else(|| l.a3_kinds.get(type_name(t)))
         .or_else(|| l.a4_kinds.get(type_name(t)))
         .or_else(|| l.a5_kinds.get(type_name(t)))
-        .map_or("", |k| k.css.as_str())
+        .map_or("", |k| k.type_css.as_str())
+}
+
+/// B0: the a2 / a3 generator-owned rules of a type (empty for the other tables).
+fn type_gen_rules(t: NodeType) -> &'static [String] {
+    let l = kind_looks();
+    if l.kinds.contains_key(type_name(t)) {
+        return &[];
+    }
+    // B0.2 item 2: a4 (table) and a5 (carousel) state rules join a2 / a3 in the shared generator.
+    l.a2_kinds
+        .get(type_name(t))
+        .or_else(|| l.a3_kinds.get(type_name(t)))
+        .or_else(|| l.a4_kinds.get(type_name(t)))
+        .or_else(|| l.a5_kinds.get(type_name(t)))
+        .map_or(&[], |k| k.gen_rules.as_slice())
 }
 
 /// A2 container kinds lay their children out like `container`, from the per-kind
@@ -1075,6 +1239,99 @@ struct Compiler<'a> {
     /// Phase 11 A3.3: attrs a `field` injects onto its first pairable child's control
     /// (`id`, `aria-describedby`). Keyed by the child node id; taken once when that control opens.
     control_attrs: HashMap<String, Vec<(&'static str, String)>>,
+    /// B0: base rules `[data-wb-id="…"]{…}` for the keys a node overrides at a breakpoint (shared generator).
+    hook_base: String,
+    /// B0: `(class, node id)` of the node whose root element must carry `data-wb-id` (set by `node_class`,
+    /// taken by the next `open` whose classes contain that class).
+    pending_hook: Option<(String, String)>,
+    /// B0.1 item 3: set once the page root's `data-wb-page` is written.
+    page_attr_done: bool,
+}
+
+/// B0 (§9.B P1 selector contract): the attribute both outputs put on a node root that the generated CSS targets.
+pub const HOOK_ATTR: &str = "data-wb-id";
+
+/// B0.2 item 3: the page root carries `data-wb-page="<ProjectPage.id>"`; every hook rule is scoped by it, so the same
+/// node id on two pages (or two pages that share a root id) keeps its own breakpoint values. Specificity (0, 2, 0).
+pub const PAGE_ATTR: &str = "data-wb-page";
+
+/// B0.2 item 3: the scope id for `data-wb-page` / hook selectors. Prefers `opts.page_id`; else the matching
+/// `doc.pages` entry; else the synthetic single-page id `"home"` (see `export::pages_for_export`).
+pub fn page_scope_id(doc: &PageDocument, opts: &CompileOptions) -> String {
+    if let Some(id) = opts.page_id.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        return id.to_string();
+    }
+    if let Some(p) = doc.pages.iter().find(|p| p.root == doc.root) {
+        return p.id.clone();
+    }
+    if doc.pages.len() == 1 {
+        return doc.pages[0].id.clone();
+    }
+    "home".into()
+}
+
+/// B0.1 item 2: kinds whose Vite rendering takes the shared base defaults (template `PLAIN_KINDS`). For these the
+/// hook base restates the type default; every other kind (drawn with shadcn in Vite) restates only its own keys.
+pub(crate) const RESTATE_KINDS: [NodeType; 11] = [
+    NodeType::Page,
+    NodeType::Section,
+    NodeType::Container,
+    NodeType::Card,
+    NodeType::Alert,
+    NodeType::ButtonGroup,
+    NodeType::AspectRatio,
+    NodeType::Field,
+    NodeType::ScrollArea,
+    NodeType::Heading,
+    NodeType::Text,
+];
+
+/// `[data-wb-id="<id>"]`, the id escaped as a CSS string (quote, backslash, `<`, control chars).
+pub(crate) fn hook_selector(id: &str) -> String {
+    attr_selector(HOOK_ATTR, id)
+}
+
+/// B0.2 item 3: `[data-wb-page="P"] [data-wb-id="X"]`. When the hooked node is the page root, both attrs sit on
+/// the same element (`same_el`), so the selector has no descendant combinator.
+pub(crate) fn scoped_hook_selector(page: &str, id: &str, same_el: bool) -> String {
+    let sep = if same_el { "" } else { " " };
+    format!("{}{sep}{}", attr_selector(PAGE_ATTR, page), hook_selector(id))
+}
+
+fn attr_selector(attr: &str, id: &str) -> String {
+    let mut s = String::with_capacity(id.len() + 16);
+    s.push('[');
+    s.push_str(attr);
+    s.push_str("=\"");
+    for ch in id.chars() {
+        match ch {
+            '"' | '\\' => {
+                s.push('\\');
+                s.push(ch);
+            }
+            '<' | '>' | '&' => s.push_str(&format!("\\{:x} ", ch as u32)),
+            c if (c as u32) < 0x20 || c as u32 == 0x7f => s.push_str(&format!("\\{:x} ", c as u32)),
+            c => s.push(c),
+        }
+    }
+    s.push_str("\"]");
+    s
+}
+
+/// B0: longhands and their shorthand move together (a breakpoint `margin` also takes `margin-top` off the
+/// inline style in Vite, and the other way round). Same table as `propFamily` in the template's `style.ts`.
+pub(crate) fn prop_family(p: &str) -> &str {
+    if p.starts_with("margin") {
+        "margin"
+    } else if p.starts_with("padding") {
+        "padding"
+    } else if p.starts_with("overflow") {
+        "overflow"
+    } else if p == "border-radius" || (p.starts_with("border-") && p.ends_with("-radius")) {
+        "border-radius"
+    } else {
+        p
+    }
 }
 
 
@@ -1183,14 +1440,40 @@ impl<'a> Compiler<'a> {
         if !d.is_empty() {
             self.node_css.push_str(&rule(&format!(".{class}"), &d));
         }
-        if !tablet.is_empty() {
-            self.bp_tablet.push_str(&rule(&format!(".{class}"), &tablet));
-        }
-        if !phone.is_empty() {
-            self.bp_phone.push_str(&rule(&format!(".{class}"), &phone));
-        }
-        if !fold.is_empty() {
-            self.bp_fold.push_str(&rule(&format!(".{class}"), &fold));
+        // B0 (§9.B P1): breakpoint rules belong to the shared generator and target the node's `data-wb-id` hook, so
+        // the Vite export (base styles inline) can use the very same bytes. The generator also restates the base
+        // value of every overridden key (whole shorthand family) as it stands in this output's cascade
+        // (`.t-x` defaults + extras, then `.nN`), so Vite can take those keys off the inline style (PM ruling:
+        // no `!important`). In the static output the restatement equals what `.t-x` / `.nN` already give.
+        if !(tablet.is_empty() && phone.is_empty() && fold.is_empty()) {
+            let sel = scoped_hook_selector(&page_scope_id(self.doc, self.opts), &node.id, node.id == self.doc.root);
+            let fams: BTreeSet<&str> = tablet.iter().chain(phone.iter()).chain(fold.iter()).map(|(k, _)| prop_family(k)).collect();
+            // B0.1 item 2: only plain kinds restate the type default; a shadcn-drawn kind restates its own keys.
+            let eff_static = if RESTATE_KINDS.contains(&node.node_type) {
+                let mut e = def.clone();
+                merge(&mut e, type_extras(node.node_type));
+                merge(&mut e, d.clone());
+                e
+            } else {
+                // Own keys as this output renders them: the stored keys, then `.nN` (group corners, extras diffs).
+                let mut e = explicit.clone();
+                merge(&mut e, d.clone());
+                e
+            };
+            let base_hook: Vec<(&'static str, String)> = eff_static.into_iter().filter(|(k, _)| fams.contains(prop_family(k))).collect();
+            if !base_hook.is_empty() {
+                self.hook_base.push_str(&rule(&sel, &base_hook));
+            }
+            if !tablet.is_empty() {
+                self.bp_tablet.push_str(&rule(&sel, &tablet));
+            }
+            if !phone.is_empty() {
+                self.bp_phone.push_str(&rule(&sel, &phone));
+            }
+            if !fold.is_empty() {
+                self.bp_fold.push_str(&rule(&sel, &fold));
+            }
+            self.pending_hook = Some((class.clone(), node.id.clone()));
         }
         Some(class)
     }
@@ -1206,6 +1489,23 @@ impl<'a> Compiler<'a> {
             self.body.push_str(k);
             self.body.push_str("=\"");
             self.body.push_str(&esc(v));
+            self.body.push('"');
+        }
+        // B0.1 item 3: the first element opened is the page root.
+        if !self.page_attr_done {
+            self.page_attr_done = true;
+            self.body.push(' ');
+            self.body.push_str(PAGE_ATTR);
+            self.body.push_str("=\"");
+            self.body.push_str(&esc(&page_scope_id(self.doc, self.opts)));
+            self.body.push('"');
+        }
+        if self.pending_hook.as_ref().is_some_and(|(c, _)| classes.iter().any(|x| x == c)) {
+            let (_, id) = self.pending_hook.take().unwrap_or_default();
+            self.body.push(' ');
+            self.body.push_str(HOOK_ATTR);
+            self.body.push_str("=\"");
+            self.body.push_str(&esc(&id));
             self.body.push('"');
         }
         self.body.push('>');
@@ -2627,3 +2927,7 @@ mod a55_tests;
 #[cfg(test)]
 #[path = "compiler_f2_tests.rs"]
 mod f2_tests;
+
+#[cfg(test)]
+#[path = "compiler_b0_tests.rs"]
+mod b0_tests;

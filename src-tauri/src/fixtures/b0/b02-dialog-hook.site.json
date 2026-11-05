@@ -1,0 +1,122 @@
+{
+  "baseDefaults": {
+    "dialog": {
+      "color": "#0f172a",
+      "display": "block",
+      "fontSize": 16.0,
+      "fontWeight": 400,
+      "margin": 0.0,
+      "padding": 0.0
+    },
+    "page": {
+      "backgroundColor": "#ffffff",
+      "color": "#0f172a",
+      "display": "block",
+      "fontFamily": "ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "fontSize": 16.0,
+      "lineHeight": "1.5",
+      "margin": 0.0,
+      "minHeight": "100%",
+      "padding": 0.0,
+      "width": "100%"
+    }
+  },
+  "headingFontSizes": [
+    40.0,
+    32.0,
+    28.0,
+    24.0,
+    20.0,
+    18.0
+  ],
+  "meta": {
+    "lang": "th",
+    "title": "b02-dialog"
+  },
+  "nodes": {
+    "dlg": {
+      "id": "dlg",
+      "name": "กล่องโต้ตอบ",
+      "props": {
+        "message": "ข้อความในกล่อง",
+        "open": true,
+        "title": "หัวข้อกล่อง",
+        "type": "dialog"
+      },
+      "style": {
+        "backgroundColor": "#fef3c7",
+        "width": 300.0
+      },
+      "styleBreakpoints": {
+        "phone": {
+          "backgroundColor": "#ffffff",
+          "width": 220.0
+        },
+        "tablet": {
+          "backgroundColor": "#dbeafe",
+          "width": 360.0
+        }
+      },
+      "type": "dialog"
+    },
+    "page": {
+      "id": "page",
+      "props": {
+        "children": [
+          "dlg"
+        ],
+        "type": "page"
+      },
+      "style": {},
+      "type": "page"
+    }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "name": "หน้าแรก",
+      "nodes": {
+        "dlg": {
+          "id": "dlg",
+          "name": "กล่องโต้ตอบ",
+          "props": {
+            "message": "ข้อความในกล่อง",
+            "open": true,
+            "title": "หัวข้อกล่อง",
+            "type": "dialog"
+          },
+          "style": {
+            "backgroundColor": "#fef3c7",
+            "width": 300.0
+          },
+          "styleBreakpoints": {
+            "phone": {
+              "backgroundColor": "#ffffff",
+              "width": 220.0
+            },
+            "tablet": {
+              "backgroundColor": "#dbeafe",
+              "width": 360.0
+            }
+          },
+          "type": "dialog"
+        },
+        "page": {
+          "id": "page",
+          "props": {
+            "children": [
+              "dlg"
+            ],
+            "type": "page"
+          },
+          "style": {},
+          "type": "page"
+        }
+      },
+      "path": "/",
+      "root": "page"
+    }
+  ],
+  "root": "page",
+  "version": 1
+}

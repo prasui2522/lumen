@@ -134,6 +134,8 @@ export function documentForPreview(doc: PageDocument): Record<string, unknown> {
     nodes: synced.nodes,
     pagePaths: previewPagePaths(pages),
     pageMarkers: previewPageMarkers(pages, openPageIdOf(synced)),
+    // B0.2 item 3: real page id for data-wb-page (Preview emits it too).
+    pageId: openPageIdOf(synced),
   };
 }
 

@@ -1,4 +1,59 @@
 {
+  "baseDefaults": {
+    "carousel": {
+      "display": "flex",
+      "width": "100%"
+    },
+    "page": {
+      "backgroundColor": "#ffffff",
+      "color": "#0f172a",
+      "display": "block",
+      "fontFamily": "ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "fontSize": 16.0,
+      "lineHeight": "1.5",
+      "margin": 0.0,
+      "minHeight": "100%",
+      "padding": 0.0,
+      "width": "100%"
+    },
+    "scrollArea": {
+      "display": "flex",
+      "overflow": "auto",
+      "width": "100%"
+    },
+    "table": {
+      "color": "#0f172a",
+      "display": "block",
+      "fontSize": 16.0,
+      "fontWeight": 400,
+      "lineHeight": "1.5",
+      "margin": 0.0,
+      "padding": 0.0
+    },
+    "text": {
+      "color": "#334155",
+      "display": "block",
+      "fontSize": 16.0,
+      "fontWeight": 400,
+      "lineHeight": "1.6",
+      "margin": {
+        "b": 8.0,
+        "l": 0.0,
+        "r": 0.0,
+        "t": 0.0
+      },
+      "padding": 0.0,
+      "textAlign": "left"
+    }
+  },
+  "headingFontSizes": [
+    40.0,
+    32.0,
+    28.0,
+    24.0,
+    20.0,
+    18.0
+  ],
   "meta": {
     "lang": "th",
     "title": "f21-kinds"

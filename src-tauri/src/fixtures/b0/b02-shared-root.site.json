@@ -1,0 +1,151 @@
+{
+  "baseDefaults": {
+    "heading": {
+      "color": "#0f172a",
+      "display": "block",
+      "fontWeight": 700,
+      "lineHeight": "1.25",
+      "margin": {
+        "b": 8.0,
+        "l": 0.0,
+        "r": 0.0,
+        "t": 0.0
+      },
+      "padding": 0.0,
+      "textAlign": "left"
+    },
+    "page": {
+      "backgroundColor": "#ffffff",
+      "color": "#0f172a",
+      "display": "block",
+      "fontFamily": "ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "fontSize": 16.0,
+      "lineHeight": "1.5",
+      "margin": 0.0,
+      "minHeight": "100%",
+      "padding": 0.0,
+      "width": "100%"
+    }
+  },
+  "headingFontSizes": [
+    40.0,
+    32.0,
+    28.0,
+    24.0,
+    20.0,
+    18.0
+  ],
+  "meta": {
+    "lang": "th",
+    "title": "b02-shared-root"
+  },
+  "nodes": {
+    "h": {
+      "id": "h",
+      "props": {
+        "content": "หัว p1",
+        "level": 1,
+        "type": "heading"
+      },
+      "style": {
+        "fontSize": 40.0
+      },
+      "styleBreakpoints": {
+        "phone": {
+          "color": "#aa0000",
+          "fontSize": 18.0
+        }
+      },
+      "type": "heading"
+    },
+    "r": {
+      "id": "r",
+      "props": {
+        "children": [
+          "h"
+        ],
+        "type": "page"
+      },
+      "style": {},
+      "type": "page"
+    }
+  },
+  "pages": [
+    {
+      "id": "p1",
+      "name": "p1",
+      "nodes": {
+        "h": {
+          "id": "h",
+          "props": {
+            "content": "หัว p1",
+            "level": 1,
+            "type": "heading"
+          },
+          "style": {
+            "fontSize": 40.0
+          },
+          "styleBreakpoints": {
+            "phone": {
+              "color": "#aa0000",
+              "fontSize": 18.0
+            }
+          },
+          "type": "heading"
+        },
+        "r": {
+          "id": "r",
+          "props": {
+            "children": [
+              "h"
+            ],
+            "type": "page"
+          },
+          "style": {},
+          "type": "page"
+        }
+      },
+      "path": "/",
+      "root": "r"
+    },
+    {
+      "id": "p2",
+      "name": "p2",
+      "nodes": {
+        "h": {
+          "id": "h",
+          "props": {
+            "content": "หัว p2",
+            "level": 1,
+            "type": "heading"
+          },
+          "style": {
+            "fontSize": 40.0
+          },
+          "styleBreakpoints": {
+            "phone": {
+              "color": "#0066aa",
+              "fontSize": 32.0
+            }
+          },
+          "type": "heading"
+        },
+        "r": {
+          "id": "r",
+          "props": {
+            "children": [
+              "h"
+            ],
+            "type": "page"
+          },
+          "style": {},
+          "type": "page"
+        }
+      },
+      "path": "/two",
+      "root": "r"
+    }
+  ],
+  "root": "r",
+  "version": 1
+}

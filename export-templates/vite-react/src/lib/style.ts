@@ -54,52 +54,40 @@ function kebab(k: string): string {
   return k.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
 }
 
-/** React unitless keys; every other number is px (same as React inline styles). */
-const UNITLESS = new Set(["fontWeight", "lineHeight", "opacity"]);
+/**
+ * B0 (PHASE-11 §9.B B-prelude P1): breakpoint CSS is no longer built here. The Rust generator writes it, with the
+ * static export's own bytes, into the generated `src/styles/site.css`, targeting this attribute on a node root.
+ */
+export const HOOK_ATTR = "data-wb-id";
 
 /**
- * F2 D8 (PREVIEW-CODE-VIEW-SPEC S1): one breakpoint's StyleProps → declarations.
- * Same mapping as `styleToReact`, so a breakpoint key means the same CSS as the base key.
- * `!important` because the base styles are inline; it wins only inside its media query.
+ * Longhands and their shorthand move together. Same table as `prop_family` in compiler.rs.
  */
-export function styleToDecls(style: StyleProps | undefined): string {
-  const css = styleToReact(style) as Record<string, string | number | undefined>;
-  const out: string[] = [];
-  for (const [k, v] of Object.entries(css)) {
-    if (v === undefined || v === "") continue;
-    const val = typeof v === "number" && !UNITLESS.has(k) ? `${v}px` : String(v);
-    out.push(`${kebab(k)}:${val} !important`);
-  }
-  return out.join(";");
+export function propFamily(p: string): string {
+  if (p.startsWith("margin")) return "margin";
+  if (p.startsWith("padding")) return "padding";
+  if (p.startsWith("overflow")) return "overflow";
+  if (p === "border-radius" || (p.startsWith("border-") && p.endsWith("-radius"))) return "border-radius";
+  return p;
 }
 
-/** Breakpoints in the static export's order (compiler.rs): tablet, then phone, then fold-open last. */
-export const BREAKPOINT_MEDIA: readonly (readonly [string, string])[] = [
-  ["tablet", "(max-width:1024px)"],
-  ["phone", "(max-width:719px)"],
-  ["foldOpen", "(horizontal-viewport-segments: 2)"],
-];
-
-/** Attribute that ties a rendered root to its breakpoint rules. */
-export const BP_ATTR = "data-wb-bp";
-
-function cssIdent(id: string): string {
-  return id.replace(/["\\]/g, (m) => `\\${m}`);
+/** CSS families a node overrides at any breakpoint (empty → the node has no hook). */
+export function overriddenFamilies(bp: Record<string, StyleProps> | undefined): Set<string> {
+  const out = new Set<string>();
+  if (!bp) return out;
+  for (const s of Object.values(bp)) {
+    for (const k of Object.keys(styleToReact(s))) out.add(propFamily(kebab(k)));
+  }
+  return out;
 }
 
 /**
- * F2 D8: every node's `styleBreakpoints` → one stylesheet, grouped per media query in the static export's
- * order (base inline, then max-width 1024, then max-width 719, then fold-open), so a narrower query wins.
+ * PM ruling 2026-11-04: keys with breakpoint overrides leave the inline style, so the generated class/attribute
+ * rules (base restatement first, then the media blocks) win by normal cascade. No `!important`.
  */
-export function breakpointCss(nodes: Record<string, { styleBreakpoints?: Record<string, StyleProps> }>): string {
-  let css = "";
-  for (const [key, media] of BREAKPOINT_MEDIA) {
-    let rules = "";
-    for (const [id, n] of Object.entries(nodes)) {
-      const d = styleToDecls(n.styleBreakpoints?.[key]);
-      if (d) rules += `[${BP_ATTR}="${cssIdent(id)}"]{${d}}`;
-    }
-    if (rules) css += `@media ${media}{${rules}}`;
-  }
-  return css;
+export function withoutFamilies(style: CSSProperties | undefined, fams: Set<string>): CSSProperties | undefined {
+  if (!style || fams.size === 0) return style;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(style)) if (!fams.has(propFamily(kebab(k)))) out[k] = v;
+  return out as CSSProperties;
 }

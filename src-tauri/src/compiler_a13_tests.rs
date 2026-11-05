@@ -161,7 +161,9 @@ fn one(node_json: &str) -> (String, String) {
     let (html, css) = export_of(&json);
     let b = body_of(&html);
     let inner = b
-        .strip_prefix("<body><div class=\"t-page\">")
+        .strip_prefix("<body><div class=\"t-page\"")
+        // B0.1 item 3: the page root carries data-wb-page.
+        .map(|x| x.split_once('>').map_or(x, |(attrs, rest)| if attrs.starts_with(" data-wb-page=") { rest } else { x }))
         .and_then(|x| x.strip_suffix("</div></body></html>\n"))
         .unwrap_or_else(|| panic!("unexpected body shape: {b}"))
         .to_string();
@@ -428,7 +430,7 @@ fn a13_explicit_style_wins_over_type_extras_g1() {
 fn a13_breakpoint_override_still_wins_over_extras() {
     let n = "\"n\":{\"id\":\"n\",\"type\":\"empty\",\"props\":{\"type\":\"empty\",\"title\":\"T\",\"message\":\"M\"},\"style\":{},\"styleBreakpoints\":{\"phone\":{\"padding\":8}}}";
     let (_, css) = one(n);
-    assert!(css.contains("@media (max-width:719px){.n1{padding:8px}}"), "{css}");
+    assert!(css.contains("@media (max-width:719px){[data-wb-page=\"home\"] [data-wb-id=\"n\"]{padding:8px}}"), "{css}");
 }
 
 // ---- A1.3b: Designer fixes 1-6 ------------------------------------------

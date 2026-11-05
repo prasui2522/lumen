@@ -53,4 +53,8 @@ export type SiteDocument = {
   pages?: SitePage[];
   /** `src.id` → filename under `/assets/` (set by Web Builder export). */
   assetFiles?: Record<string, string>;
+  /** B0: type → default StyleProps (defaults.rs), the shared base-defaults source. */
+  baseDefaults?: Record<string, StyleProps>;
+  /** B0: heading font size per level 1–6 (defaults.rs `heading_font_size`). */
+  headingFontSizes?: number[];
 };

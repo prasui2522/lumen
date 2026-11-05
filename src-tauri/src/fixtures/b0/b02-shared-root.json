@@ -1,0 +1,83 @@
+{
+ "version": 5,
+ "meta": {
+  "title": "b02-shared-root",
+  "lang": "th"
+ },
+ "pages": [
+  {
+   "id": "p1",
+   "name": "p1",
+   "path": "/",
+   "root": "r",
+   "nodes": {
+    "r": {
+     "id": "r",
+     "type": "page",
+     "props": {
+      "type": "page",
+      "children": [
+       "h"
+      ]
+     },
+     "style": {}
+    },
+    "h": {
+     "id": "h",
+     "type": "heading",
+     "props": {
+      "type": "heading",
+      "level": 1,
+      "content": "หัว p1"
+     },
+     "style": {
+      "fontSize": 40
+     },
+     "styleBreakpoints": {
+      "phone": {
+       "fontSize": 18,
+       "color": "#aa0000"
+      }
+     }
+    }
+   }
+  },
+  {
+   "id": "p2",
+   "name": "p2",
+   "path": "/two",
+   "root": "r",
+   "nodes": {
+    "r": {
+     "id": "r",
+     "type": "page",
+     "props": {
+      "type": "page",
+      "children": [
+       "h"
+      ]
+     },
+     "style": {}
+    },
+    "h": {
+     "id": "h",
+     "type": "heading",
+     "props": {
+      "type": "heading",
+      "level": 1,
+      "content": "หัว p2"
+     },
+     "style": {
+      "fontSize": 40
+     },
+     "styleBreakpoints": {
+      "phone": {
+       "fontSize": 32,
+       "color": "#0066aa"
+      }
+     }
+    }
+   }
+  }
+ ]
+}

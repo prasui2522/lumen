@@ -33,7 +33,7 @@ describe("F1: breakpoint borderRadius on a buttonGroup child keeps the corner ta
   test("the class map matches the golden html", () => {
     const html = fx("a23-bp-corners.html");
     for (const id of ["g1", "g3", "g4"]) expect(html).toContain(`aria-label="${(doc.nodes[id] as Node).name}"`);
-    expect(css).toContain(".n11{border-radius:20px}");
+    expect(css).toMatch(/\[data-wb-page="[^"]+"\] \[data-wb-id="e1"\]\{border-radius:20px\}/); // B0.1: page-scoped hook // B0: breakpoint rules target the hook
     expect(css).toContain(".n4{flex-direction:column}");
   });
 
@@ -51,7 +51,7 @@ describe("F1: breakpoint borderRadius on a buttonGroup child keeps the corner ta
         const n = doc.nodes[id] as Node & { styleBreakpoints?: Record<string, { borderRadius?: number }> };
         const bp = n.styleBreakpoints;
         const decls = breakpointRadiusDecls(slots[id], bp?.[view]?.borderRadius);
-        const rule = new RegExp(`\\.${k}\\{([^}]*)\\}`).exec(blocks[view]);
+        const rule = new RegExp(`\\[data-wb-page="[^"]+"\\] \\[data-wb-id="${id}"\\]\\{([^}]*)\\}`).exec(blocks[view]); // B0 hook (was .${k})
         if (!bp?.[view]?.borderRadius && bp?.[view]?.borderRadius !== 0) {
           expect(decls).toBeUndefined();
           continue;

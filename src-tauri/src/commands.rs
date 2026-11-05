@@ -85,6 +85,13 @@ pub async fn compile_preview(
     };
     opts.page_paths = page_paths;
     opts.page_markers = page_markers;
+    // B0.2 item 3: Preview scopes hook rules by the real ProjectPage.id (not the root node id).
+    opts.page_id = document
+        .get("pageId")
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string);
     compile(&doc, &opts)
 }
 

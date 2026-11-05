@@ -158,7 +158,7 @@ fn nesting_order_page_section_container_leaves() {
     let html = compile_value(&v, &export()).unwrap();
     let b = body(&html);
     let pos = |s: &str| b.find(s).unwrap_or_else(|| panic!("missing {s} in {b}"));
-    let page = pos("<div class=\"t-page\">");
+    let page = pos("<div class=\"t-page\" data-wb-page=\"home\">");
     let sec = pos("<section class=\"t-section\">");
     let boxd = pos("<div class=\"t-container n");
     let h = pos("<h1 ");
@@ -324,7 +324,7 @@ color:#ffffff;border-radius:16px;border-width:2px;border-color:#0ea5e9;border-st
     let body = &html[html.find("<body>").unwrap()..];
     assert_eq!(
         body,
-        "<body><div class=\"t-page n1\"><section class=\"t-section n2\">\
+        "<body><div class=\"t-page n1\" data-wb-page=\"home\"><section class=\"t-section n2\">\
 <h1 class=\"t-heading t-h1 n3\">กาแฟดี</h1><h3 class=\"t-heading t-h3\">คั่วสด</h3>\
 <h6 class=\"t-heading t-h6 n4\">เล็ก</h6><p class=\"t-text n5\">เปิดทุกวัน</p>\
 <div class=\"t-container n6\"><a class=\"t-button n7\" href=\"https://shop.example/order\">สั่งเลย</a>\
@@ -457,13 +457,13 @@ fn width_queries_follow_base_and_skip_empty_and_fold() {
     let tablet = &css[tpos..ppos];
     let phone = &css[ppos..fpos];
     let fold = &css[fpos..];
-    assert!(tablet.contains(".n1{color:#111}"));
+    assert!(tablet.contains("[data-wb-page=\"home\"] [data-wb-id=\"t\"]{color:#111}"));
     assert!(!tablet.contains("font-size:14px"), "phone keys are not in the tablet query");
     assert!(!tablet.contains("font-size:12px"), "fold keys are not in the tablet query");
-    assert!(phone.contains(".n1{font-size:14px}"));
+    assert!(phone.contains("[data-wb-page=\"home\"] [data-wb-id=\"t\"]{font-size:14px}"));
     assert!(!phone.contains("color:#111"), "tablet keys are not copied into phone");
     assert!(!phone.contains("font-size:12px"), "fold keys are not copied into phone");
-    assert!(fold.contains(".n1{font-size:12px}"));
+    assert!(fold.contains("[data-wb-page=\"home\"] [data-wb-id=\"t\"]{font-size:12px}"));
     assert!(!fold.contains("color:#111") && !fold.contains("font-size:14px"));
     assert!(!fold.contains("max-width"), "fold-open is not a width query");
     assert!(!css.contains("750"), "no 750px stand-in that would also restyle tablets");
@@ -483,7 +483,7 @@ fn phone_only_override_is_inside_its_query() {
         !css.split("@media").next().unwrap().contains(".n1{"),
         "no base rule when the base style matches the type"
     );
-    assert!(css.contains("@media (max-width:719px){.n1{font-size:14px}}"));
+    assert!(css.contains("@media (max-width:719px){[data-wb-page=\"home\"] [data-wb-id=\"t\"]{font-size:14px}}"));
     assert!(!css.contains("1024px"), "no empty tablet query");
     assert!(body(&html).contains("class=\"t-text n1\""));
 }
@@ -496,7 +496,7 @@ fn fold_open_is_only_the_segments_query() {
     )]);
     let html = compile_json(&json, &export()).unwrap();
     let css = style_block(&html);
-    assert!(css.contains("@media (horizontal-viewport-segments: 2){.n1{font-size:12px}}"));
+    assert!(css.contains("@media (horizontal-viewport-segments: 2){[data-wb-page=\"home\"] [data-wb-id=\"t\"]{font-size:12px}}"));
     assert!(!css.contains("@media (max-width"), "a fold-only override adds no width query");
     assert!(body(&html).contains("class=\"t-text n1\""));
 
@@ -513,7 +513,7 @@ fn fold_open_is_only_the_segments_query() {
         &export(),
     )
     .unwrap();
-    assert!(export_css.contains("@media (horizontal-viewport-segments: 2){.n1{font-size:12px}}"));
+    assert!(export_css.contains("@media (horizontal-viewport-segments: 2){[data-wb-page=\"home\"] [data-wb-id=\"t\"]{font-size:12px}}"));
 }
 
 #[test]
@@ -704,7 +704,7 @@ fn unlinked_button_export_is_byte_identical() {
     let (html, css) = export_with_pages(&base);
     assert_eq!(
         body(&html),
-        "<body><div class=\"t-page\"><span class=\"t-button\">Go</span></div></body></html>\n"
+        "<body><div class=\"t-page\" data-wb-page=\"home\"><span class=\"t-button\">Go</span></div></body></html>\n"
     );
     assert_eq!(
         css,
@@ -740,7 +740,7 @@ fn fragment_and_query_only_hrefs_export_as_written() {
     let (html, _css) = export_with_pages(&json);
     assert_eq!(
         body(&html),
-        "<body><div class=\"t-page\"><a class=\"t-link\" href=\"#top\">A</a><a class=\"t-link\" href=\"?q=1\">B</a><a class=\"t-link\" href=\"#\">C</a><a class=\"t-button\" href=\"#top\">D</a><nav class=\"t-navigationMenu\" aria-label=\"navigation\"><ul role=\"list\"><li><a href=\"#top\">Top</a></li><li><a href=\"?q\">Q</a></li></ul></nav></div></body></html>\n",
+        "<body><div class=\"t-page\" data-wb-page=\"home\"><a class=\"t-link\" href=\"#top\">A</a><a class=\"t-link\" href=\"?q=1\">B</a><a class=\"t-link\" href=\"#\">C</a><a class=\"t-button\" href=\"#top\">D</a><nav class=\"t-navigationMenu\" aria-label=\"navigation\"><ul role=\"list\"><li><a href=\"#top\">Top</a></li><li><a href=\"?q\">Q</a></li></ul></nav></div></body></html>\n",
     );
 }
 
@@ -786,7 +786,7 @@ fn preview_page_links_get_inert_marker_and_nothing_else_has_href() {
     let b = body(&pv);
     assert_eq!(
         b,
-        "<body><div class=\"t-page\"><a class=\"t-button\" href=\"about:blank#wb-page=%2Flogin\">B1</a><a class=\"t-button\" href=\"about:blank#wb-page=%2Flogin\">B2</a><span class=\"t-button\">B3</span><span class=\"t-button\">B4</span><span class=\"t-button\">B5</span><span class=\"t-button\">B6</span><a class=\"t-link\" href=\"about:blank#wb-page=%2Flogin\" title=\"login.html\">L1</a><a class=\"t-link\" title=\"mailto:a@b.co\">L2</a><a class=\"t-link\" title=\"tel:+66\">L3</a><a class=\"t-link\" title=\"./index.html\">L4</a><a class=\"t-link\" title=\"/login.html\">L5</a><nav class=\"t-breadcrumb\" aria-label=\"breadcrumb\"><ol role=\"list\"><li><span>หน\u{e49}าแรก</span></li><li><a href=\"about:blank#wb-page=%2Flogin\">Login</a></li><li><span>Ext</span></li><li><span aria-current=\"page\">Here</span></li></ol></nav><nav class=\"t-navigationMenu\" aria-label=\"navigation\"><ul role=\"list\"><li><a href=\"about:blank#wb-page=%2Flogin\">เข\u{e49}าส\u{e39}\u{e48}ระบบ</a></li><li><span>Home</span></li><li><span>Mail</span></li><li><span>Docs</span></li><li><span>JS</span></li></ul></nav></div></body></html>\n",
+        "<body><div class=\"t-page\" data-wb-page=\"home\"><a class=\"t-button\" href=\"about:blank#wb-page=%2Flogin\">B1</a><a class=\"t-button\" href=\"about:blank#wb-page=%2Flogin\">B2</a><span class=\"t-button\">B3</span><span class=\"t-button\">B4</span><span class=\"t-button\">B5</span><span class=\"t-button\">B6</span><a class=\"t-link\" href=\"about:blank#wb-page=%2Flogin\" title=\"login.html\">L1</a><a class=\"t-link\" title=\"mailto:a@b.co\">L2</a><a class=\"t-link\" title=\"tel:+66\">L3</a><a class=\"t-link\" title=\"./index.html\">L4</a><a class=\"t-link\" title=\"/login.html\">L5</a><nav class=\"t-breadcrumb\" aria-label=\"breadcrumb\"><ol role=\"list\"><li><span>หน\u{e49}าแรก</span></li><li><a href=\"about:blank#wb-page=%2Flogin\">Login</a></li><li><span>Ext</span></li><li><span aria-current=\"page\">Here</span></li></ol></nav><nav class=\"t-navigationMenu\" aria-label=\"navigation\"><ul role=\"list\"><li><a href=\"about:blank#wb-page=%2Flogin\">เข\u{e49}าส\u{e39}\u{e48}ระบบ</a></li><li><span>Home</span></li><li><span>Mail</span></li><li><span>Docs</span></li><li><span>JS</span></li></ul></nav></div></body></html>\n",
     );
     // Only marker hrefs, never a target, never a real URL.
     assert_eq!(b.matches(" href=\"about:blank#wb-page=%2Flogin\"").count(), b.matches(" href=").count(), "{b}");
@@ -831,5 +831,5 @@ fn export_ignores_preview_markers() {
     )
     .unwrap();
     assert_eq!(with, plain);
-    assert!(!plain.0.contains("wb-page"), "{}", plain.0);
+    assert!(!plain.0.contains("#wb-page"), "{}", plain.0); // B0.1: `data-wb-page` (page scope) is not a marker
 }

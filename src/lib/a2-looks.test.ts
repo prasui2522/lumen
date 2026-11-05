@@ -83,7 +83,17 @@ describe("A2.3: shared a2 section of kind-looks.json", () => {
   test("every A2 css rule and extra appears in the Rust golden export (same values in both languages)", () => {
     // a23-default has no scrollArea / badge; a23b-default has every kind (N3: the scrollArea focus ring is there)
     const everyKind = goldenDefault + fx("a23b-default.css");
-    for (const k of Object.values(A2_LOOKS)) expect(everyKind.includes(k.css)).toBe(true);
+    // B0: state rules and at-rules live in the shared generator block (after the node rules), so check rule by rule
+    const topRules = (css: string) => {
+      const out: string[] = [];
+      let depth = 0, start = 0;
+      for (let i = 0; i < css.length; i++) {
+        if (css[i] === "{") depth++;
+        else if (css[i] === "}" && --depth === 0) { out.push(css.slice(start, i + 1)); start = i + 1; }
+      }
+      return out;
+    };
+    for (const k of Object.values(A2_LOOKS)) for (const r of topRules(k.css)) expect(`${everyKind.includes(r)} ${r}`).toBe(`true ${r}`);
     expect(fx("a23b-default.css")).toContain(".t-scrollArea:focus-visible{outline:2px solid #0077c2;outline-offset:2px}");
     const ext = A2_LOOKS.separatorVertical.extras.map(([p, v]) => `${p}:${v}`).join(";");
     expect(goldenDefault).toContain(`{${ext}}`);

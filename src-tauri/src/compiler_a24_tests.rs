@@ -161,9 +161,9 @@ fn n3_the_scroll_area_has_a_literal_hex_focus_ring_only_when_one_is_used() {
         let used = html.contains("t-scrollArea");
         assert_eq!(css.matches(ring).count(), usize::from(used), "{name}");
         if used {
-            // after the type rule, before any per-node rule
+            // B0: state rules come from the shared generator block, after the type and per-node rules
             let (a, b, c) = (css.find(".t-scrollArea{").unwrap(), css.find(ring).unwrap(), css.find(".n1{").unwrap());
-            assert!(a < b && b < c, "{name}");
+            assert!(a < c && c < b, "{name}");
         }
     }
 }
@@ -184,13 +184,13 @@ fn n2_a_breakpoint_overflow_brings_its_own_axis_rule() {
     let phone = media_block(&css, "(max-width:719px)");
     let fold = media_block(&css, "(horizontal-viewport-segments: 2)");
     // base hidden + tablet auto: the old code scrolled both axes here
-    assert!(tablet.contains(".n1{overflow:auto;overflow-x:hidden}"), "{tablet}");
+    assert!(tablet.contains("[data-wb-id=\"s1\"]{overflow:auto;overflow-x:hidden}"), "{tablet}");
     // auto -> hidden (nothing to add) -> scroll (axis rule again, in the phone rule that follows the tablet one)
-    assert!(tablet.contains(".n2{overflow:hidden}") && phone.contains(".n2{overflow:scroll;overflow-y:hidden}"), "{css}");
+    assert!(tablet.contains("[data-wb-id=\"s2\"]{overflow:hidden}") && phone.contains("[data-wb-id=\"s2\"]{overflow:scroll;overflow-y:hidden}"), "{css}");
     // both: no axis rule; visible: none; a breakpoint without overflow: untouched
-    assert!(tablet.contains(".n3{overflow:auto}") && tablet.contains(".n5{overflow:visible}") && tablet.contains(".n7{width:300px}"), "{tablet}");
+    assert!(tablet.contains("[data-wb-id=\"s3\"]{overflow:auto}") && tablet.contains("[data-wb-id=\"s5\"]{overflow:visible}") && tablet.contains("[data-wb-id=\"s7\"]{width:300px}"), "{tablet}");
     // fold-open has its own rule too
-    assert!(fold.contains(".n4{overflow:scroll;overflow-x:hidden}"), "{fold}");
+    assert!(fold.contains("[data-wb-id=\"s4\"]{overflow:scroll;overflow-x:hidden}"), "{fold}");
     // the control and the base rules are unchanged
     assert!(css.contains(".n6{height:100px;display:flex;flex-direction:column;gap:0px;align-items:stretch;justify-content:flex-start;overflow-x:hidden}"));
     assert!(!tablet.contains(".n6") && !phone.contains(".n6"));

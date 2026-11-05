@@ -9,8 +9,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BP_ATTR, styleToReact } from "@/lib/style";
-import type { SiteNode } from "@/lib/site-types";
+import { HOOK_ATTR, overriddenFamilies, styleToReact, withoutFamilies } from "@/lib/style";
+import type { SiteNode, StyleProps } from "@/lib/site-types";
 import { ICON_PATHS, iconInnerSvg } from "@/lib/icon-paths";
 import { renderChartSvg, type ChartKind, type ChartSeries } from "@/lib/chart-render";
 import { renderCalendarHtml, type CalendarEra, type CalendarWeekStart } from "@/lib/calendar-render";
@@ -18,7 +18,37 @@ import { renderCalendarHtml, type CalendarEra, type CalendarWeekStart } from "@/
 type Ctx = {
   nodes: Record<string, SiteNode>;
   assetFiles?: Record<string, string>;
+  /** B0: type defaults from the export (defaults.rs), the ONE base-defaults source. */
+  baseDefaults?: Record<string, StyleProps>;
+  headingFontSizes?: number[];
+  /** B0.1 item 3: the page root node id (the element that also carries `data-wb-page`). */
+  pageRoot?: string;
+  /** B0.2 item 3: ProjectPage.id written into `data-wb-page` (and into the Dialog portal host). */
+  pageId?: string;
 };
+
+/** B0.1 item 1: same texts as kind-looks.json `a2.texts` (spinnerPath / spinnerLabel), checked by a bun test. */
+export const SPINNER_PATH = "M21 12a9 9 0 1 1-6.219-8.56";
+export const SPINNER_LABEL = "กำลังโหลด";
+export const PAGE_ATTR = "data-wb-page";
+
+/**
+ * B0 (FOLLOWUPS 92 item 2): kinds drawn as plain elements take the static export's type defaults under their own
+ * style. Kinds drawn with shadcn components keep their own look for now (S2 all-kinds parity decides them).
+ */
+const PLAIN_KINDS = new Set(["page", "section", "container", "card", "alert", "buttonGroup", "aspectRatio", "field", "scrollArea", "heading", "text"]);
+
+function baseStyle(node: SiteNode, ctx: Ctx): StyleProps | undefined {
+  const t = node.props.type;
+  if (!PLAIN_KINDS.has(t)) return node.style;
+  const d: StyleProps = { ...(ctx.baseDefaults?.[t] ?? {}) };
+  if (t === "heading") {
+    const level = Math.min(6, Math.max(1, Number(node.props.level) || 1));
+    const fs = ctx.headingFontSizes?.[level - 1];
+    if (fs !== undefined) d.fontSize = fs;
+  }
+  return { ...d, ...(node.style ?? {}) };
+}
 
 function assetSrc(id: string, ctx: Ctx): string {
   const file = ctx.assetFiles?.[id] ?? id;
@@ -45,7 +75,7 @@ function SmartLink({
   className?: string;
   style?: CSSProperties;
   children: ReactNode;
-  [BP_ATTR]?: string;
+  [HOOK_ATTR]?: string;
 }) {
   if (isInternalPath(href)) {
     return (
@@ -77,23 +107,35 @@ function layoutStyle(p: Record<string, unknown>, base: CSSProperties): CSSProper
 }
 
 /**
- * F2 D8: a node with `styleBreakpoints` gets `data-wb-bp=<id>` on its root element; the rules come from
- * `breakpointCss` (SitePage). Base styles stay inline, so nothing changes for nodes without breakpoints.
+ * B0 (§9.B P1 selector contract): a node with breakpoint overrides gets `data-wb-id=<id>` on its root element, the
+ * hook the generated `src/styles/site.css` targets (same bytes as the static export). The overridden keys (whole
+ * shorthand family) leave the inline style, so the generated rules win by normal cascade, without `!important`.
  */
 export function RenderNode({ id, ctx }: { id: string; ctx: Ctx }) {
   const el = renderNodeInner(id, ctx);
-  const bp = ctx.nodes[id]?.styleBreakpoints;
-  if (bp && Object.keys(bp).length > 0 && isValidElement(el)) {
-    return cloneElement(el as ReactElement<Record<string, unknown>>, { [BP_ATTR]: id });
+  const node = ctx.nodes[id];
+  // Dialog: the root is the Radix provider (no element); its case puts class + hook on the dialog box itself.
+  if (!node || !isValidElement(el) || node.props.type === "dialog") return el;
+  const props = (el as ReactElement<{ style?: CSSProperties; className?: string }>).props;
+  // B0.1 item 1: every node root carries `.t-<type>` like the static export, so the generator's type rules
+  // (state, reduced-motion, forced-colors) reach the Vite render too.
+  const tcls = `t-${node.props.type}`;
+  const cls = (props.className ?? "").split(/\s+/).includes(tcls) ? props.className : [tcls, props.className].filter(Boolean).join(" ");
+  const extra: Record<string, unknown> = { className: cls };
+  if (id === ctx.pageRoot) extra[PAGE_ATTR] = ctx.pageId ?? id;
+  const fams = overriddenFamilies(node.styleBreakpoints);
+  if (fams.size > 0) {
+    extra[HOOK_ATTR] = id;
+    extra.style = withoutFamilies(props.style, fams);
   }
-  return el;
+  return cloneElement(el as ReactElement<Record<string, unknown>>, extra);
 }
 
 function renderNodeInner(id: string, ctx: Ctx): ReactNode {
   const node = ctx.nodes[id];
   if (!node || node.visible === false) return null;
   const p = node.props;
-  const style = styleToReact(node.style);
+  const style = styleToReact(baseStyle(node, ctx));
   const t = p.type;
 
   switch (t) {
@@ -111,11 +153,10 @@ function renderNodeInner(id: string, ctx: Ctx): ReactNode {
         </div>
       );
     case "scrollArea": {
-      // F2.1 a: same base default as the static export (defaults.rs: overflow auto) plus its axis rule
-      // (compiler.rs scroll_axis_decls): vertical clips x, horizontal clips y, both adds nothing; only while
-      // the overflow in force is auto / scroll (an explicit visible / hidden wins). defaults.rs also gives it
-      // display flex (column, layout defaults) and width 100%.
-      const overflow = node.style?.overflow ?? "auto";
+      // F2.1 a / B0: display flex, width 100% and overflow auto come from the shared base defaults (defaults.rs via
+      // site.json `baseDefaults`); the axis rule (compiler.rs scroll_axis_decls): vertical clips x, horizontal clips
+      // y, both adds nothing; only while the overflow in force is auto / scroll (an explicit visible / hidden wins).
+      const overflow = String(style.overflow ?? "visible");
       const axis: CSSProperties =
         overflow === "auto" || overflow === "scroll"
           ? p.orientation === "horizontal"
@@ -125,7 +166,7 @@ function renderNodeInner(id: string, ctx: Ctx): ReactNode {
               : { overflowX: "hidden" }
           : {};
       return (
-        <div className="n-scrollArea" style={{ ...layoutStyle(p, { display: "flex", flexDirection: "column", width: "100%", ...style, overflow: overflow as CSSProperties["overflow"] }), ...axis }}>
+        <div className="n-scrollArea" style={{ ...layoutStyle(p, { flexDirection: "column", ...style }), ...axis }}>
           {kids(node, ctx)}
         </div>
       );
@@ -225,13 +266,23 @@ function renderNodeInner(id: string, ctx: Ctx): ReactNode {
         </label>
       );
     case "switch":
-    case "checkbox":
+    case "checkbox": {
+      // B0.1 item 1: the static export's markup (compiler.rs Switch / Checkbox arms); the look is the `.t-switch` /
+      // `.t-checkbox` rules shipped in src/styles/kinds.css. Empty label: no span, named by layer name / type label.
+      const label = String(p.label ?? "");
+      const named = label.trim() ? undefined : node.name?.trim() || (t === "switch" ? "Switch" : "Checkbox");
       return (
-        <label style={{ ...style, display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <input type="checkbox" defaultChecked={p.checked === true} />
-          <span>{String(p.label ?? "")}</span>
+        <label style={style}>
+          <input type="checkbox" className={t === "switch" ? "sw" : undefined} defaultChecked={p.checked === true} aria-label={named} />
+          {t === "switch" ? (
+            <span className="sw-track">
+              <span className="sw-thumb" />
+            </span>
+          ) : null}
+          {label.trim() ? <span>{label}</span> : null}
         </label>
       );
+    }
     case "select": {
       const options = (p.options as string[] | undefined) ?? [];
       return (
@@ -450,7 +501,7 @@ function renderNodeInner(id: string, ctx: Ctx): ReactNode {
       const striped = p.stripped === true;
       const aria = caption || "Table";
       return (
-        <div role="region" aria-label={aria} tabIndex={0} className="wb-tablewrap" style={{ overflowX: "auto", ...style }}>
+        <div role="region" aria-label={aria} tabIndex={0} className="t-tablewrap" style={{ overflowX: "auto", ...style }}>
           <table
             style={{
               width: "100%",
@@ -458,7 +509,7 @@ function renderNodeInner(id: string, ctx: Ctx): ReactNode {
               fontSize: style.fontSize,
               color: style.color,
             }}
-            className={striped ? "wb-table-striped" : undefined}
+            className={striped ? "t-table--striped" : undefined}
           >
             {caption ? <caption>{caption}</caption> : null}
             {headerRow && n > 0 ? (
@@ -494,7 +545,15 @@ function renderNodeInner(id: string, ctx: Ctx): ReactNode {
           <DialogTrigger asChild>
             <Button type="button">{String(p.title || "Dialog")}</Button>
           </DialogTrigger>
-          <DialogContent style={style}>
+          {/* B0.1 item 1: <Dialog> renders no element of its own, so the type class and the breakpoint hook (with
+              the overridden families off the inline style) go on the dialog box, as in the static export. */}
+          <DialogContent
+            className="t-dialog"
+            style={withoutFamilies(style, overriddenFamilies(node.styleBreakpoints))}
+            {...(overriddenFamilies(node.styleBreakpoints).size > 0 ? { [HOOK_ATTR]: id } : {})}
+            pageAttr={ctx.pageId ? PAGE_ATTR : undefined}
+            pageAttrValue={ctx.pageId}
+          >
             <DialogTitle>{String(p.title ?? "")}</DialogTitle>
             <DialogDescription>{String(p.message ?? "")}</DialogDescription>
           </DialogContent>
@@ -696,14 +755,14 @@ function renderNodeInner(id: string, ctx: Ctx): ReactNode {
     case "skeleton":
       return <div style={style} className="animate-pulse rounded-md bg-slate-200" />;
     case "spinner": {
-      const size = Number(p.size) || 24;
+      // B0.1 item 1: static markup (compiler.rs Spinner arm; size clamped 12–64 like `spinner_px`).
+      const size = Math.min(64, Math.max(12, Number(p.size) || 24));
       return (
-        <div
-          style={{ ...style, width: size, height: size }}
-          className="animate-spin rounded-full border-2 border-slate-300 border-t-[var(--foreground)]"
-          role="status"
-          aria-label="loading"
-        />
+        <span style={style} role="status" aria-label={node.name?.trim() || SPINNER_LABEL}>
+          <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+            <path d={SPINNER_PATH} />
+          </svg>
+        </span>
       );
     }
     case "avatar": {

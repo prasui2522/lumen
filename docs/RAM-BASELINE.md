@@ -22,6 +22,12 @@
 
 Median per-run deltas: DB open vs editor before DB mode **+10.6 RSS / +9.9 PSS**; after leaving vs editor before DB mode **+12.9 RSS / +12.3 PSS**. Nothing more is released 60 s or 120 s after leaving (flat). The test-file connection is closed after leaving (no fd on `databases/*.sqlite`).
 
+## Initial JS cap (PM ruling, 2026-11-05)
+
+- **Cap:** 112.05 kB for the initial JS (`index-*.js` + `react-*.js` / jsx-runtime).
+- **Measurement:** sum of `gzip -9` sizes of those two assets from `vite build` `dist/assets` (not default gzip). The earlier 110,718 B figures in the Phase 11 progress log used `-9`.
+- **RAM control baseline** (below): editor-only settled PSS **199.5 MB**.
+
 ## Reference decision (PM, 2026-10-18)
 
 - RAM targets for a mode or feature are measured from the state **just before entering it** (here: the editor open, before `ฐานข้อมูล`), not from app startup. On that basis Phase 10 targets (b) ≤ +40 MB and (c) ≤ +20 MB pass (+9.9 / +12.3 PSS).

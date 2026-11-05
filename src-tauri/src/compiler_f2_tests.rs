@@ -22,15 +22,18 @@ fn f21_kinds_goldens_static_and_site_json() {
     let doc = parse_document(&serde_json::from_str(KINDS).unwrap()).unwrap();
     let (html, css) = compile_export(&doc, &CompileOptions::default()).unwrap();
     let site = crate::export::build_site_json(&doc, &std::collections::HashMap::new()).unwrap();
+    let site_css = crate::export::build_site_css(&doc, &CompileOptions::default()).unwrap();
     if std::env::var("F2_BLESS").is_ok() {
         std::fs::write(golden_of("f21-kinds", "html"), &html).unwrap();
         std::fs::write(golden_of("f21-kinds", "css"), &css).unwrap();
         std::fs::write(golden_of("f21-kinds", "site.json"), &site).unwrap();
+        std::fs::write(golden_of("f21-kinds", "site.css"), &site_css).unwrap();
         return;
     }
     assert_eq!(html, std::fs::read_to_string(golden_of("f21-kinds", "html")).unwrap(), "html");
     assert_eq!(css, std::fs::read_to_string(golden_of("f21-kinds", "css")).unwrap(), "css");
     assert_eq!(site, std::fs::read_to_string(golden_of("f21-kinds", "site.json")).unwrap(), "site.json");
+    assert_eq!(site_css, std::fs::read_to_string(golden_of("f21-kinds", "site.css")).unwrap(), "site.css (B0)");
 }
 
 #[test]
@@ -38,15 +41,18 @@ fn f2_responsive_goldens_static_and_site_json() {
     let doc = parse_document(&serde_json::from_str(DOC).unwrap()).unwrap();
     let (html, css) = compile_export(&doc, &CompileOptions::default()).unwrap();
     let site = crate::export::build_site_json(&doc, &std::collections::HashMap::new()).unwrap();
+    let site_css = crate::export::build_site_css(&doc, &CompileOptions::default()).unwrap();
     if std::env::var("F2_BLESS").is_ok() {
         std::fs::write(golden("html"), &html).unwrap();
         std::fs::write(golden("css"), &css).unwrap();
         std::fs::write(golden("site.json"), &site).unwrap();
+        std::fs::write(golden("site.css"), &site_css).unwrap();
         return;
     }
     assert_eq!(html, std::fs::read_to_string(golden("html")).unwrap(), "html");
     assert_eq!(css, std::fs::read_to_string(golden("css")).unwrap(), "css");
     assert_eq!(site, std::fs::read_to_string(golden("site.json")).unwrap(), "site.json");
+    assert_eq!(site_css, std::fs::read_to_string(golden("site.css")).unwrap(), "site.css (B0)");
     // the media queries the Vite template mirrors, in the same order
     let t = css.find("@media (max-width:1024px)").expect("tablet");
     let p = css.find("@media (max-width:719px)").expect("phone");

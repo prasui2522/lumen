@@ -1,0 +1,46 @@
+{
+ "version": 1,
+ "meta": {
+  "title": "b02-dialog",
+  "lang": "th"
+ },
+ "root": "page",
+ "nodes": {
+  "page": {
+   "id": "page",
+   "type": "page",
+   "props": {
+    "type": "page",
+    "children": [
+     "dlg"
+    ]
+   },
+   "style": {}
+  },
+  "dlg": {
+   "id": "dlg",
+   "type": "dialog",
+   "name": "กล่องโต้ตอบ",
+   "props": {
+    "type": "dialog",
+    "title": "หัวข้อกล่อง",
+    "message": "ข้อความในกล่อง",
+    "open": true
+   },
+   "style": {
+    "width": 300,
+    "backgroundColor": "#fef3c7"
+   },
+   "styleBreakpoints": {
+    "tablet": {
+     "width": 360,
+     "backgroundColor": "#dbeafe"
+    },
+    "phone": {
+     "width": 220,
+     "backgroundColor": "#ffffff"
+    }
+   }
+  }
+ }
+}

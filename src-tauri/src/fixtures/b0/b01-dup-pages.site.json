@@ -1,0 +1,227 @@
+{
+  "baseDefaults": {
+    "button": {
+      "backgroundColor": "#0ea5e9",
+      "borderRadius": 8.0,
+      "borderStyle": "none",
+      "borderWidth": 0.0,
+      "color": "#ffffff",
+      "display": "inline-block",
+      "fontSize": 16.0,
+      "fontWeight": 600,
+      "lineHeight": "1.25",
+      "margin": 0.0,
+      "padding": {
+        "b": 10.0,
+        "l": 16.0,
+        "r": 16.0,
+        "t": 10.0
+      },
+      "textAlign": "center"
+    },
+    "heading": {
+      "color": "#0f172a",
+      "display": "block",
+      "fontWeight": 700,
+      "lineHeight": "1.25",
+      "margin": {
+        "b": 8.0,
+        "l": 0.0,
+        "r": 0.0,
+        "t": 0.0
+      },
+      "padding": 0.0,
+      "textAlign": "left"
+    },
+    "page": {
+      "backgroundColor": "#ffffff",
+      "color": "#0f172a",
+      "display": "block",
+      "fontFamily": "ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "fontSize": 16.0,
+      "lineHeight": "1.5",
+      "margin": 0.0,
+      "minHeight": "100%",
+      "padding": 0.0,
+      "width": "100%"
+    }
+  },
+  "headingFontSizes": [
+    40.0,
+    32.0,
+    28.0,
+    24.0,
+    20.0,
+    18.0
+  ],
+  "meta": {
+    "lang": "th",
+    "title": "b01-dup"
+  },
+  "nodes": {
+    "bt": {
+      "id": "bt",
+      "props": {
+        "action": "none",
+        "label": "ปุ่ม p1",
+        "type": "button"
+      },
+      "style": {
+        "fontSize": 18.0
+      },
+      "styleBreakpoints": {
+        "phone": {
+          "backgroundColor": "#222222",
+          "fontSize": 20.0
+        }
+      },
+      "type": "button"
+    },
+    "h": {
+      "id": "h",
+      "props": {
+        "content": "หัวเรื่อง p1",
+        "level": 1,
+        "type": "heading"
+      },
+      "style": {
+        "fontSize": 40.0
+      },
+      "styleBreakpoints": {
+        "phone": {
+          "color": "#b00020",
+          "fontSize": 20.0
+        }
+      },
+      "type": "heading"
+    },
+    "r1": {
+      "id": "r1",
+      "props": {
+        "children": [
+          "h",
+          "bt"
+        ],
+        "type": "page"
+      },
+      "style": {},
+      "type": "page"
+    }
+  },
+  "pages": [
+    {
+      "id": "p1",
+      "name": "p1",
+      "nodes": {
+        "bt": {
+          "id": "bt",
+          "props": {
+            "action": "none",
+            "label": "ปุ่ม p1",
+            "type": "button"
+          },
+          "style": {
+            "fontSize": 18.0
+          },
+          "styleBreakpoints": {
+            "phone": {
+              "backgroundColor": "#222222",
+              "fontSize": 20.0
+            }
+          },
+          "type": "button"
+        },
+        "h": {
+          "id": "h",
+          "props": {
+            "content": "หัวเรื่อง p1",
+            "level": 1,
+            "type": "heading"
+          },
+          "style": {
+            "fontSize": 40.0
+          },
+          "styleBreakpoints": {
+            "phone": {
+              "color": "#b00020",
+              "fontSize": 20.0
+            }
+          },
+          "type": "heading"
+        },
+        "r1": {
+          "id": "r1",
+          "props": {
+            "children": [
+              "h",
+              "bt"
+            ],
+            "type": "page"
+          },
+          "style": {},
+          "type": "page"
+        }
+      },
+      "path": "/",
+      "root": "r1"
+    },
+    {
+      "id": "p2",
+      "name": "p2",
+      "nodes": {
+        "bt": {
+          "id": "bt",
+          "props": {
+            "action": "none",
+            "label": "ปุ่ม p2",
+            "type": "button"
+          },
+          "style": {
+            "fontSize": 18.0
+          },
+          "styleBreakpoints": {
+            "phone": {
+              "backgroundColor": "#222222",
+              "fontSize": 60.0
+            }
+          },
+          "type": "button"
+        },
+        "h": {
+          "id": "h",
+          "props": {
+            "content": "หัวเรื่อง p2",
+            "level": 1,
+            "type": "heading"
+          },
+          "style": {
+            "fontSize": 40.0
+          },
+          "styleBreakpoints": {
+            "phone": {
+              "color": "#00aa00",
+              "fontSize": 60.0
+            }
+          },
+          "type": "heading"
+        },
+        "r2": {
+          "id": "r2",
+          "props": {
+            "children": [
+              "h",
+              "bt"
+            ],
+            "type": "page"
+          },
+          "style": {},
+          "type": "page"
+        }
+      },
+      "path": "/two",
+      "root": "r2"
+    }
+  ],
+  "root": "r1",
+  "version": 1
+}
