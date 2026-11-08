@@ -8,6 +8,7 @@ import { StylePanel } from "@/components/editor/StylePanel";
 import { PreviewStage } from "@/components/editor/PreviewStage";
 import { EditorPanes } from "@/components/editor/EditorPanes";
 import { DeviceToolbar } from "@/components/editor/preview/DeviceToolbar";
+import { ViteRunButton } from "@/components/editor/preview/ViteRunButton";
 import { useProjectsStore } from "@/stores/projects-store";
 import { useEditorStore } from "@/stores/editor-store";
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,16 @@ import { AppTooltipProvider } from "@/components/ui/tooltip";
 import type { LeaveIntent } from "@/components/editor/UnsavedChangesDialog";
 import { lazyNamed, useMountedOnce, whenIdle } from "@/lib/lazy";
 import { exportOpenProject } from "@/lib/export-project";
+import { setLastExportDest } from "@/lib/export-folder";
+import { useSplitSettings } from "@/lib/split-settings";
+import { SplitStage } from "@/components/editor/SplitStage";
+import { modeShortcut, cyclePane, PANE_SELECTOR } from "@/lib/editor-shortcuts";
 import { toast } from "@/lib/toast";
 import { isOverlayOpen } from "@/lib/modal";
 import { saveShortcutAction } from "@/lib/save-shortcut";
 import { commitProjectTitle, titleBlurShouldSave } from "@/lib/project-title";
 import { evaluatePagePerf } from "@/lib/page-perf-watch";
+import { useSidecarSession } from "@/lib/preview-sidecar";
 
 function errMessage(e: unknown): string {
   if (typeof e === "string") return e;
@@ -46,6 +52,21 @@ const CommandPalette = lazyNamed(() =>
 const DatabaseMode = lazyNamed(() =>
   import("@/components/database/DatabaseMode").then((m) => m.DatabaseMode),
 );
+/** Phase 11 D4: Blocks flyout (no whenIdle preload per §5). */
+const BlocksFlyout = lazyNamed(() =>
+  import("@/components/editor/blocks-flyout").then((m) => m.BlocksFlyout),
+);
+/** DW-M3: read-only Code view (PREVIEW-CODE-VIEW S3 first slice). */
+const CodeView = lazyNamed(() =>
+  import("@/components/editor/code-view").then((m) => m.CodeView),
+);
+/** S6 A4: Vite status bar + S9 crash banner (lazy; not in initial JS). */
+const ViteStatusBar = lazyNamed(() =>
+  import("@/components/editor/preview/vite-status-bar").then((m) => m.ViteStatusBar),
+);
+const ViteErrorBanner = lazyNamed(() =>
+  import("@/components/editor/preview/vite-status-bar").then((m) => m.ViteErrorBanner),
+);
 
 /** Set right before an intentional reload/close so beforeunload stays quiet. */
 let allowUnload = false;
@@ -70,6 +91,13 @@ export function EditorPage() {
   const mode = useEditorStore((s) => s.mode);
   const resetEditorChrome = useEditorStore((s) => s.resetEditorChrome);
   const openPageId = useEditorStore((s) => s.openPageId);
+  const blocksFlyoutOpen = useEditorStore((s) => s.blocksFlyoutOpen);
+  const setBlocksFlyoutOpen = useEditorStore((s) => s.setBlocksFlyoutOpen);
+  const blocksFlyoutMounted = useMountedOnce(blocksFlyoutOpen);
+  const splitPane = useSplitSettings().pane;
+  const viteChrome = mode === "preview" || mode === "split";
+  const viteChromeMounted = useMountedOnce(viteChrome);
+  useSidecarSession(mode, openId);
 
   useEffect(() => {
     if (!projectId) return;
@@ -99,7 +127,7 @@ export function EditorPage() {
   // B6.2: one O(n) perf pass when a page opens in Design (§5.3) — not on every edit.
   useEffect(() => {
     if (!documentReady) return;
-    if (mode !== "design" && mode !== "preview") return;
+    if (mode !== "design" && mode !== "preview" && mode !== "split") return;
     evaluatePagePerf(useProjectsStore.getState().openDocument);
   }, [documentReady, openPageId, mode]);
 
@@ -116,10 +144,44 @@ export function EditorPage() {
   const cmdMounted = useMountedOnce(cmdOpen);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() !== "k" || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
-      // Inline text edit and any open dialog/menu own the keyboard.
       if (useEditorStore.getState().editingNodeId) return;
       if (isOverlayOpen()) return;
+
+      const nextMode = modeShortcut(e);
+      if (nextMode) {
+        e.preventDefault();
+        useEditorStore.getState().setMode(nextMode);
+        return;
+      }
+      if (e.key === "F6") {
+        e.preventDefault();
+        const panes = [...document.querySelectorAll(PANE_SELECTOR)];
+        const cur = document.activeElement?.closest(PANE_SELECTOR) ?? null;
+        const next = cyclePane(cur, panes, e.shiftKey);
+        (next as HTMLElement | null)?.focus({ preventScroll: true });
+        return;
+      }
+      if (e.key === "Escape") {
+        const m = useEditorStore.getState().mode;
+        if (m === "code" || m === "split") {
+          const canvas = document.querySelector<HTMLElement>('[data-kbd-scope="canvas"]');
+          if (
+            canvas &&
+            document.activeElement &&
+            canvas !== document.activeElement &&
+            !canvas.contains(document.activeElement)
+          ) {
+            e.preventDefault();
+            canvas.focus({ preventScroll: true });
+          }
+        }
+      }
+      const quickOpen =
+        (e.ctrlKey || e.metaKey) &&
+        !e.altKey &&
+        !e.shiftKey &&
+        (e.key.toLowerCase() === "k" || e.key.toLowerCase() === "p");
+      if (!quickOpen) return;
       e.preventDefault();
       setCmdOpen(true);
     };
@@ -287,6 +349,7 @@ export function EditorPage() {
     try {
       const r = await exportOpenProject();
       if (r.status === "done") {
+        if (openId) setLastExportDest(openId, r.destPath);
         toast.success(
           r.includedUnsaved
             ? `ส่งออกแล้ว: ${r.fileName} (รวมการแก้ไขที่ยังไม่บันทึก)`
@@ -333,7 +396,11 @@ export function EditorPage() {
           setCmdOpen(true);
         }}
         previewTools={
-          mode === "preview" ? (compact) => <DeviceToolbar compact={compact} /> : undefined
+          mode === "preview" || (mode === "split" && splitPane === "preview")
+            ? (compact) => <DeviceToolbar compact={compact} />
+            : mode === "split"
+              ? () => <ViteRunButton />
+              : undefined
         }
       />
 
@@ -383,6 +450,12 @@ export function EditorPage() {
         </div>
       ) : null}
 
+      {viteChromeMounted && viteChrome ? (
+        <Suspense fallback={null}>
+          <ViteErrorBanner />
+        </Suspense>
+      ) : null}
+
       {mode === "database" ? (
         <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
           {documentReady ? (
@@ -405,10 +478,34 @@ export function EditorPage() {
             </div>
           )}
         </div>
+      ) : mode === "split" ? (
+        <SplitStage documentReady={documentReady} />
       ) : mode === "preview" ? (
         <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
           {documentReady ? (
             <PreviewStage />
+          ) : (
+            <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+              กำลังเปิดโปรเจกต์…
+            </div>
+          )}
+        </div>
+      ) : mode === "code" ? (
+        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+          {documentReady ? (
+            <Suspense
+              fallback={
+                <div
+                  role="status"
+                  className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground"
+                >
+                  <Spinner className="size-4" aria-hidden />
+                  กำลังโหลดโค้ด…
+                </div>
+              }
+            >
+              <CodeView />
+            </Suspense>
           ) : (
             <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
               กำลังเปิดโปรเจกต์…
@@ -420,7 +517,11 @@ export function EditorPage() {
           <EditorPanes
             layers={<LayersPanel />}
             canvas={
-              <main className="flex h-full min-h-0 min-w-0 flex-col bg-muted/40">
+              <main
+                data-kbd-pane="canvas"
+                tabIndex={-1}
+                className="relative flex h-full min-h-0 min-w-0 flex-col bg-muted/40"
+              >
                 {documentReady ? (
                   <DesignCanvas />
                 ) : (
@@ -428,12 +529,26 @@ export function EditorPage() {
                     กำลังเปิดโปรเจกต์…
                   </div>
                 )}
+                {blocksFlyoutMounted ? (
+                  <Suspense fallback={null}>
+                    <BlocksFlyout
+                      open={blocksFlyoutOpen}
+                      onOpenChange={setBlocksFlyoutOpen}
+                    />
+                  </Suspense>
+                ) : null}
               </main>
             }
             style={<StylePanel />}
           />
         </div>
       )}
+
+      {viteChromeMounted ? (
+        <Suspense fallback={null}>
+          {viteChrome ? <ViteStatusBar /> : null}
+        </Suspense>
+      ) : null}
     </div>
     </AppTooltipProvider>
   );

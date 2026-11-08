@@ -1,4 +1,4 @@
-import { Database, Eye, PenLine } from "lucide-react";
+import { Code2, Columns2, Database, Eye, PenLine } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useEditorStore, type EditorMode } from "@/stores/editor-store";
 
@@ -7,12 +7,11 @@ type Props = {
 };
 
 const ITEM =
-  "gap-1.5 px-2.5 text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm focus-visible:ring-2";
+  "gap-1.5 px-2 text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm focus-visible:ring-2";
 
 /**
- * Design / Preview / Database (Phase 10) switch (UI-REFRESH S2): Radix ToggleGroup type="single"
- * → role="group" with radio items, one Tab stop, ←/→ to move, Space/Enter to
- * select. Clicking the active item emits "" → ignored (no deselect).
+ * Design / Split / Code / Preview (PREVIEW-CODE-VIEW §3) / Database (Phase 10).
+ * Radix ToggleGroup type="single" → one Tab stop, ←/→ to move.
  */
 export function ModeSwitch({ disabled }: Props) {
   const mode = useEditorStore((s) => s.mode);
@@ -32,11 +31,20 @@ export function ModeSwitch({ disabled }: Props) {
       onValueChange={(v) => v && select(v as EditorMode)}
       disabled={disabled}
       aria-label="โหมดแก้ไข"
+      data-kbd-pane="mode"
       className="gap-0.5 rounded-lg bg-muted p-0.5"
     >
       <ToggleGroupItem value="design" className={`${ITEM} rounded-md!`}>
         <PenLine className="size-3.5" aria-hidden />
         <span>ออกแบบ</span>
+      </ToggleGroupItem>
+      <ToggleGroupItem value="split" className={`${ITEM} rounded-md!`}>
+        <Columns2 className="size-3.5" aria-hidden />
+        <span>แยก</span>
+      </ToggleGroupItem>
+      <ToggleGroupItem value="code" className={`${ITEM} rounded-md!`}>
+        <Code2 className="size-3.5" aria-hidden />
+        <span>โค้ด</span>
       </ToggleGroupItem>
       <ToggleGroupItem value="preview" className={`${ITEM} rounded-md!`}>
         <Eye className="size-3.5" aria-hidden />

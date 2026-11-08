@@ -10,10 +10,12 @@ import {
   validateBlock,
   type StyleBlock,
 } from "@/lib/block-format";
-import { cleanStates, cleanStyle } from "@/lib/breakpoints";
+import { cleanMotion, cleanStates, cleanStyle } from "@/lib/breakpoints";
+import type { NodeMotion } from "@/schema";
 
 export type InsertBlockPosition =
-  | { kind: "page" }
+  /** Top-level page slot; omit `index` → `templateInsertIndex` (after selection / end). */
+  | { kind: "page"; index?: number }
   | { kind: "inline"; parentId: NodeId; index: number };
 
 export type InsertBlockResult = {
@@ -23,21 +25,22 @@ export type InsertBlockResult = {
   idMap: Record<string, string>;
 };
 
-function remapDeep(value: unknown, idMap: Record<string, string>): unknown {
-  if (typeof value === "string") {
-    return idMap[value] ?? value;
+/**
+ * Remap only node-id references. A deep remap of every string would also rewrite
+ * layout enums when a localId collides (e.g. localId `row` + `direction: "row"`).
+ */
+function remapProps(
+  props: Record<string, unknown>,
+  idMap: Record<string, string>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...props };
+  const children = out.children;
+  if (Array.isArray(children)) {
+    out.children = children.map((c) =>
+      typeof c === "string" ? (idMap[c] ?? c) : c,
+    );
   }
-  if (Array.isArray(value)) {
-    return value.map((v) => remapDeep(v, idMap));
-  }
-  if (value !== null && typeof value === "object") {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      out[k] = remapDeep(v, idMap);
-    }
-    return out;
-  }
-  return value;
+  return out;
 }
 
 /** Materialise registry nodes with fresh UUIDs (localIds remapped). */
@@ -56,7 +59,10 @@ export function materialiseBlock(block: StyleBlock): {
   const nodes: Node[] = [];
   for (const [lid, bn] of Object.entries(block.nodes)) {
     const id = idMap[lid]!;
-    const props = remapDeep(bn.props, idMap) as Node["props"];
+    const props = remapProps(
+      bn.props as unknown as Record<string, unknown>,
+      idMap,
+    ) as Node["props"];
     const node: Node = {
       id,
       type: bn.type,
@@ -71,9 +77,9 @@ export function materialiseBlock(block: StyleBlock): {
     if (bn.styleBreakpoints) {
       node.styleBreakpoints = bn.styleBreakpoints as Node["styleBreakpoints"];
     }
-    // motion wired in Phase E; ignore unknown for now if present
-    if (bn.motion && typeof bn.motion === "object") {
-      (node as Node & { motion?: unknown }).motion = bn.motion;
+    if (bn.motion) {
+      const motion = cleanMotion(bn.motion as NodeMotion);
+      if (motion) node.motion = motion;
     }
     nodes.push(node);
   }
@@ -102,10 +108,21 @@ export function insertBlock(
     if (doc.nodes[n.id]) return null;
   }
 
+  // Explicit inline wins (⋯ T144) even for page-scoped blocks.
+  if (position?.kind === "inline") {
+    return insertInline(doc, nodes, rootId, idMap, position.parentId, position.index);
+  }
+
   if (block.scope === "page" || position?.kind === "page") {
-    const index = templateInsertIndex(doc, selectedId);
-    if (index === null) return null;
     const kids = [...getChildren(page)];
+    let index: number;
+    if (position?.kind === "page" && typeof position.index === "number") {
+      index = Math.max(0, Math.min(position.index, kids.length));
+    } else {
+      const computed = templateInsertIndex(doc, selectedId);
+      if (computed === null) return null;
+      index = computed;
+    }
     kids.splice(index, 0, rootId);
     const nextNodes: PageDocument["nodes"] = {
       ...doc.nodes,
@@ -115,18 +132,20 @@ export function insertBlock(
     return { doc: { ...doc, nodes: nextNodes }, rootId, idMap };
   }
 
-  // inline
-  let parentId: NodeId;
-  let index: number;
-  if (position?.kind === "inline") {
-    parentId = position.parentId;
-    index = position.index;
-  } else {
-    const target = resolveInsertTarget(doc, selectedId);
-    if (!target) return null;
-    parentId = target.parentId;
-    index = target.index;
-  }
+  // inline scope, default target
+  const target = resolveInsertTarget(doc, selectedId);
+  if (!target) return null;
+  return insertInline(doc, nodes, rootId, idMap, target.parentId, target.index);
+}
+
+function insertInline(
+  doc: PageDocument,
+  nodes: Node[],
+  rootId: NodeId,
+  idMap: Record<string, string>,
+  parentId: NodeId,
+  index: number,
+): InsertBlockResult | null {
   const parent = doc.nodes[parentId];
   if (!parent || isContentLocked(doc, parent)) return null;
 

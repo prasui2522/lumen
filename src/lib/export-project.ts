@@ -25,7 +25,7 @@ function baseName(path: string): string {
 
 export type ExportResult =
   | { status: "cancelled" }
-  | { status: "done"; fileName: string; includedUnsaved: boolean };
+  | { status: "done"; fileName: string; destPath: string; includedUnsaved: boolean };
 
 /**
  * Export the open project as a Vite + React + TypeScript zip. Uses the
@@ -47,5 +47,5 @@ export async function exportOpenProject(): Promise<ExportResult> {
     destPath,
     document: openDocument,
   });
-  return { status: "done", fileName: baseName(written), includedUnsaved: dirty };
+  return { status: "done", fileName: baseName(written), destPath: written, includedUnsaved: dirty };
 }

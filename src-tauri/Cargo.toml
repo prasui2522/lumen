@@ -27,9 +27,15 @@ uuid = { version = "1", features = ["v4", "serde"] }
 zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 tauri-plugin-dialog = "2"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"] }
+sha2 = "0.10"
+libc = "0.2"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
 [profile.release]
 codegen-units = 1
 lto = true

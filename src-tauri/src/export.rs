@@ -4,12 +4,286 @@
 
 use crate::compiler::CompileOptions;
 use crate::defaults::{Node, NodeProps, PageDocument, ProjectPage};
+use serde::Serialize;
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 use std::io::{Cursor, Write};
 use std::path::{Path, PathBuf};
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipWriter};
+
+/// One zip entry for Code view (DW-M3 / PREVIEW-CODE-VIEW S3).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportListEntry {
+    pub path: String,
+    /// True for images / non-UTF-8 bytes (tree shows name only).
+    pub binary: bool,
+    /// UTF-8 text when `binary` is false and size ≤ 2 MiB; otherwise null.
+    pub text: Option<String>,
+    /// S4: `site.json` only — byte range `[start, end)` of each node object.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ranges: Option<HashMap<String, [usize; 2]>>,
+}
+
+const CODE_VIEW_TEXT_MAX: usize = 2 * 1024 * 1024;
+
+fn utf8_entry(path: &str, bytes: &[u8]) -> ExportListEntry {
+    if bytes.len() > CODE_VIEW_TEXT_MAX {
+        return ExportListEntry {
+            path: path.to_string(),
+            binary: false,
+            text: None,
+            ranges: None,
+        };
+    }
+    match std::str::from_utf8(bytes) {
+        Ok(s) => ExportListEntry {
+            path: path.to_string(),
+            binary: false,
+            text: Some(s.to_string()),
+            ranges: None,
+        },
+        Err(_) => ExportListEntry {
+            path: path.to_string(),
+            binary: true,
+            text: None,
+            ranges: None,
+        },
+    }
+}
+
+/// Byte ranges of each `"id": "…"` node's JSON object (first occurrence, exclusive end).
+pub fn node_ranges_in_json(json: &str) -> HashMap<String, [usize; 2]> {
+    let mut out = HashMap::new();
+    let prefix = "\"id\": \"";
+    let mut from = 0;
+    while let Some(rel) = json[from..].find(prefix) {
+        let id_start = from + rel + prefix.len();
+        let rest = &json[id_start..];
+        let Some(id_end_rel) = rest.find('"') else { break };
+        let id = &rest[..id_end_rel];
+        let key_at = from + rel;
+        if let Some(obj_start) = json[..key_at].rfind('{') {
+            if let Some(obj_end) = matching_brace(json, obj_start) {
+                if !id.is_empty() {
+                    out.entry(id.to_string()).or_insert([obj_start, obj_end]);
+                }
+            }
+        }
+        from = id_start + id_end_rel + 1;
+    }
+    out
+}
+
+fn matching_brace(s: &str, start: usize) -> Option<usize> {
+    let b = s.as_bytes();
+    if start >= b.len() || b[start] != b'{' {
+        return None;
+    }
+    let mut depth = 0i32;
+    let mut i = start;
+    let mut in_str = false;
+    let mut esc = false;
+    while i < b.len() {
+        let c = b[i];
+        if in_str {
+            if esc {
+                esc = false;
+            } else if c == b'\\' {
+                esc = true;
+            } else if c == b'"' {
+                in_str = false;
+            }
+        } else if c == b'"' {
+            in_str = true;
+        } else if c == b'{' {
+            depth += 1;
+        } else if c == b'}' {
+            depth -= 1;
+            if depth == 0 {
+                return Some(i + 1);
+            }
+        }
+        i += 1;
+    }
+    None
+}
+
+/// S2 Tier 1 Preview payload: the export's generated files as strings (same generator,
+/// same bytes as the zip) plus per-id asset URLs for the sandboxed frame.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PreviewBundle {
+    pub site_json: String,
+    pub site_css: String,
+    pub kinds_css: String,
+    pub asset_urls: HashMap<String, String>,
+}
+
+pub fn build_preview_bundle(
+    doc: &PageDocument,
+    opts: &CompileOptions,
+    asset_urls: HashMap<String, String>,
+) -> Result<PreviewBundle, String> {
+    Ok(PreviewBundle {
+        site_json: build_site_json(doc, &opts.asset_exts)?,
+        site_css: build_site_css(doc, opts)?,
+        kinds_css: build_kinds_css(doc, opts)?,
+        asset_urls,
+    })
+}
+
+/// S3 A5 เปิดโฟลเดอร์: the folder to open for a written export zip. `written` is the
+/// path `write_zip` returned (the destination the user chose). Rules: the zip must
+/// still exist as a regular file; its folder must be an existing directory; and the
+/// canonical folder must be the canonical form of the zip's own parent — a symlinked
+/// zip, a `..` component or a moved file never opens anything outside the chosen
+/// destination. Returns the canonical directory.
+pub fn export_folder_for(written: &Path) -> Result<PathBuf, String> {
+    const ERR: &str = "ยังไม่ได้ส่งออกโปรเจกต์";
+    if written.as_os_str().is_empty() || !written.is_absolute() {
+        return Err(ERR.into());
+    }
+    if written.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return Err(ERR.into());
+    }
+    let meta = std::fs::symlink_metadata(written).map_err(|_| ERR.to_string())?;
+    if !meta.is_file() {
+        return Err(ERR.into());
+    }
+    let parent = written.parent().ok_or_else(|| ERR.to_string())?;
+    let dir = std::fs::canonicalize(parent).map_err(|_| ERR.to_string())?;
+    if !dir.is_dir() {
+        return Err(ERR.into());
+    }
+    // The zip's real location must be inside that same directory (no symlink escape).
+    let real_zip = std::fs::canonicalize(written).map_err(|_| ERR.to_string())?;
+    if real_zip.parent() != Some(dir.as_path()) {
+        return Err(ERR.into());
+    }
+    Ok(dir)
+}
+
+fn dark_mode_auto(doc: &PageDocument) -> bool {
+    matches!(doc.meta.dark_mode.as_deref(), Some("auto"))
+}
+
+/// S5: token overrides only (page / text / borders / control surfaces). Not inlined when darkMode is off.
+const DARK_TOKENS: &str = r#"
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: #0f172a;
+    --foreground: #f8fafc;
+    --muted: #94a3b8;
+    --border: #334155;
+    --primary: #f8fafc;
+    --primary-foreground: #0f172a;
+  }
+}
+html.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --muted: #94a3b8;
+  --border: #334155;
+  --primary: #f8fafc;
+  --primary-foreground: #0f172a;
+}
+"#;
+
+const DARK_TOGGLE_HTML: &str = r#"<div id="wb-dark-toggle" role="group" aria-label="ธีม" style="position:fixed;right:12px;bottom:12px;z-index:50;display:flex;gap:4px;padding:4px;border-radius:8px;background:var(--background);color:var(--foreground);border:1px solid var(--border);font:12px ui-sans-serif,system-ui,sans-serif">
+<button type="button" data-wb-theme="system">ระบบ</button>
+<button type="button" data-wb-theme="light">สว่าง</button>
+<button type="button" data-wb-theme="dark">มืด</button>
+</div>
+<script>
+(function(){
+  var k="wb.export.theme";
+  function apply(v){
+    var d=v==="dark"||(v==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("dark", d);
+    document.documentElement.classList.toggle("light", v==="light");
+  }
+  apply(localStorage.getItem(k)||"system");
+  var box=document.getElementById("wb-dark-toggle");
+  box.addEventListener("click", function(e){
+    var t=e.target.closest("[data-wb-theme]");
+    if(!t) return;
+    var v=t.getAttribute("data-wb-theme");
+    localStorage.setItem(k, v);
+    apply(v);
+  });
+})();
+</script>
+"#;
+
+fn patch_index_html(bytes: &[u8], auto: bool) -> Vec<u8> {
+    if !auto {
+        return bytes.to_vec();
+    }
+    let s = String::from_utf8_lossy(bytes);
+    if let Some(i) = s.rfind("</body>") {
+        let mut out = String::with_capacity(s.len() + DARK_TOGGLE_HTML.len());
+        out.push_str(&s[..i]);
+        out.push_str(DARK_TOGGLE_HTML);
+        out.push_str(&s[i..]);
+        return out.into_bytes();
+    }
+    bytes.to_vec()
+}
+
+/// Same file set as `build_zip`, for the read-only Code view (no disk write).
+pub fn build_export_listing(
+    doc: &PageDocument,
+    opts: &CompileOptions,
+    files: &[(String, Vec<u8>)],
+) -> Result<Vec<ExportListEntry>, String> {
+    let mut out: Vec<ExportListEntry> = Vec::new();
+    let auto = dark_mode_auto(doc);
+    for (name, bytes) in template_files() {
+        let owned = if name == "index.html" {
+            patch_index_html(bytes, auto)
+        } else {
+            bytes.to_vec()
+        };
+        out.push(utf8_entry(name, &owned));
+    }
+    let site = build_site_json(doc, &opts.asset_exts)?;
+    let mut site_entry = utf8_entry("src/data/site.json", site.as_bytes());
+    if let Some(ref t) = site_entry.text {
+        site_entry.ranges = Some(node_ranges_in_json(t));
+    }
+    out.push(site_entry);
+    let site_css = build_site_css(doc, opts)?;
+    out.push(utf8_entry("src/styles/site.css", site_css.as_bytes()));
+    let kinds_css = build_kinds_css(doc, opts)?;
+    out.push(utf8_entry("src/styles/kinds.css", kinds_css.as_bytes()));
+    out.push(ExportListEntry {
+        path: "public/assets/.keep".into(),
+        binary: false,
+        text: Some(String::new()),
+        ranges: None,
+    });
+    for (name, _bytes) in files {
+        let leaf = name
+            .strip_prefix("assets/")
+            .unwrap_or(name.as_str());
+        if leaf.is_empty() || leaf.contains("..") || leaf.contains('/') || leaf.ends_with('/') {
+            return Err("ชื่อไฟล์รูปในรายการส่งออกไม่ถูกต้อง".into());
+        }
+        out.push(ExportListEntry {
+            path: format!("public/assets/{leaf}"),
+            binary: true,
+            text: None,
+            ranges: None,
+        });
+    }
+    if let Some(notice) = export_icon_notices(doc) {
+        out.push(utf8_entry("THIRD-PARTY-NOTICES.txt", notice.as_bytes()));
+    }
+    out.sort_by(|a, b| a.path.cmp(&b.path));
+    Ok(out)
+}
 
 fn children_mut(props: &mut NodeProps) -> Option<&mut Vec<String>> {
     match props {
@@ -138,6 +412,10 @@ fn template_files() -> Vec<(&'static str, &'static [u8])> {
             include_bytes!("../../export-templates/vite-react/src/pages/SitePage.tsx"),
         ),
         (
+            "src/lib/site-routes.tsx",
+            include_bytes!("../../export-templates/vite-react/src/lib/site-routes.tsx"),
+        ),
+        (
             "src/components/ui/button.tsx",
             include_bytes!("../../export-templates/vite-react/src/components/ui/button.tsx"),
         ),
@@ -246,6 +524,32 @@ pub fn build_site_json(doc: &PageDocument, asset_exts: &HashMap<String, String>)
     serde_json::to_string_pretty(&Value::Object(root)).map_err(|e| format!("site.json: {e}"))
 }
 
+/// R1: turn Code-view `site.json` text into a document. Drops renderer-only keys
+/// (`baseDefaults`, `headingFontSizes`, `assetFiles`). The file's `version` is
+/// always 1; the caller keeps the open document's version.
+pub fn document_from_site_json(text: &str) -> Result<PageDocument, String> {
+    let mut v: Value = serde_json::from_str(text).map_err(|e| format!("JSON ไม่ถูกต้อง: {e}"))?;
+    if let Some(obj) = v.as_object_mut() {
+        obj.remove("baseDefaults");
+        obj.remove("headingFontSizes");
+        obj.remove("assetFiles");
+    } else {
+        return Err("JSON ไม่ถูกต้อง: ต้องเป็นอ็อบเจกต์".into());
+    }
+    crate::compiler::parse_document(&v)
+}
+
+/// In-memory shape for the editor (root + nodes + pages), not the on-disk save form.
+pub fn document_to_editor_json(doc: &PageDocument) -> Value {
+    json!({
+        "version": doc.version,
+        "meta": doc.meta,
+        "root": doc.root,
+        "nodes": doc.nodes,
+        "pages": doc.pages,
+    })
+}
+
 fn zip_put(zw: &mut ZipWriter<Cursor<Vec<u8>>>, name: &str, bytes: &[u8]) -> Result<(), String> {
     let file = SimpleFileOptions::default()
         .compression_method(CompressionMethod::Deflated)
@@ -275,6 +579,9 @@ pub fn build_site_css(doc: &PageDocument, opts: &CompileOptions) -> Result<Strin
         out.push_str(&crate::compiler::style_css(&pdoc, &o)?);
     }
     out.push('\n');
+    if dark_mode_auto(doc) {
+        out.push_str(DARK_TOKENS);
+    }
     Ok(out)
 }
 
@@ -302,8 +609,14 @@ pub fn build_zip(
     let mut zw = ZipWriter::new(Cursor::new(Vec::with_capacity(64 * 1024)));
     let err = |e: zip::result::ZipError| format!("สร้างไฟล์ zip ไม่สำเร็จ: {e}");
 
+    let auto = dark_mode_auto(doc);
     for (name, bytes) in template_files() {
-        zip_put(&mut zw, name, bytes)?;
+        let owned = if name == "index.html" {
+            patch_index_html(bytes, auto)
+        } else {
+            bytes.to_vec()
+        };
+        zip_put(&mut zw, name, &owned)?;
     }
 
     let site = build_site_json(doc, &opts.asset_exts)?;
@@ -340,6 +653,80 @@ pub fn build_zip(
     }
 
     Ok(zw.finish().map_err(err)?.into_inner())
+}
+
+pub(crate) fn write_rel(root: &Path, rel: &str, bytes: &[u8]) -> Result<(), String> {
+    if rel.is_empty() || rel.contains("..") || rel.starts_with('/') {
+        return Err("ชื่อไฟล์ในโฟลเดอร์ตัวอย่างไม่ถูกต้อง".into());
+    }
+    let path = root.join(rel);
+    if let Some(p) = path.parent() {
+        std::fs::create_dir_all(p).map_err(|e| format!("สร้างโฟลเดอร์ตัวอย่างไม่สำเร็จ: {e}"))?;
+    }
+    std::fs::write(&path, bytes).map_err(|e| format!("เขียนไฟล์ตัวอย่างไม่สำเร็จ: {e}"))
+}
+
+/// Same files as the zip, written to `dir` (Tier 2 workspace). Extra Preview-only
+/// files (`preview-entry`, rewritten `index.html`) are added by `sidecar`.
+pub fn write_export_tree(
+    dir: &Path,
+    doc: &PageDocument,
+    opts: &CompileOptions,
+    files: &[(String, Vec<u8>)],
+) -> Result<(), String> {
+    std::fs::create_dir_all(dir).map_err(|e| format!("สร้างโฟลเดอร์ตัวอย่างไม่สำเร็จ: {e}"))?;
+    let auto = dark_mode_auto(doc);
+    for (name, bytes) in template_files() {
+        let owned = if name == "index.html" {
+            patch_index_html(bytes, auto)
+        } else {
+            bytes.to_vec()
+        };
+        write_rel(dir, name, &owned)?;
+    }
+    let site = build_site_json(doc, &opts.asset_exts)?;
+    write_rel(dir, "src/data/site.json", site.as_bytes())?;
+    write_rel(dir, "src/styles/site.css", build_site_css(doc, opts)?.as_bytes())?;
+    write_rel(dir, "src/styles/kinds.css", build_kinds_css(doc, opts)?.as_bytes())?;
+    write_rel(dir, "public/assets/.keep", b"")?;
+    for (name, bytes) in files {
+        let leaf = name
+            .strip_prefix("assets/")
+            .unwrap_or(name.as_str());
+        if leaf.is_empty() || leaf.contains("..") || leaf.contains('/') || leaf.ends_with('/') {
+            return Err("ชื่อไฟล์รูปในโฟลเดอร์ตัวอย่างไม่ถูกต้อง".into());
+        }
+        write_rel(dir, &format!("public/assets/{leaf}"), bytes)?;
+    }
+    if let Some(notice) = export_icon_notices(doc) {
+        write_rel(dir, "THIRD-PARTY-NOTICES.txt", notice.as_bytes())?;
+    }
+    Ok(())
+}
+
+/// Atomic `site.json` rewrite for HMR (S8): tmp + fsync + rename; skip if unchanged.
+pub fn write_site_json_atomic(dir: &Path, json: &str) -> Result<bool, String> {
+    let dest = dir.join("src/data/site.json");
+    if dest.is_file() {
+        if let Ok(old) = std::fs::read(&dest) {
+            if old == json.as_bytes() {
+                return Ok(false);
+            }
+        }
+    }
+    if let Some(p) = dest.parent() {
+        std::fs::create_dir_all(p).map_err(|e| format!("เขียน site.json ไม่สำเร็จ: {e}"))?;
+    }
+    let tmp = dest.with_extension("json.tmp");
+    std::fs::write(&tmp, json.as_bytes()).map_err(|e| format!("เขียน site.json ไม่สำเร็จ: {e}"))?;
+    if let Ok(f) = std::fs::File::open(&tmp) {
+        let _ = f.sync_all();
+    }
+    std::fs::rename(&tmp, &dest).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        format!("เขียน site.json ไม่สำเร็จ: {e}")
+    })?;
+    Ok(true)
 }
 
 /// True when any page still has a visible `icon` node after scrub.

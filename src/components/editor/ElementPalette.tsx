@@ -62,7 +62,7 @@ import {
   type PaletteType,
 } from "@/lib/document-ops";
 import { filterPaletteGroups } from "@/lib/palette-meta";
-import { canInsertTemplate, insertBlock, insertPage, insertPaletteNode, insertTemplate } from "@/lib/node-actions";
+import { canInsertTemplate, insertPage, insertPaletteNode } from "@/lib/node-actions";
 import { PALETTE_DRAG_MIME, setDragPayload } from "@/lib/drag-session";
 import {
   DropdownMenu,
@@ -71,9 +71,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { BLOCKS } from "@/lib/blocks";
 import { PAGES } from "@/lib/pages";
-import { TEMPLATES } from "@/lib/templates";
 import { useEditorStore } from "@/stores/editor-store";
 import { useProjectsStore } from "@/stores/projects-store";
 
@@ -145,6 +143,8 @@ const ICONS: Record<PaletteType, typeof Box> = {
 export function ElementPalette() {
   const openDocument = useProjectsStore((s) => s.openDocument);
   const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
+  const blocksFlyoutOpen = useEditorStore((s) => s.blocksFlyoutOpen);
+  const setBlocksFlyoutOpen = useEditorStore((s) => s.setBlocksFlyoutOpen);
   const target = openDocument
     ? resolveInsertTarget(openDocument, selectedNodeId)
     : null;
@@ -288,45 +288,17 @@ export function ElementPalette() {
           );
         })}
       </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            disabled={!canInsertTemplate(openDocument)}
-            className="mt-1 flex h-7 w-full items-center rounded-md px-2 text-[11px] text-sidebar-foreground outline-none hover:bg-sidebar-accent focus-visible:ring-3 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
-          >
-            เทมเพลต
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="min-w-56">
-          {TEMPLATES.map((t) => (
-            <DropdownMenuItem key={t.id} className="items-start" onSelect={() => insertTemplate(t.id)}>
-              <span className="flex min-w-0 flex-col">
-                <span>{t.name}</span>
-                <span className="text-[11px] text-muted-foreground">{t.description}</span>
-              </span>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            disabled={!canInsertTemplate(openDocument)}
-            className="mt-1 flex h-7 w-full items-center rounded-md px-2 text-[11px] text-sidebar-foreground outline-none hover:bg-sidebar-accent focus-visible:ring-3 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
-          >
-            บล็อก
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="min-w-56">
-          {BLOCKS.map((b) => (
-            <DropdownMenuItem key={b.id} onSelect={() => insertBlock(b.id)}>
-              {b.name}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <button
+        id="blocks-flyout-opener"
+        type="button"
+        disabled={!canInsertTemplate(openDocument)}
+        className="mt-1 flex h-7 w-full items-center rounded-md px-2 text-[11px] text-sidebar-foreground outline-none hover:bg-sidebar-accent focus-visible:ring-3 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+        aria-haspopup="dialog"
+        aria-expanded={blocksFlyoutOpen}
+        onClick={() => setBlocksFlyoutOpen(true)}
+      >
+        บล็อก
+      </button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button

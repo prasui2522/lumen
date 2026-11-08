@@ -191,13 +191,14 @@ export function validateBlock(raw: unknown): {
   ) {
     errors.push({ path: "keywords", message: "must be string[]" });
   }
-  if (!isPlainObject(raw.source) || typeof raw.source.kind !== "string") {
+  const sourceObj = isPlainObject(raw.source) ? raw.source : null;
+  if (!sourceObj || typeof sourceObj.kind !== "string") {
     errors.push({ path: "source", message: "required" });
-  } else if (raw.source.kind === "original") {
+  } else if (sourceObj.kind === "original") {
     // ok
-  } else if (raw.source.kind === "mit") {
+  } else if (sourceObj.kind === "mit") {
     for (const f of ["project", "ref", "retrieved"] as const) {
-      if (typeof raw.source[f] !== "string" || !String(raw.source[f]).trim()) {
+      if (typeof sourceObj[f] !== "string" || !String(sourceObj[f]).trim()) {
         errors.push({ path: `source.${f}`, message: "required for mit" });
       }
     }
@@ -301,12 +302,12 @@ export function validateBlock(raw: unknown): {
     if (errors.length) return { errors };
 
     const source: BlockSource =
-      raw.source.kind === "mit"
+      sourceObj && sourceObj.kind === "mit"
         ? {
             kind: "mit",
-            project: String(raw.source.project).trim(),
-            ref: String(raw.source.ref).trim(),
-            retrieved: String(raw.source.retrieved).trim(),
+            project: String(sourceObj.project).trim(),
+            ref: String(sourceObj.ref).trim(),
+            retrieved: String(sourceObj.retrieved).trim(),
           }
         : { kind: "original" };
 

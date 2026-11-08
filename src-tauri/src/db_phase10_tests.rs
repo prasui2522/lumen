@@ -103,8 +103,14 @@ fn migration_on_pre_phase10_file_db_is_additive_and_idempotent() {
         let c = open_db(&path).unwrap();
         let after = dump(&c);
         let added: Vec<_> = after.iter().filter(|l| !before.contains(l)).collect();
-        assert_eq!(added.len(), 2, "only db_models + its autoindex: {added:#?}");
-        assert!(added.iter().all(|l| l.contains("db_models")), "{added:#?}");
+        // Phase 10: db_models (+ autoindex). Phase 11 C6: library_items (+ kind index).
+        assert!(
+            added.iter().all(|l| l.contains("db_models") || l.contains("library_items")),
+            "unexpected migration tables: {added:#?}"
+        );
+        assert!(added.iter().any(|l| l.contains("db_models")), "{added:#?}");
+        assert!(added.iter().any(|l| l.contains("library_items")), "{added:#?}");
+
         assert!(before.iter().all(|l| after.contains(l)), "nothing existing changed or vanished");
         let n: i64 = c.query_row("SELECT COUNT(*) FROM db_models", [], |r| r.get(0)).unwrap();
         assert_eq!(n, 0);

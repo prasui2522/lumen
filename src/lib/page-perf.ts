@@ -23,7 +23,7 @@ export type PagePerfStats = {
   shadowBlurSum: number;
   /** Largest single layer blur on any node. */
   maxNodeShadowBlur: number;
-  /** Nodes with entrance motion (E) — 0 until motion ships. */
+  /** Nodes with entrance motion (E). */
   animated: number;
 };
 

@@ -18,8 +18,12 @@ export type HistoryGroup = {
   future: HistEntry[];
 };
 
-/** `database` = Phase 10 designer (lazy chunk, PHASE-10-SPEC §5). */
-export type EditorMode = "design" | "preview" | "database";
+/**
+ * `database` = Phase 10 designer (PHASE-10-SPEC §5).
+ * `code` = read-only export file view (PREVIEW-CODE-VIEW S3).
+ * `split` = canvas + Code/Preview (S3 A1/A3).
+ */
+export type EditorMode = "design" | "split" | "preview" | "code" | "database";
 /**
  * Phase 10 bridge: the lazy DB chunk publishes its model history here so the
  * command palette can route เลิกทำ/ทำซ้ำ in `ฐานข้อมูล` without importing DB
@@ -106,6 +110,19 @@ type EditorState = {
   /** Phase 10: `.sql` export published by the lazy DB chunk while `ฐานข้อมูล` is shown. */
   dbExport: (() => void) | null;
   setDbExport: (f: (() => void) | null) => void;
+  /** Phase 11 D4: Blocks flyout (non-modal) over the canvas. */
+  blocksFlyoutOpen: boolean;
+  setBlocksFlyoutOpen: (open: boolean) => void;
+  /**
+   * E5: canvas entrance replay request. `nonce` bumps so replaying the same
+   * node twice still triggers the effect.
+   */
+  motionReplay: { nodeId: string; nonce: number } | null;
+  requestMotionReplay: (nodeId: string) => void;
+  clearMotionReplay: () => void;
+  /** S4: CodeMirror reveal of a site.json byte range (canvas/frame selection). */
+  codeReveal: { start: number; end: number; nonce: number } | null;
+  revealCodeRange: (start: number, end: number) => void;
 };
 
 const EMPTY_HISTORY = {
@@ -130,7 +147,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   mode: "design",
   previewStatus: "idle",
   previewError: null,
-  collapsedStyleSections: {},
+  // E4: motion section starts collapsed (§9.E).
+  collapsedStyleSections: { motion: true },
   toggleStyleSection: (id) =>
     set((s) => ({
       collapsedStyleSections: {
@@ -172,7 +190,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   forceDisplayState: null,
   setForceDisplayState: (forceDisplayState) => set({ forceDisplayState }),
   setSelectedNodeId: (id) =>
-    set({ selectedNodeId: id, forceDisplayState: null }),
+    set({ selectedNodeId: id, forceDisplayState: null, motionReplay: null }),
   setMode: (mode) => {
     if (mode === "preview") {
       // Start preview pipeline; selection stays in store for return to Design.
@@ -185,14 +203,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       });
       return;
     }
-    // Design / database: tear down any preview surface status.
+    const keepCanvas = mode === "design" || mode === "split";
     set({
       mode,
-      editingNodeId: mode === "database" ? null : get().editingNodeId,
-      // Leaving Design (→ database) drops forced state; returning stays null.
-      forceDisplayState: mode === "design" ? get().forceDisplayState : null,
+      editingNodeId: keepCanvas ? get().editingNodeId : null,
+      forceDisplayState: keepCanvas ? get().forceDisplayState : null,
       previewStatus: "idle",
       previewError: null,
+      blocksFlyoutOpen: mode === "design" ? get().blocksFlyoutOpen : false,
     });
   },
   announcement: "",
@@ -205,6 +223,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setModelHistory: (modelHistory) => set({ modelHistory }),
   dbExport: null,
   setDbExport: (dbExport) => set({ dbExport }),
+  blocksFlyoutOpen: false,
+  setBlocksFlyoutOpen: (blocksFlyoutOpen) => set({ blocksFlyoutOpen }),
+  motionReplay: null,
+  requestMotionReplay: (nodeId) =>
+    set((s) => ({
+      motionReplay: { nodeId, nonce: (s.motionReplay?.nonce ?? 0) + 1 },
+    })),
+  clearMotionReplay: () => set({ motionReplay: null }),
+  codeReveal: null,
+  revealCodeRange: (start, end) =>
+    set((s) => ({
+      codeReveal: { start, end, nonce: (s.codeReveal?.nonce ?? 0) + 1 },
+    })),
   announce: (msg) => {
     set({ announcement: "" });
     requestAnimationFrame(() => set({ announcement: msg }));
@@ -227,6 +258,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       openPageId: null,
       pendingPageRenameId: null,
       editingNodeId: null,
+      blocksFlyoutOpen: false,
+      motionReplay: null,
+      codeReveal: null,
       // Project switch / leave clears undo history.
       ...EMPTY_HISTORY,
     }),

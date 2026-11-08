@@ -20,7 +20,7 @@
 use crate::defaults::{
     a2_layout_defaults, a3_layout_defaults, a5_layout_defaults, default_styles, heading_font_size, resolved_style, Align, AssetRef, BoxSpacing,
     ButtonAction, ContainerPropDefaults, CssSize, Direction, FontWeight, Justify, LineOrientation, Node, ScrollOrientation,
-    EdgeAlign, AspectRatioValue, NodeProps, NodeStates, NodeType, ObjectFit, PageDocument, SheetSide, StateStyle, StyleProps, BoxShadowLayer,
+    EdgeAlign, AspectRatioValue, MotionEntrance, NodeProps, NodeStates, NodeType, ObjectFit, PageDocument, SheetSide, StateStyle, StyleProps, BoxShadowLayer,
     BackdropFilterValue, BorderRadiusCorners, BorderSide, BorderSides, FilterValue,
     GradientKind, GradientValue, TransformValue, TransitionValue, DEFAULT_IMAGE_OBJECT_FIT,
 };
@@ -147,6 +147,8 @@ fn build(doc: &PageDocument, opts: &CompileOptions) -> Result<(String, String), 
         state_css: String::new(),
         state_reduced: String::new(),
         state_forced: String::new(),
+        motion_keyframes: String::new(),
+        motion_presets_emitted: HashSet::new(),
     };
     c.render(&doc.root, 0);
 
@@ -207,6 +209,8 @@ pub fn style_css(doc: &PageDocument, opts: &CompileOptions) -> Result<String, St
         state_css: String::new(),
         state_reduced: String::new(),
         state_forced: String::new(),
+        motion_keyframes: String::new(),
+        motion_presets_emitted: HashSet::new(),
     };
     c.render(&doc.root, 0);
     Ok(c.style_block())
@@ -246,6 +250,8 @@ pub fn markup_kind_types(doc: &PageDocument, opts: &CompileOptions) -> Result<BT
         state_css: String::new(),
         state_reduced: String::new(),
         state_forced: String::new(),
+        motion_keyframes: String::new(),
+        motion_presets_emitted: HashSet::new(),
     };
     c.render(&doc.root, 0);
     Ok(MARKUP_KINDS.iter().map(|t| *t as u8).filter(|t| c.used_types.contains(t)).collect())
@@ -298,6 +304,8 @@ impl Compiler<'_> {
         // B7.2 §7.2: per-node `:hover` / `:focus-visible` / `:active` (after `.nN` base in `build`).
         css.push_str(&self.state_css);
         css.push_str(&keyframes);
+        // E2: entrance `@keyframes` (deduped by preset).
+        css.push_str(&self.motion_keyframes);
         if !self.bp_tablet.is_empty() {
             css.push_str("@media (max-width:1024px){");
             css.push_str(&self.bp_tablet);
@@ -1053,6 +1061,54 @@ fn transform_origin_kw(raw: &str) -> Option<&'static str> {
 const TRANSITION_PAINT: &str =
     "background-color,color,border-color,box-shadow,opacity,transform,filter,backdrop-filter";
 const TRANSITION_SPRING: &str = "cubic-bezier(0.34,1.56,0.64,1)";
+const MOTION_SLIDE_PX: &str = "24px";
+
+fn motion_preset_ok(preset: &str) -> bool {
+    matches!(
+        preset,
+        "fade" | "slideUp" | "slideDown" | "slideLeft" | "slideRight" | "scaleIn"
+    )
+}
+
+fn motion_keyframe_name(preset: &str) -> String {
+    format!("wb-in-{preset}")
+}
+
+/// Keyframe body (`from{…}to{…}`) for an entrance preset. Transform/opacity only.
+fn motion_keyframe_body(preset: &str) -> Option<&'static str> {
+    Some(match preset {
+        "fade" => "from{opacity:0}to{opacity:1}",
+        "slideUp" => {
+            "from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}"
+        }
+        "slideDown" => {
+            "from{opacity:0;transform:translateY(-24px)}to{opacity:1;transform:translateY(0)}"
+        }
+        "slideLeft" => {
+            "from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}"
+        }
+        "slideRight" => {
+            "from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:translateX(0)}"
+        }
+        "scaleIn" => {
+            "from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)}"
+        }
+        _ => return None,
+    })
+}
+
+/// Static "from" decls for the E3 `@supports` block (never outside it).
+fn motion_from_decls(preset: &str) -> String {
+    match preset {
+        "fade" => "opacity:0;".into(),
+        "slideUp" => format!("opacity:0;transform:translateY({MOTION_SLIDE_PX});"),
+        "slideDown" => format!("opacity:0;transform:translateY(-{MOTION_SLIDE_PX});"),
+        "slideLeft" => format!("opacity:0;transform:translateX({MOTION_SLIDE_PX});"),
+        "slideRight" => format!("opacity:0;transform:translateX(-{MOTION_SLIDE_PX});"),
+        "scaleIn" => "opacity:0;transform:scale(0.96);".into(),
+        _ => String::new(),
+    }
+}
 
 fn transition_easing(raw: &str) -> Option<String> {
     let t = raw.trim().to_ascii_lowercase();
@@ -1735,6 +1791,10 @@ struct Compiler<'a> {
     state_reduced: String,
     /// B7.2 §7.3: per-node `forced-colors` fallbacks for state rings (focus-visible + box-shadow).
     state_forced: String,
+    /// E2: `@keyframes wb-in-*` for entrance presets used on this page (deduped).
+    motion_keyframes: String,
+    /// E2: presets already emitted into `motion_keyframes`.
+    motion_presets_emitted: HashSet<String>,
 }
 
 /// B0 (§9.B P1 selector contract): the attribute both outputs put on a node root that the generated CSS targets.
@@ -1928,7 +1988,20 @@ impl<'a> Compiler<'a> {
             .transition
             .as_ref()
             .is_some_and(|t| !t.is_unset());
-        if d.is_empty() && tablet.is_empty() && phone.is_empty() && fold.is_empty() && !has_states {
+        // E2/E3: entrance motion needs a per-node class even with no style diffs.
+        let entrance = node
+            .motion
+            .as_ref()
+            .and_then(|m| m.entrance.as_ref())
+            .filter(|e| motion_preset_ok(&e.preset) && (e.trigger == "load" || e.trigger == "view"));
+        let has_motion = entrance.is_some();
+        if d.is_empty()
+            && tablet.is_empty()
+            && phone.is_empty()
+            && fold.is_empty()
+            && !has_states
+            && !has_motion
+        {
             return None;
         }
         let class = format!("n{}", self.next_class);
@@ -1949,6 +2022,10 @@ impl<'a> Compiler<'a> {
             self.state_reduced.push_str(&format!(
                 "@media (prefers-reduced-motion:reduce){{.{class}{{transition:none}}}}"
             ));
+        }
+        // E2 load / E3 view entrance.
+        if let Some(e) = entrance {
+            self.emit_node_motion(&class, e);
         }
         // B0 (§9.B P1): breakpoint rules belong to the shared generator and target the node's `data-wb-id` hook, so
         // the Vite export (base styles inline) can use the very same bytes. The generator also restates the base
@@ -1991,6 +2068,36 @@ impl<'a> Compiler<'a> {
         } else {
             Some(class)
         }
+    }
+
+    /// E2/E3: emit entrance `@keyframes` (deduped) + per-node `animation` / view timeline.
+    fn emit_node_motion(&mut self, class: &str, e: &MotionEntrance) {
+        let preset = e.preset.as_str();
+        let kf = motion_keyframe_name(preset);
+        if self.motion_presets_emitted.insert(preset.to_string()) {
+            if let Some(body) = motion_keyframe_body(preset) {
+                self.motion_keyframes
+                    .push_str(&format!("@keyframes {kf}{{{body}}}"));
+            }
+        }
+        let ease = transition_easing(&e.easing).unwrap_or_else(|| "ease-out".into());
+        let dur = e.duration_ms.clamp(100, 2000);
+        let delay = e.delay_ms.clamp(0, 2000);
+        if e.trigger == "view" {
+            // E3: from-state and timeline only inside `@supports`; unsupported browsers see final state.
+            let from = motion_from_decls(preset);
+            self.node_css.push_str(&format!(
+                "@supports (animation-timeline:view()){{.{class}{{{from}animation-name:{kf};animation-duration:{dur}ms;animation-timing-function:{ease};animation-delay:{delay}ms;animation-fill-mode:backwards;animation-timeline:view();animation-range:entry 0% entry 60%}}}}"
+            ));
+        } else {
+            // E2 load: shorthand with fill-mode backwards (no forwards).
+            self.node_css.push_str(&format!(
+                ".{class}{{animation:{kf} {dur}ms {ease} {delay}ms backwards}}"
+            ));
+        }
+        self.state_reduced.push_str(&format!(
+            "@media (prefers-reduced-motion:reduce){{.{class}{{animation:none}}}}"
+        ));
     }
 
     /// B7.2: emit hover (inside `@media (hover:hover)`), focus-visible (focusable only), active last;
@@ -3132,7 +3239,7 @@ impl<'a> Compiler<'a> {
             NodeProps::Accordion { open, items } => {
                 self.open("div", &cls, &[]);
                 for (i, item) in items.iter().enumerate() {
-                    if i as u32 == *open {
+                    if *open >= 0 && i as i32 == *open {
                         self.open_inner("details", &[("open", "open".into())]);
                     } else {
                         self.open_inner("details", &[]);
@@ -3569,3 +3676,11 @@ mod b7_tests;
 #[cfg(test)]
 #[path = "compiler_b9_tests.rs"]
 mod b9_tests;
+
+#[cfg(test)]
+#[path = "compiler_e2_tests.rs"]
+mod e2_tests;
+
+#[cfg(test)]
+#[path = "compiler_d10_preview_tests.rs"]
+mod d10_preview_tests;

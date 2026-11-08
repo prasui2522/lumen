@@ -1,4 +1,4 @@
-import { useRef, type ComponentProps, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { Command } from "cmdk";
 import {
   NODE_TYPE_LABEL,
@@ -8,11 +8,16 @@ import {
 } from "@/lib/document-ops";
 import { redo, undo } from "@/lib/history";
 import { PALETTE_META } from "@/lib/palette-meta";
-import { canInsertTemplate, insertBlock, insertPage, insertPaletteNode, insertTemplate } from "@/lib/node-actions";
+import {
+  canInsertTemplate,
+  insertPage,
+  insertPaletteNode,
+  insertRegistryStyleBlock,
+} from "@/lib/node-actions";
 import { addPage, ensurePages, openPageIdOf, switchToPage } from "@/lib/project-pages";
-import { BLOCKS } from "@/lib/blocks";
+import { loadBlocksRegistry } from "@/lib/blocks-registry";
+import type { StyleBlock } from "@/lib/block-format";
 import { PAGES } from "@/lib/pages";
-import { TEMPLATES } from "@/lib/templates";
 import { setThemePref, useTheme, type ThemePref } from "@/lib/theme";
 import { Kbd } from "@/components/ui/kbd";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -59,6 +64,17 @@ export function CommandPalette({ open, query, onQueryChange, onOpenChange, onSav
   const theme = useTheme();
   const canInsert = !!doc && resolveInsertTarget(doc, selected) !== null;
   const layers = doc ? flattenLayers(doc) : [];
+  const [registryBlocks, setRegistryBlocks] = useState<StyleBlock[] | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    let dead = false;
+    void loadBlocksRegistry().then((list) => {
+      if (!dead) setRegistryBlocks(list);
+    });
+    return () => {
+      dead = true;
+    };
+  }, [open]);
   const groupCls =
     "[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground";
   const close = () => onOpenChange(false);
@@ -124,13 +140,32 @@ export function CommandPalette({ open, query, onQueryChange, onOpenChange, onSav
                 </Item>
               ) : null}
               <Item
-                value="mode"
-                keywords={["สลับโหมด", "mode", "design", "preview"]}
-                onSelect={() =>
-                  run(() => useEditorStore.getState().setMode(mode === "design" ? "preview" : "design"))
-                }
+                value="mode-preview"
+                keywords={["ตัวอย่าง", "mode", "preview"]}
+                onSelect={() => run(() => useEditorStore.getState().setMode("preview"))}
               >
-                สลับโหมด
+                โหมดตัวอย่าง
+              </Item>
+              <Item
+                value="mode-split"
+                keywords={["แยก", "split", "mode"]}
+                onSelect={() => run(() => useEditorStore.getState().setMode("split"))}
+              >
+                โหมดแยก
+              </Item>
+              <Item
+                value="mode-code"
+                keywords={["โค้ด", "code", "mode"]}
+                onSelect={() => run(() => useEditorStore.getState().setMode("code"))}
+              >
+                โหมดโค้ด
+              </Item>
+              <Item
+                value="mode-design"
+                keywords={["ออกแบบ", "design", "mode"]}
+                onSelect={() => run(() => useEditorStore.getState().setMode("design"))}
+              >
+                โหมดออกแบบ
               </Item>
               <Item value="back" keywords={["กลับ", "projects", "back"]} onSelect={() => run(onBack)}>
                 กลับไปรายการโปรเจกต์
@@ -184,40 +219,23 @@ export function CommandPalette({ open, query, onQueryChange, onOpenChange, onSav
                 ))}
               </Command.Group>
             ))}
-            <Command.Group heading="เทมเพลต" className={groupCls}>
-              {TEMPLATES.map((t) => (
+            <Command.Group heading="บล็อก" className={groupCls}>
+              {(registryBlocks ?? []).map((b) => (
                 <Item
-                  key={t.id}
-                  value={`template-${t.id}`}
-                  keywords={[t.name, t.description, "template", "เทมเพลต"]}
+                  key={b.id}
+                  value={`block-${b.id}`}
+                  keywords={[b.name, b.nameEn, b.category, "block", "บล็อก", ...b.keywords]}
                   disabled={!canInsertTemplate(doc)}
                   onSelect={() =>
                     run(() => {
-                      if (insertTemplate(t.id)) keepLayerFocus.current = true;
+                      if (insertRegistryStyleBlock(b)) keepLayerFocus.current = true;
                     })
                   }
                 >
                   <span className="flex min-w-0 flex-col">
-                    <span>{t.name}</span>
-                    <span className="text-[11px] text-muted-foreground">{t.description}</span>
+                    <span>{b.name}</span>
+                    <span className="text-[11px] text-muted-foreground">{b.nameEn}</span>
                   </span>
-                </Item>
-              ))}
-            </Command.Group>
-            <Command.Group heading="บล็อก" className={groupCls}>
-              {BLOCKS.map((b) => (
-                <Item
-                  key={b.id}
-                  value={`block-${b.id}`}
-                  keywords={[b.name, "block", "บล็อก"]}
-                  disabled={!canInsertTemplate(doc)}
-                  onSelect={() =>
-                    run(() => {
-                      if (insertBlock(b.id)) keepLayerFocus.current = true;
-                    })
-                  }
-                >
-                  {b.name}
                 </Item>
               ))}
             </Command.Group>

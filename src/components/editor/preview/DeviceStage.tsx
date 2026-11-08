@@ -20,6 +20,32 @@ import {
   type Size,
 } from "@/lib/devices";
 import { usePreviewDeviceStore, usePreviewScale } from "@/stores/preview-device-store";
+import { Tier1Frame } from "@/components/editor/preview/Tier1Frame";
+import { ViteFrame } from "@/components/editor/preview/ViteFrame";
+import { nextFillHeight, type RuntimePayload } from "@/lib/preview-runtime";
+import { findPageForHref } from "@/lib/link-target";
+
+/**
+ * What a frame shows: last-good static HTML (`srcdoc`, snapshots only after S10),
+ * the S2 Tier 1 runtime payload, or the S6 Vite sidecar.
+ */
+export type FrameSource =
+  | { kind: "srcdoc"; html: string }
+  | {
+      kind: "runtime";
+      payload: RuntimePayload;
+      /** Route of the editor's open page. */
+      path: string;
+      pageName: string;
+      onTimeout: () => void;
+    }
+  | {
+      kind: "vite";
+      url: string;
+      port: number;
+      path: string;
+      pageName: string;
+    };
 
 /** Same minimum as the Design canvas card (min-h-[480px]); `fill` only. */
 const MIN_FRAME_PX = 480;
@@ -75,6 +101,29 @@ function openPageFromMarker(href: string): string | null {
   return page.name;
 }
 
+/**
+ * S2: the Tier 1 frame's router moved to `path` (a page link inside the page).
+ * Same page-switch path as the marker flow; the frame already shows the page,
+ * so no recompile is needed — the editor just follows. Returns the page name
+ * or null (unknown path / already open).
+ */
+function openPageFromRoute(path: string): string | null {
+  const doc = useProjectsStore.getState().openDocument;
+  if (!doc) return null;
+  const withPages = ensurePages(doc);
+  const ed = useEditorStore.getState();
+  const current = ed.openPageId ?? openPageIdOf(withPages);
+  const page = findPageForHref(path, withPages.pages!);
+  if (!page || page.id === current) return null;
+  const next = switchToPage(withPages, page.id);
+  if (!next) return null;
+  ed.setOpenPageId(page.id);
+  ed.setSelectedNodeId(null);
+  ed.setEditingNodeId(null);
+  useProjectsStore.getState().restoreDocument(next);
+  return page.name;
+}
+
 type Frame = {
   /** React key: "single" in single view (never the device id, so a device switch keeps the iframe). */
   key: string;
@@ -95,7 +144,8 @@ function outerOf(dev: DevicePreset, size: Size | null): Size {
  * never recompiles and never changes `srcDoc` or the iframe's key, so a
  * device, rotate, zoom or custom-size change does not reparse the page.
  */
-export function DeviceStage({ html }: { html: string }) {
+export function DeviceStage({ source }: { source: FrameSource }) {
+  const html = source.kind === "srcdoc" ? source.html : "";
   const preset = usePreviewDeviceStore((s) => s.preset);
   const landscape = usePreviewDeviceStore((s) => s.landscape);
   const customW = usePreviewDeviceStore((s) => s.custom.w);
@@ -268,12 +318,35 @@ export function DeviceStage({ html }: { html: string }) {
   // Entering fill → measure; leaving fill → drop the measuring style so device
   // frames render the page exactly as compiled.
   useLayoutEffect(() => {
+    if (source.kind !== "srcdoc") return;
     if (fill) {
       measure();
       return;
     }
     fillFrameRef.current?.contentDocument?.getElementById(FILL_STYLE_ID)?.remove();
-  }, [fill, measure]);
+  }, [fill, measure, source.kind]);
+
+  /* ---- S2 Tier 1 frame callbacks (opaque origin: height + route arrive by message) ---- */
+  const fillHRef = useRef(fillH);
+  fillHRef.current = fillH;
+  const onRuntimeHeight = useCallback((reported: number) => {
+    if (!fillRef.current) return;
+    const stage = stageRef.current;
+    const base = Math.max(MIN_FRAME_PX, (stage?.clientHeight ?? 0) - STAGE_PAD);
+    const h = nextFillHeight(reported, fillHRef.current, base, MIN_FRAME_PX, FILL_SLACK);
+    if (h !== fillHRef.current) setFillH(h);
+  }, []);
+  const onRuntimeRoute = useCallback((path: string) => {
+    const name = openPageFromRoute(path);
+    if (name !== null) useEditorStore.getState().announce(`เปิดหน้า ${name}`);
+  }, []);
+  const onRuntimeExternal = useCallback((href: string) => {
+    useEditorStore.getState().announce(`ลิงก์ภายนอก ${href} ไม่เปิดในตัวอย่าง`);
+  }, []);
+
+  const onRuntimeSelect = useCallback((id: string | null) => {
+    useEditorStore.getState().setSelectedNodeId(id);
+  }, []);
 
   /* ---- Multi-view: unmount frames scrolled out of view (§6) ---- */
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
@@ -352,7 +425,34 @@ export function DeviceStage({ html }: { html: string }) {
                   }
                 >
                   <div className={cn("relative", size && f.dev.handheld && "overflow-hidden rounded-[12px]")}>
-                    {visible ? (
+                    {visible && source.kind === "runtime" ? (
+                      <Tier1Frame
+                        payload={source.payload}
+                        path={source.path}
+                        title={`ตัวอย่างหน้า ${source.pageName}`}
+                        frameRef={f.key === "single" ? (el) => (fillFrameRef.current = el) : undefined}
+                        onHeight={f.key === "single" ? onRuntimeHeight : undefined}
+                        onRoute={onRuntimeRoute}
+                        onExternal={onRuntimeExternal}
+                        onSelect={onRuntimeSelect}
+                        onTimeout={source.onTimeout}
+                        style={size ? { width: size.w, height: size.h } : { width: "100%", height: fillH }}
+                        className="block border-0 bg-white"
+                      />
+                    ) : visible && source.kind === "vite" ? (
+                      <ViteFrame
+                        url={source.url}
+                        port={source.port}
+                        title={`ตัวอย่างหน้า ${source.pageName}`}
+                        frameRef={f.key === "single" ? (el) => (fillFrameRef.current = el) : undefined}
+                        onHeight={f.key === "single" ? onRuntimeHeight : undefined}
+                        onRoute={onRuntimeRoute}
+                        onExternal={onRuntimeExternal}
+                        onSelect={onRuntimeSelect}
+                        style={size ? { width: size.w, height: size.h } : { width: "100%", height: fillH }}
+                        className="block border-0 bg-white"
+                      />
+                    ) : visible ? (
                       <iframe
                         ref={f.key === "single" ? fillFrameRef : undefined}
                         title="ตัวอย่างหน้าเว็บ"

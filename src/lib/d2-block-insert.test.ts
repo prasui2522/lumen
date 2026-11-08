@@ -66,6 +66,36 @@ function emptyDoc(): PageDocument {
 }
 
 describe("D2 insertBlock", () => {
+  test("materialise does not remap layout enums when localId collides (row)", () => {
+    const block: StyleBlock = {
+      ...pageBlock,
+      id: "row-collide",
+      root: "root",
+      nodes: {
+        root: {
+          type: "container",
+          props: {
+            type: "container",
+            children: ["row"],
+            direction: "row",
+            gap: 8,
+            align: "center",
+            justify: "between",
+          },
+          style: { backgroundColor: "#ffffff", color: "#0f172a" },
+        },
+        row: {
+          type: "text",
+          props: { type: "text", content: "x" },
+        },
+      },
+    };
+    const { nodes } = materialiseBlock(block);
+    const root = nodes.find((n) => n.type === "container")!;
+    expect((root.props as { direction?: string }).direction).toBe("row");
+    expect((root.props as { children: string[] }).children[0]).not.toBe("row");
+  });
+
   test("ids unique and not equal to registry localIds; refs remapped", () => {
     const { nodes, rootId, idMap } = materialiseBlock(pageBlock);
     expect(rootId).not.toBe("r");
@@ -113,5 +143,31 @@ describe("D2 insertBlock", () => {
       (out.doc.nodes.box!.props as { children: string[] }).children,
     ).toEqual([out.rootId]);
     expect(out.doc.nodes[out.rootId]!.type).toBe("card");
+  });
+
+  test("page position index inserts at slot", () => {
+    const a = insertBlock(emptyDoc(), null, pageBlock)!;
+    const b = insertBlock(a.doc, null, pageBlock, { kind: "page", index: 0 })!;
+    const kids = (b.doc.nodes.page!.props as { children: string[] }).children;
+    expect(kids).toEqual([b.rootId, a.rootId]);
+  });
+
+  test("explicit inline position overrides page scope", () => {
+    const d = emptyDoc();
+    d.nodes.box = {
+      id: "box",
+      type: "container",
+      props: { type: "container", children: [] },
+      style: {},
+    };
+    (d.nodes.page!.props as { children: string[] }).children = ["box"];
+    const out = insertBlock(d, null, pageBlock, {
+      kind: "inline",
+      parentId: "box",
+      index: 0,
+    })!;
+    expect(
+      (out.doc.nodes.box!.props as { children: string[] }).children,
+    ).toEqual([out.rootId]);
   });
 });

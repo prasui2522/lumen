@@ -83,7 +83,9 @@ fn export_zip_is_vite_tsx_project() {
     assert!(!site.contains("SECRET"), "visible:false nodes are scrubbed from site.json");
 
     let app = read_entry(&mut z, "src/App.tsx");
-    assert!(app.contains("react-router-dom") || app.contains("SitePage"));
+    assert!(app.contains("SiteRoutes"));
+    let routes = read_entry(&mut z, "src/lib/site-routes.tsx");
+    assert!(routes.contains("react-router-dom") && routes.contains("SitePage"));
 
     std::fs::remove_dir_all(&dir).unwrap();
 }
@@ -294,4 +296,123 @@ fn f1_export_installs_and_builds_with_bun() {
     assert_eq!(first.len(), second.len(), "CSS changed on rebuild: Tailwind scanned build output");
     assert!(first.len() < 20_000, "exported CSS grew to {} bytes (expected ~14.5 kB)", first.len());
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// S2: the Tier 1 bundle is byte-equal to the zip's generated files, and the zip never
+/// carries the Preview runtime entry (data-node-id stays out of the export).
+#[test]
+fn s2_preview_bundle_matches_export_and_zip_has_no_runtime() {
+    let (opts, files) = plain();
+    let doc = rich();
+    let bundle = build_preview_bundle(&doc, &opts, HashMap::new()).unwrap();
+    let list = build_export_listing(&doc, &opts, &files).unwrap();
+    let text = |p: &str| list.iter().find(|e| e.path == p).unwrap().text.clone().unwrap();
+    assert_eq!(bundle.site_json, text("src/data/site.json"));
+    assert_eq!(bundle.site_css, text("src/styles/site.css"));
+    assert_eq!(bundle.kinds_css, text("src/styles/kinds.css"));
+    assert!(!bundle.site_json.contains("assetUrls"));
+    for e in &list {
+        assert!(!e.path.contains("preview-runtime") && !e.path.contains("preview.html"), "{}", e.path);
+        if let Some(t) = &e.text {
+            assert!(!t.contains("__WB_PREVIEW__ = true"), "{} sets the preview flag", e.path);
+        }
+    }
+}
+
+#[test]
+fn dw_m3_export_listing_includes_site_json() {
+    let (opts, files) = plain();
+    let list = build_export_listing(&rich(), &opts, &files).unwrap();
+    let paths: Vec<_> = list.iter().map(|e| e.path.as_str()).collect();
+    assert!(paths.contains(&"src/data/site.json"));
+    assert!(paths.contains(&"src/styles/site.css"));
+    assert!(paths.contains(&"src/styles/kinds.css"));
+    let site = list.iter().find(|e| e.path == "src/data/site.json").unwrap();
+    assert!(!site.binary);
+    assert!(site.text.as_ref().is_some_and(|t| t.contains('{')));
+    assert!(list.windows(2).all(|w| w[0].path <= w[1].path), "listing must be sorted");
+    let ranges = site.ranges.as_ref().expect("site.json ranges");
+    assert!(!ranges.is_empty(), "every authored node should have a range");
+}
+
+#[test]
+fn s3_export_folder_parent_of_zip() {
+    let dir = temp_dir();
+    let zip = dir.join("site.zip");
+    std::fs::write(&zip, b"PK").unwrap();
+    let got = export_folder_for(&zip).unwrap();
+    assert_eq!(got, dir.canonicalize().unwrap());
+}
+
+#[test]
+fn s3_export_folder_rejects_missing_dotdot_and_symlink_escape() {
+    assert!(export_folder_for(std::path::Path::new("/no/such/export.zip")).is_err());
+    let dir = temp_dir();
+    let zip = dir.join("site.zip");
+    std::fs::write(&zip, b"PK").unwrap();
+    let sneaky = dir.join("sub");
+    std::fs::create_dir(&sneaky).unwrap();
+    let rel = sneaky.join("..").join("site.zip");
+    assert!(export_folder_for(&rel).is_err(), "`..` in dest must fail even if it resolves");
+    let outside = temp_dir();
+    let outside_zip = outside.join("other.zip");
+    std::fs::write(&outside_zip, b"PK").unwrap();
+    let link = dir.join("escape.zip");
+    std::os::unix::fs::symlink(&outside_zip, &link).unwrap();
+    assert!(export_folder_for(&link).is_err(), "symlink zip must not open a foreign folder");
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&outside);
+}
+
+#[test]
+fn s4_node_ranges_cover_id_objects() {
+    let json = "{\n  \"nodes\": {\n    \"n1\": {\n      \"id\": \"n1\",\n      \"type\": \"page\"\n    }\n  }\n}";
+    let map = node_ranges_in_json(json);
+    let [a, b] = *map.get("n1").expect("n1");
+    assert!(json[a..b].contains("\"id\": \"n1\""));
+    assert!(json[a..b].starts_with('{'));
+    assert!(json[a..b].ends_with('}'));
+}
+
+#[test]
+fn s5_dark_off_leaves_index_and_css_without_toggle() {
+    let (opts, files) = plain();
+    let mut doc = rich();
+    doc.meta.dark_mode = None;
+    let list = build_export_listing(&doc, &opts, &files).unwrap();
+    let html = list.iter().find(|e| e.path == "index.html").unwrap().text.clone().unwrap();
+    let css = list.iter().find(|e| e.path == "src/styles/site.css").unwrap().text.clone().unwrap();
+    assert!(!html.contains("wb-dark-toggle"));
+    assert!(!css.contains("html.dark"));
+    let site = list.iter().find(|e| e.path == "src/data/site.json").unwrap().text.clone().unwrap();
+    assert!(!site.contains("darkMode"));
+}
+
+#[test]
+fn r1_site_json_strips_renderer_keys_and_rejects_bad_json() {
+    let ok = r#"{"version":1,"meta":{"title":"T"},"root":"p","nodes":{"p":{"id":"p","type":"page","props":{"type":"page","children":[]}}},"baseDefaults":{"page":{}},"headingFontSizes":[32],"assetFiles":{"a":"a.png"}}"#;
+    let doc = document_from_site_json(ok).unwrap();
+    assert_eq!(doc.root, "p");
+    assert_eq!(doc.version, 1);
+    assert!(doc.pages.iter().any(|p| p.root == "p"));
+    let bad = document_from_site_json("{").unwrap_err();
+    assert!(bad.starts_with("JSON ไม่ถูกต้อง"), "{bad}");
+    let hostile = r#"{"version":1,"meta":{"title":"T"},"root":"p","nodes":{"p":{"id":"p","type":"nope","props":{}}}}"#;
+    let err = document_from_site_json(hostile).unwrap_err();
+    assert!(err.contains("เอกสารไม่ถูกต้อง"), "{err}");
+}
+
+#[test]
+fn s5_dark_auto_adds_toggle_and_tokens() {
+    let (opts, files) = plain();
+    let mut doc = rich();
+    doc.meta.dark_mode = Some("auto".into());
+    let list = build_export_listing(&doc, &opts, &files).unwrap();
+    let html = list.iter().find(|e| e.path == "index.html").unwrap().text.clone().unwrap();
+    let css = list.iter().find(|e| e.path == "src/styles/site.css").unwrap().text.clone().unwrap();
+    assert!(html.contains("wb-dark-toggle"));
+    assert!(html.contains("ระบบ"));
+    assert!(css.contains("html.dark"));
+    let site = list.iter().find(|e| e.path == "src/data/site.json").unwrap().text.clone().unwrap();
+    assert!(site.contains("\"darkMode\": \"auto\""));
 }

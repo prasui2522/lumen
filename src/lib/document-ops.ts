@@ -7,6 +7,7 @@ import type {
   Node,
   NodeId,
   NodeProps,
+  NodeMotion,
   NodeStateName,
   NodeStates,
   NodeType,
@@ -33,7 +34,7 @@ import {
   isPhase6bType,
   resolvedStyle,
 } from "@/schema";
-import { cleanStateStyle, cleanStates, cleanStyle } from "@/lib/breakpoints";
+import { cleanMotion, cleanStateStyle, cleanStates, cleanStyle } from "@/lib/breakpoints";
 import { MAX_SELECT_OPTIONS } from "@/lib/select-options";
 import { MAX_LIST_ITEMS } from "@/lib/list-items";
 import { capColumns, normalizeTableRows, tableModelEqual } from "@/lib/table-model";
@@ -1086,6 +1087,27 @@ export function setNodeStates(
   const next: Node = { ...node };
   if (cleaned) next.states = cleaned;
   else delete next.states;
+  return replaceNode(doc, next);
+}
+
+/**
+ * E1: replace `motion` (or clear with `undefined`). Locked → null.
+ * Invalid / empty entrance → key removed. One call = one undo step.
+ */
+export function setNodeMotion(
+  doc: PageDocument,
+  nodeId: NodeId,
+  motion: NodeMotion | undefined,
+): PageDocument | null {
+  const node = doc.nodes[nodeId];
+  if (!node || isContentLocked(doc, node)) return null;
+  const cleaned = cleanMotion(motion);
+  const had = node.motion !== undefined;
+  if (!cleaned && !had) return null;
+  if (cleaned && had && JSON.stringify(node.motion) === JSON.stringify(cleaned)) return null;
+  const next: Node = { ...node };
+  if (cleaned) next.motion = cleaned;
+  else delete next.motion;
   return replaceNode(doc, next);
 }
 

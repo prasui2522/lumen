@@ -11,6 +11,10 @@ import {
 } from "@/lib/document-ops";
 import { applyTemplate, buildTemplate, templateInsertIndex, type TemplateId } from "@/lib/templates";
 import { buildBlock, type BlockId } from "@/lib/blocks";
+import {
+  insertBlock as insertStyleBlockTree,
+} from "@/lib/block-insert";
+import type { StyleBlock } from "@/lib/block-format";
 import { buildPage, type PageId } from "@/lib/pages";
 import { getChildren, type NodeId, type PageDocument } from "@/schema";
 import { useEditorStore } from "@/stores/editor-store";
@@ -143,6 +147,23 @@ export function insertBlock(id: BlockId): boolean {
   const ed = useEditorStore.getState();
   ed.setSelectedNodeId(built.focusId);
   ed.setFocusLayerId(built.focusId);
+  return true;
+}
+
+/** Phase 11 D9: insert a registry StyleBlock (one undo step). */
+export function insertRegistryStyleBlock(block: StyleBlock): boolean {
+  const d = doc();
+  if (!d || !canInsertTemplate(d)) return false;
+  const sel = useEditorStore.getState().selectedNodeId;
+  const result = insertStyleBlockTree(d, sel, block);
+  if (!result) return false;
+  useProjectsStore.getState().updateOpenDocument(result.doc, {
+    historyKey: `block:${block.id}`,
+  });
+  const ed = useEditorStore.getState();
+  ed.setSelectedNodeId(result.rootId);
+  ed.setFocusLayerId(result.rootId);
+  ed.announce(`แทรกบล็อก ${block.name} แล้ว`);
   return true;
 }
 

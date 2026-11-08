@@ -11,7 +11,7 @@ use crate::compiler::CompileOptions;
 use crate::defaults::{Node, NodeProps, PageDocument};
 use rusqlite::{params, Connection};
 use serde::Serialize;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
@@ -316,6 +316,32 @@ pub fn preview_options(
         }
     }
     Ok(opts)
+}
+
+/// S2 Tier 1 Preview: export-shaped options (so `site.json` / CSS bytes equal the
+/// zip's) plus `id → asset URL` for the frame. No file bytes are read.
+pub fn preview_bundle_parts(
+    conn: &Connection,
+    dir: &Path,
+    project_id: &str,
+    doc: &PageDocument,
+) -> Result<(CompileOptions, HashMap<String, String>), String> {
+    let mut opts = CompileOptions {
+        preview: false,
+        asset_base_url: Some("assets".into()),
+        ..CompileOptions::default()
+    };
+    let mut urls = HashMap::new();
+    for id in image_ids(doc) {
+        let Some(ext) = lookup_ext(conn, project_id, &id)? else {
+            continue;
+        };
+        opts.asset_exts.insert(id.clone(), ext.clone());
+        if let Ok(path) = asset_path(dir, &id, &ext) {
+            urls.insert(id, convert_file_src(&path));
+        }
+    }
+    Ok((opts, urls))
 }
 
 pub fn export_parts(

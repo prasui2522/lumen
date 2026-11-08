@@ -879,8 +879,8 @@ Status: DONE, applied to the live project. Not started: A2.5.
 - **C4–C5:** five built-ins; contrast + appliesTo coverage in `c4-c5-presets.test.ts`; glass T133 note.
 - **C6:** `library_items` table + `library_list` / `library_put` / `library_delete`; json ≤16 kB, ≤200 rows; Rust `library_tests` (7).
 - **C7:** save dialog (T122–T124), delete confirm Cancel-first (T125/T134), `capturePresetFromNode` paint-only; user presets in picker; `c7-presets.test.ts`.
-- **C8:** ≤12 thumbs; glass static tint; RAM/chunk measure owed on real app (`RAM-BASELINE` C8 section).
-- **Also owed:** B10.1 effects RAM.
+- **C8 chunks (2026-11-08):** `presets-registry` 885 B gz-9 (≤6 kB); `preset-picker` 2729 B (≤3 kB after splitting save/delete to `preset-library-dialogs`). Tests `c8-presets-chunk.test.ts`.
+- **C8 PSS:** open − closed ≈ **0 MB** (≤ +1). **B10.1 PSS:** heavy − control **+5.8 MB** (≤ +8). Harness + logs: `agent-tools/p11/b10-ram/`. Soft-GL only.
 - Next: **9.D Blocks** (D1 notices + block format).
 
 ## Phase 11 D1–D2 (2026-11-07 Asia/Bangkok) — shipped
@@ -897,4 +897,207 @@ Status: DONE, applied to the live project. Not started: A2.5.
 - Old dropdowns still use `buildBlock` / `buildTemplate` until D4/D9.
 - Next: **D4** BlocksFlyout shell.
 
+## Phase 11 D4 BlocksFlyout shell (2026-11-08 Asia/Bangkok) — shipped
 
+- Lazy `blocks-flyout` via `EditorPage` (`useMountedOnce`; no `whenIdle` preload).
+- Palette `บล็อก` → `#blocks-flyout-opener` toggles non-modal panel (`aria-modal="false"`).
+- Categories T154–T166 + ทั้งหมด, search T140 (announce count), wireframe thumbs, empty T148, Esc → opener (T149).
+- Primary `แทรก` wired through `insertBlock` (D5 expands routes).
+- Tests: `d4-blocks-flyout.test.ts`.
+- Next: **D5** drag + ⋯ menu + keyboard.
+
+## Phase 11 D5 insert UX (2026-11-08 Asia/Bangkok) — shipped (code; real-app DnD owed)
+
+- `DragPayload` `{kind:"block"}` + MIME `application/x-webapp-block`.
+- Card drag → canvas; page blocks snap via `resolvePageBlockDrop` (top-level Y).
+- `แทรก` + ⋯ menu T142/T143/T144 + Enter; locked → T151.
+- `insertBlock` page `index` + explicit inline override for T144.
+- Tests: `d5-blocks-insert-ux.test.ts` + extended `d2-block-insert`.
+- **Real-app owed:** WebKitGTK HTML5 DnD from flyout card.
+- Chunks (gz-9): `blocks-flyout` 2926 B (≤6 kB); `migrated` 1688 B; not in entry graph.
+- Next: **D6** author batch 1 (header, hero, footer, CTA ×2).
+
+## Phase 11 D6 batch 1 (2026-11-08 Asia/Bangkok) — shipped (code; Preview 1024/719 owed)
+
+- `d6-batch1.json` (8): header-bar/stacked, hero-centered/split, footer-simple/columns, cta-banner/split.
+- Loader merges `migrated.json` + `d6-batch1.json` (duplicate-id guard).
+- Gen: `bun scripts/gen-d6-blocks.mjs`. Tests: `d6-blocks-batch1.test.ts`.
+- Root `backgroundColor`+`color` literal; h1 only in heroes; empty image placeholders; phone/tablet padding/fontSize breakpoints.
+- **Real-app owed:** Preview no horizontal scroll at 1024/719.
+- Next: **D7** features/pricing/FAQ ×2.
+
+## Phase 11 D7 batch 2 (2026-11-08 Asia/Bangkok) — shipped (code; Preview owed)
+
+- `d7-batch2.json` (6): features-three/list, pricing-two/single (list+icon), faq-accordion/compact (accordion).
+- Loader chunk list += `d7-batch2.json`. Gen: `bun scripts/gen-d7-blocks.mjs`. Tests: `d7-blocks-batch2.test.ts`.
+- Next: **D8** testimonials/contact/logo cloud/stats ×2.
+
+## Phase 11 D8 batch 3 (2026-11-08 Asia/Bangkok) — shipped (code; Preview owed)
+
+- `d8-batch3.json` (8): testimonials-cards/quote, contact-split/simple, logo-cloud-row/grid (neutral boxes), stats-row/cards.
+- Registry total **33** (11 migrated + 22 authored). Gen: `bun scripts/gen-d8-blocks.mjs`. Tests: `d8-blocks-batch3.test.ts`.
+- Next: **D9** Ctrl+K + deprecate old block/template dropdowns.
+
+## Phase 11 D9 Ctrl+K + deprecate dropdowns (2026-11-08 Asia/Bangkok) — shipped
+
+- Command palette: one lazy `บล็อก` group from `loadBlocksRegistry` (no separate เทมเพลต / Phase-5B BLOCKS).
+- Palette: removed เทมเพลต dropdown; `บล็อก` opener remains (Pages kept).
+- `insertRegistryStyleBlock` in `node-actions`. Tests: `d9-blocks-cmdk.test.ts`.
+- Next: **D10** review checklist + RAM/chunk measurement (reviewer ≠ author for sign-off).
+
+## Phase 11 D10 review (2026-11-08 Asia/Bangkok) — automated shipped; human/RAM owed
+
+- Automated checklist smoke: `d10-blocks-review.test.ts` (33 blocks, source, colours, no URLs, h1 rules, notices, chunk budgets).
+- Chunks gz-9 (post-build): flyout ≈2.9 kB (≤6); registry JSON chunks migrated+d6+d7+d8 ≈10.3 kB total (≤30); absent from entry.
+- **Owed:** (1) reviewer ≠ author signs each block on D10 checklist; (2) Preview 1024/719 no horizontal scroll; (3) flyout open/close PSS (±4 / +2 after close); (4) WebKitGTK DnD.
+- Next: **9.E Motion** (E1 `Node.motion` data model).
+
+## Phase 11 E1 Node.motion (2026-11-08 Asia/Bangkok) — shipped (data model)
+
+- TS: `NodeMotion` / `MotionEntrance` + clamps; `cleanMotion`; `setNodeMotion`; save tier-2.
+- Rust: `NodeMotion` / `MotionEntrance` on `Node`; sanitize in `normalize_page_nodes`.
+- Tests: `e1-motion.test.ts`. Compiler keyframes = **E2**.
+- Next: **E2** compiler keyframes for 6 presets + load trigger + reduced-motion.
+
+## Phase 11 E2–E5 Motion (2026-11-08 Asia/Bangkok) — shipped (code; Preview/RAM owed)
+
+- **E2:** load trigger → `@keyframes wb-in-*` (deduped) + `animation:… backwards`; reduced-motion `animation:none`; no `forwards` / no `<script`.
+- **E3:** view trigger inside `@supports (animation-timeline:view())` with from-state only there; strip-supports fallback test.
+- **E4:** lazy `motion-panel` section `การเคลื่อนไหว` (starts collapsed); preset/trigger/duration/delay/easing; T185/T186 notes.
+- **E5:** `เล่นตัวอย่าง` → `requestMotionReplay` → canvas `playEntranceReplay`; reduced-motion → T184.
+- Tests: `compiler_e2_tests.rs`, `e4-e5-motion-ui.test.ts`.
+- **E6 (code):** motion writes call `evaluatePagePerf` (T117 announce-once + toolbar); Preview inherits E2/E3 CSS from `compile_preview`.
+- Chunk: `motion-panel` **1093 B** gz-9 (≤3 kB).
+- **Owed (real-app):** Preview load animation check; E7 RAM with 30 animated nodes (Tauri + Xvfb / real GPU).
+- Phase 11 **E code path closed** except E7 measurement. Dreamweaver UX mapping deferred (user).
+
+## Phase 11 E7 + D flyout RAM (2026-11-08 Asia/Bangkok) — measured
+
+- **E7 PASS:** Preview 30 animated − 30 plain = **+1.5 MB PSS** (≤ +3). Soft-GL fair pair. Harness `agent-tools/p11/e7-ram/`.
+- Compiler proxy green: `e7_thirty_animated_nodes_dedupe_keyframes` (1× `@keyframes wb-in-fade`, ≥30 animations, no `<script>`).
+- **D flyout PSS FAIL vs §5.1 D:** warm reopen **+8.0 MB** (budget +4); first open +32; 30 s after close still +27.7 vs cold. Chunks still under gzip budgets.
+- **Preview 1024/719:** automated width/minWidth proxy `d-blocks-viewport.test.ts` green (page blocks). Real WebKitGTK scrollWidth at device frames still visual/human.
+- **Still owed:** (1) human D10 reviewer ≠ author sign-off; (2) WebKitGTK HTML5 DnD from flyout; (3) real-GPU RAM; (4) flyout PSS remediation or budget revision; (5) Dreamweaver UX mapping (deferred by user).
+
+## Phase 11 items 1–4 close-out (2026-11-08 Asia/Bangkok)
+
+### 1. Flyout PSS — fixed + pass (warm)
+- Virtualised grid + card meta only + active-only ⋯ menu; clear cards on close.
+- Warm reopen **+1.1 MB PSS** (≤ +4); after close 30 s residual **−3.3** vs warm closed (≤ +2).
+- §5.1 D amended: measure warm reopen (first-load chunk outside the delta).
+
+### 2. D10 review
+- Automated checklist: `docs/D10-BLOCKS-REVIEW.md` — all 33 pass automated gates.
+- Formal **human ≠ author** sign-off still required by licence rule §2 for merge policy.
+- Bugs found & fixed while building Preview fixture: `materialiseBlock` enum/`row` collision; hero-split `image.src`; accordion `open: i32` (`-1` = all collapsed).
+
+### 3. WebKitGTK DnD
+- Soft-GL Xvfb: XTest drag from flyout card **การ์ด** → canvas produced layer `การ์ด` (`dnd-after.png`). Non-drag `แทรก` remains first-class.
+
+### 4. Preview 1024/719 + GPU
+- Chromium scrollWidth on compiled 22 authored page blocks: **pass** at 1024 and 719 (`d10-preview-scroll.test.ts`).
+- Real app: `D10 preview blocks` project Preview ok; phone frame 393×852 screenshot (`d10-preview-phone.png`).
+- Real-GPU PSS: Xvfb lacks DRI3 — soft-GL remains the recorded method.
+
+## Dreamweaver UX mapping (2026-11-08 Asia/Bangkok) — shipped (doc)
+
+- Doc: `docs/DREAMWEAVER-UX-MAPPING.md` — DW metaphors ↔ Web Builder (Design/Preview/Insert/Library/Properties/Layers/Code/Menubar).
+- Finding: Phase 11 A–E already covers most DW *content* workflow; remaining gaps are **Code / Split / Preview=export** (`PREVIEW-CODE-VIEW-SPEC`) and optional **menubar** (`UI-REFRESH` S8). Deferred shadcn placeable nodes are not a DW-chrome blocker.
+- Still owed outside this mapping: human D10 ≠ author sign-off.
+
+## Dreamweaver DW-M2 + DW-M3 (2026-11-08 Asia/Bangkok) — shipped
+
+User order: **M2 then M3**.
+
+### DW-M2 menubar
+- `EditorMenubar` (ไฟล์ / แก้ไข / มุมมอง) on `EditorTopBar` — save, export, back, undo/redo, modes, layers toggle, theme. No new business logic.
+- shadcn `ui/menubar.tsx` present.
+
+### DW-M3 Code view (PREVIEW-CODE-VIEW S3 first slice)
+- `EditorMode` + `ModeSwitch` include `code` / **โค้ด**.
+- Lazy `code-view.tsx` (CodeMirror 6, read-only) + Rust `list_export_files` / `build_export_listing` (same file set as zip).
+- Command palette: โหมดออกแบบ / ตัวอย่าง / โค้ด.
+- Not in this slice: Split mode, เปิดโฟลเดอร์, editable code, Tier 1 Preview runtime.
+
+### Verify
+- `bun test src/lib/dw-m2-m3.test.ts`
+- `cargo test --manifest-path src-tauri/Cargo.toml export::tests::dw_m3_export_listing_includes_site_json -- --exact`
+
+### Next
+- **DW-M4** Tier 1 Preview = export runtime, or remaining S3 Split chrome.
+- Still owed: human D10 ≠ author sign-off.
+
+## PREVIEW-CODE-VIEW S3 rest + S4 + S5 (2026-11-08 Asia/Bangkok) — shipped
+
+User order after S2: remaining S3 → S4 → S5 (S6–S10 not started).
+
+### S3 remaining (Split + A5)
+- Mode `แยก` in ModeSwitch / menubar / palette. `SplitStage`: canvas + โค้ด (default) or ตัวอย่าง.
+- A1 orientation ซ้าย–ขวา / บน–ล่าง (`สลับแนวแบ่ง`), persisted in `wb.split.v1` (not the document).
+- A3 divider `role="separator"`: Arrow ±2%, Shift ±10%, Enter / double-click = 50/50, clamp 20–80, `aria-valuenow`.
+- A5 **เปิดโฟลเดอร์**: Rust `export_folder_for` + `open_export_folder` (canonical parent of the last zip; rejects `..` and symlink escape). Button disabled with “ยังไม่ได้ส่งออกโปรเจกต์” until the first export. File tabs + คัดลอกโค้ด (status 2 s).
+
+### S4
+- `site.json` listing carries `{nodeId → [start,end)}`. Canvas / Code / Preview click sync via `selectedNodeId` (no extra undo). Frame `wb:select` wired in DeviceStage.
+- Ctrl+1–4 = ออกแบบ / แยก / โค้ด / ตัวอย่าง. F6 cycles `[data-kbd-pane]`. Ctrl+P opens the command palette. Esc from code focuses the canvas.
+
+### S5
+- `meta.darkMode?: "off" | "auto"` (additive; absent = off → zip `index.html` / `site.css` / `site.json` unchanged).
+- Auto: dark tokens appended to generated `site.css`; ระบบ/สว่าง/มืด toggle injected into exported `index.html` only. Preview runtime shows the same toggle. Style panel control on the page root.
+
+### Verify
+- `bun test src/lib/split-settings.test.ts src/lib/s3-split.test.ts src/lib/editor-shortcuts.test.ts src/lib/dw-m2-m3.test.ts`
+- `cargo test --manifest-path src-tauri/Cargo.toml export::tests::`
+- `bunx tsc --noEmit`
+
+### Next
+- PREVIEW-CODE-VIEW S2–S10 code is in. Still owed: human D10 ≠ author sign-off; S2 pixel-diff / ready-time; S5 contrast; S6 V2 PSS; S8 three-way pixel parity; S10 idle PSS 194.3 MB.
+
+## PREVIEW-CODE-VIEW S6–S10 — Vite sidecar (2026-11-08 Asia/Bangkok) — shipped
+
+User order: do S6 then S7–S10.
+
+### What shipped
+- **S6:** รันด้วย Vite in Preview and Split (including Split+code). Port 47300–47399, sidecar.json + `--preview-token` orphan sweep, process group SIGTERM/SIGKILL, 60 s idle while Preview/Split hidden, stop on quit/project close. Lazy status bar (หยุด/กำลังเริ่ม/ทำงาน + PSS + หยุด). 4th device announces แสดงได้สูงสุด 3 อุปกรณ์พร้อมกัน.
+- **S7:** shared `$APPCACHE/preview/deps/<hash>` with lock, `.ok` stamp, prune to 2 hashes, Thai `PREVIEW_OFFLINE_FIRST_INSTALL` / `INSTALL_FAILED` / `DISK_FULL` + ลองอีกครั้ง / ดูบันทึก.
+- **S8:** `preview-entry.tsx` (flag + postMessage), atomic `site.json` (tmp+fsync+rename, skip unchanged), HMR debounce 150 ms / max 4 writes/s, writes count as activity.
+- **S9:** GET `/@vite/client` every 10 s while visible, 2 misses = dead; backoff 1/4/15 s × 3; banner ตัวอย่างหยุดทำงาน [เริ่มใหม่]; logs rotate 1 MB × 3, no document bytes.
+- **S10:** live Preview no longer invokes `compile_preview` (Tier 1 `preview_bundle` + last-good payload; command kept for snapshot tests).
+
+### Verify
+- `cargo test --offline sidecar::tests` — 14 pass
+- `bun test src/lib/preview-sidecar.test.ts` — 7 pass
+- `bunx tsc --noEmit`
+
+Not measured in this pass: first `bun install` of the deps cache, live Vite HMR in the WebKitGTK frame, V1/V2 PSS, three-way pixel parity.
+
+## S6 real-app Vite frame (2026-11-08) — unblocked
+
+Release `cargo build --release` was `cfg(dev)` (missing `custom-protocol` feature) so the harness loaded `http://127.0.0.1:1420`. True production uses `tauri://localhost`; an iframe to `http://127.0.0.1:<port>` is mixed content and stays white.
+
+Fix: `wbpreview://` custom protocol reverse-proxies Vite (stop at Content-Length — Vite ignores Connection: close). Prod `viteFrameUrl` is `wbpreview://localhost/…`. `start_vite` stays Starting until `/@vite/client` answers. `Cargo.toml` `default = ["custom-protocol"]`.
+
+Verified on Xvfb :88: รันด้วย Vite paints “S2 blocks”; status ~210 MB; หยุด returns to Tier 1. `bun --bun x vite` still follows the vite.bin shebang onto system node.
+
+### Next
+- Idle 60 s, HMR, crash ×3, S5 contrast, S8 three-way parity, S2 pixel-diff/ready-time.
+- Human D10 ≠ author. Ctrl+F in Code view. Spawn Vite with bun-only (no node shebang).
+
+## PREVIEW-CODE-VIEW S2 — Tier 1 Preview (2026-11-08 Asia/Bangkok) — shipped
+
+User order: S2 → (rest of S3) → S4 … S10.
+
+### What shipped
+- **Template** (`export-templates/vite-react`): `src/lib/site-routes.tsx` (shared route table; in the zip), `App.tsx` / `SitePage.tsx` take the document instead of importing `site.json` twice, `render-node.tsx` emits `data-node-id` only when `globalThis.__WB_PREVIEW__` is set and honours `ctx.assetUrls` (Tauri asset URLs) over `/assets/<file>`. New `src/preview-runtime.tsx` + `preview.html` + `vite.preview.config.ts` (not in the zip).
+- **Runtime build**: `scripts/build-preview-runtime.mjs` → `public/preview-runtime/preview.{html,js}` (one classic IIFE script, CSS inlined; frame CSP meta). Wired into `bun run dev` / `bun run build` (`WB_SKIP_PREVIEW_RUNTIME=1` skips). Initial app JS unchanged at 108.9 kB gz.
+- **Rust**: `preview_bundle` command → `build_preview_bundle` (`site.json` + `site.css` + `kinds.css` bytes = the zip's, plus `assetUrls`); `assets::preview_bundle_parts`.
+- **App**: `lib/preview-runtime.ts` (protocol, `frameMessage` source/origin guard, `nextFillHeight`), `preview/Tier1Frame.tsx` (`sandbox="allow-scripts"`, ready handshake, 3 s timeout → fallback), `DeviceStage` takes `FrameSource` (`srcdoc` | `runtime`), `PreviewStage` defaults to Tier 1 and falls back to `compile_preview` with the banner "กลับไปใช้ตัวอย่างในแอป". Frame→app: height (fill), route (editor follows page links), external link (announced, never navigates), select (S4 hook).
+- **TopBar**: menubar is `shrink-0`; in Preview below 1400 px the crumb/title give way to the device toolbar (they overlapped after DW-M2).
+
+### Verified
+- `cargo test export::tests::` 14 pass (incl. `s2_preview_bundle_matches_export_and_zip_has_no_runtime`, f1 real bun build).
+- `bun test src/lib/s2-tier1.test.ts` 9 pass — **parity in real headless Chromium**: runtime vs built export `<main>` DOM equal after stripping `data-node-id` for `b01-all-kinds` and `f2-responsive`; export has 0 `data-node-id`.
+- Real app (release, Xvfb :88 soft-GL): Tier 1 renders `S2 blocks`, fill grows/scrolls, 3-device multi-view renders three runtime frames, Code mode lists `site-routes.tsx`. PSS in `RAM-BASELINE.md` §S2 (1 frame +25.4 / 3 frames +48.0 vs same project in Design; vs blank P0 +56.5 / +79.1 — PM call on the 1-frame reading).
+
+### Not in S2
+- Pixel-diff parity (≤ 0.1 %) not automated (DOM equality is). Ready-time ≤ 300 ms not instrumented. `compile_preview` retirement is S10. Selection sync is S4 (frame already posts `wb:select`).

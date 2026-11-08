@@ -60,6 +60,7 @@ import {
 import { useEditorStore } from "@/stores/editor-store";
 import { useProjectsStore } from "@/stores/projects-store";
 import { isDocumentEmpty } from "@/components/editor/node-view";
+import { ViteRunButton } from "@/components/editor/preview/ViteRunButton";
 
 const ICONS: Record<DeviceIcon, ComponentType<{ className?: string }>> = {
   fill: Maximize,
@@ -324,8 +325,14 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
                 <DropdownMenuCheckboxItem
                   key={d.id}
                   checked={checked}
-                  disabled={(!checked && multiSet.length >= MULTI_MAX) || (checked && multiSet.length === 1)}
-                  onCheckedChange={() => toggleMultiDevice(d.id)}
+                  disabled={checked && multiSet.length === 1}
+                  onCheckedChange={() => {
+                    if (!checked && multiSet.length >= MULTI_MAX) {
+                      useEditorStore.getState().announce("แสดงได้สูงสุด 3 อุปกรณ์พร้อมกัน");
+                      return;
+                    }
+                    toggleMultiDevice(d.id);
+                  }}
                   onSelect={(e) => e.preventDefault()}
                 >
                   <Icon className="size-4 text-muted-foreground" />
@@ -474,6 +481,7 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
           </IconTip>
         </>
       )}
+      <ViteRunButton />
     </div>
     </>
   );

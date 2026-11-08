@@ -105,6 +105,13 @@ pub struct PageMeta {
     pub lang: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub favicon: Option<AssetRef>,
+    /// S5: `"auto"` adds export dark tokens + a ระบบ/สว่าง/มืด toggle. Absent/`off` = unchanged bytes.
+    #[serde(default, skip_serializing_if = "skip_dark_mode")]
+    pub dark_mode: Option<String>,
+}
+
+fn skip_dark_mode(v: &Option<String>) -> bool {
+    !matches!(v.as_deref(), Some("auto"))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -278,6 +285,66 @@ fn skip_empty_states(v: &Option<NodeStates>) -> bool {
     v.as_ref().map(NodeStates::is_empty).unwrap_or(true)
 }
 
+/// E1: entrance motion on a node (not per-breakpoint).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MotionEntrance {
+    pub preset: String,
+    pub trigger: String,
+    pub duration_ms: u32,
+    pub delay_ms: u32,
+    pub easing: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeMotion {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub entrance: Option<MotionEntrance>,
+}
+
+impl NodeMotion {
+    pub fn is_empty(&self) -> bool {
+        self.entrance.is_none()
+    }
+
+    fn sanitize(&mut self) {
+        let Some(e) = self.entrance.as_mut() else {
+            return;
+        };
+        const PRESETS: &[&str] = &[
+            "fade",
+            "slideUp",
+            "slideDown",
+            "slideLeft",
+            "slideRight",
+            "scaleIn",
+        ];
+        const TRIGGERS: &[&str] = &["load", "view"];
+        const EASINGS: &[&str] = &[
+            "ease",
+            "ease-in",
+            "ease-out",
+            "ease-in-out",
+            "linear",
+            "spring",
+        ];
+        if !PRESETS.contains(&e.preset.as_str()) || !TRIGGERS.contains(&e.trigger.as_str()) {
+            self.entrance = None;
+            return;
+        }
+        if !EASINGS.contains(&e.easing.as_str()) {
+            e.easing = "ease-out".into();
+        }
+        e.duration_ms = e.duration_ms.clamp(100, 2000);
+        e.delay_ms = e.delay_ms.clamp(0, 2000);
+    }
+}
+
+fn skip_empty_motion(v: &Option<NodeMotion>) -> bool {
+    v.as_ref().map(NodeMotion::is_empty).unwrap_or(true)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Node {
@@ -303,6 +370,9 @@ pub struct Node {
     /// B7.1: paint-only interaction states.
     #[serde(default, skip_serializing_if = "skip_empty_states")]
     pub states: Option<NodeStates>,
+    /// E1: entrance motion.
+    #[serde(default, skip_serializing_if = "skip_empty_motion")]
+    pub motion: Option<NodeMotion>,
 }
 
 /// Children only on page / section / container — leaf variants have none.
@@ -498,7 +568,8 @@ pub enum NodeProps {
     Tabs { active: u32, items: Vec<LabelText> },
     InputGroup { prefix: String, placeholder: String, suffix: String },
     InputOtp { length: u32, value: String },
-    Accordion { open: u32, items: Vec<LabelText> },
+    /// `open` is the open item index; `-1` means all collapsed (matches TS).
+    Accordion { open: i32, items: Vec<LabelText> },
     Collapsible { label: String, text: String, open: bool },
     Breadcrumb { items: Vec<LabelHref> },
     Pagination { active: u32, items: Vec<LabelHref> },
@@ -1250,6 +1321,18 @@ fn normalize_page_nodes(nodes: &mut HashMap<NodeId, Node>) -> (bool, bool, bool)
         if clear_states {
             node.states = None;
         } else if node.states.is_some() {
+            any = true;
+        }
+        // E1: sanitize / drop empty motion; presence counts as tier-2.
+        let clear_motion = if let Some(motion) = node.motion.as_mut() {
+            motion.sanitize();
+            motion.is_empty()
+        } else {
+            false
+        };
+        if clear_motion {
+            node.motion = None;
+        } else if node.motion.is_some() {
             any = true;
         }
     }
@@ -2151,6 +2234,7 @@ mod b7_states_tests {
                 style: StyleProps::default(),
                 style_breakpoints: None,
                 states: None,
+                motion: None,
             },
         );
         nodes.insert(
@@ -2177,6 +2261,7 @@ mod b7_states_tests {
                     active: Some(StateStyle::default()),
                     focus_visible: None,
                 }),
+                motion: None,
             },
         );
         let mut doc = PageDocument {
@@ -2186,6 +2271,7 @@ mod b7_states_tests {
                 description: None,
                 lang: None,
                 favicon: None,
+                dark_mode: None,
             },
             root: "page".into(),
             nodes: nodes.clone(),

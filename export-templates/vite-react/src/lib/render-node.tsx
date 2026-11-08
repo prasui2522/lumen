@@ -18,6 +18,8 @@ import { renderCalendarHtml, type CalendarEra, type CalendarWeekStart } from "@/
 type Ctx = {
   nodes: Record<string, SiteNode>;
   assetFiles?: Record<string, string>;
+  /** S2 Tier 1 Preview: id → absolute asset URL (wins over `assetFiles`). */
+  assetUrls?: Record<string, string>;
   /** B0: type defaults from the export (defaults.rs), the ONE base-defaults source. */
   baseDefaults?: Record<string, StyleProps>;
   headingFontSizes?: number[];
@@ -51,8 +53,20 @@ function baseStyle(node: SiteNode, ctx: Ctx): StyleProps | undefined {
 }
 
 function assetSrc(id: string, ctx: Ctx): string {
+  const direct = ctx.assetUrls?.[id];
+  if (direct) return direct;
   const file = ctx.assetFiles?.[id] ?? id;
   return `/assets/${file}`;
+}
+
+/**
+ * S2 (PREVIEW-CODE-VIEW §2.4): `data-node-id` is emitted only when the Tier 1 / Tier 2
+ * Preview entry set this flag. The exported site never sets it, so its markup stays clean.
+ */
+export const PREVIEW_FLAG = "__WB_PREVIEW__";
+export const NODE_ID_ATTR = "data-node-id";
+function inPreview(): boolean {
+  return (globalThis as Record<string, unknown>)[PREVIEW_FLAG] === true;
 }
 
 function kids(node: SiteNode, ctx: Ctx): ReactNode {
@@ -122,6 +136,7 @@ export function RenderNode({ id, ctx }: { id: string; ctx: Ctx }) {
   const tcls = `t-${node.props.type}`;
   const cls = (props.className ?? "").split(/\s+/).includes(tcls) ? props.className : [tcls, props.className].filter(Boolean).join(" ");
   const extra: Record<string, unknown> = { className: cls };
+  if (inPreview()) extra[NODE_ID_ATTR] = id;
   if (id === ctx.pageRoot) extra[PAGE_ATTR] = ctx.pageId ?? id;
   const fams = overriddenFamilies(node.styleBreakpoints);
   if (fams.size > 0) {

@@ -12,17 +12,61 @@ mod export;
 mod icon_paths;
 mod chart_render;
 mod calendar_render;
+mod sidecar;
 
 use db::{databases_dir, db_path, open_db, DbState};
 use assets::assets_dir;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::Manager;
+
+fn respond_vite_bridge(
+    port: Option<u16>,
+    uri: String,
+    responder: tauri::UriSchemeResponder,
+    log_dir: Option<std::path::PathBuf>,
+) {
+    std::thread::spawn(move || {
+        let path = sidecar::vite_bridge_path(&uri);
+        let resp = match port {
+            Some(p) => sidecar::proxy_vite(p, &path),
+            None => Err("stopped".into()),
+        };
+        if let (Some(dir), Err(e)) = (&log_dir, &resp) {
+            sidecar::log_event(dir, &format!("bridge-fail {path} {e}"));
+        }
+        let http_resp = match resp {
+            Ok((status, ctype, body)) => tauri::http::Response::builder()
+                .status(status)
+                .header("content-type", ctype)
+                .header("cache-control", "no-store")
+                .header("access-control-allow-origin", "*")
+                .body(body)
+                .unwrap_or_else(|_| tauri::http::Response::new(Vec::new())),
+            Err(_) => tauri::http::Response::builder()
+                .status(502)
+                .header("content-type", "text/plain; charset=utf-8")
+                .body(b"preview unavailable".to_vec())
+                .unwrap_or_else(|_| tauri::http::Response::new(Vec::new())),
+        };
+        responder.respond(http_resp);
+    });
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .register_asynchronous_uri_scheme_protocol("wbpreview", |ctx, request, responder| {
+            let handle = ctx.app_handle();
+            let port = handle
+                .try_state::<Arc<sidecar::Sidecar>>()
+                .and_then(|s| s.status().port);
+            let log_dir = handle
+                .try_state::<Arc<sidecar::Sidecar>>()
+                .map(|s| s.log_dir.clone());
+            respond_vite_bridge(port, request.uri().to_string(), responder, log_dir);
+        })
         .setup(|app| {
             let app_data = app
                 .path()
@@ -37,6 +81,12 @@ pub fn run() {
             });
             // Phase 10 step 6: empty slot only; no test file is touched here.
             app.manage(testdb::TestDbState::default());
+            let cache = app.path().app_cache_dir().unwrap_or_else(|_| app_data.clone());
+            let logs = app.path().app_log_dir().unwrap_or_else(|_| app_data.join("logs"));
+            let resource = app.path().resource_dir().ok();
+            let bun = sidecar::resolve_bun(resource.as_deref());
+            let _ = sidecar::sweep_orphans(&cache);
+            app.manage(sidecar::Sidecar::new(cache, logs, bun));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -58,12 +108,24 @@ pub fn run() {
             commands::db_test_apply,
             commands::db_test_discard,
             commands::compile_preview,
+            commands::preview_bundle,
             commands::export_project,
+            commands::list_export_files,
+            commands::parse_site_json,
+            commands::open_export_folder,
             commands::import_image,
             commands::asset_file_path,
             commands::library_list,
             commands::library_put,
             commands::library_delete,
+            commands::preview_sidecar_sweep,
+            commands::preview_sidecar_status,
+            commands::preview_sidecar_stop,
+            commands::preview_sidecar_start,
+            commands::preview_sidecar_note_activity,
+            commands::preview_sidecar_set_visible,
+            commands::preview_sidecar_write_site,
+            commands::preview_sidecar_open_log,
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
@@ -74,6 +136,9 @@ pub fn run() {
                     if let Ok(mut g) = s.inner.lock() {
                         *g = None;
                     }
+                }
+                if let Some(sc) = app.try_state::<std::sync::Arc<sidecar::Sidecar>>() {
+                    sc.stop();
                 }
             }
         });

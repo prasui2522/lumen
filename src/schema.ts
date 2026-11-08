@@ -42,6 +42,8 @@ export type PageMeta = {
   /** Default: "th" */
   lang?: string;
   favicon?: AssetRef;
+  /** S5: export dark mode. Absent or `"off"` leaves zip bytes unchanged. */
+  darkMode?: "off" | "auto";
 };
 
 export type AssetRef = {
@@ -141,6 +143,11 @@ export type Node = {
    * Empty object omitted on save. Shape: see `NodeStates` after StyleProps.
    */
   states?: NodeStates;
+  /**
+   * E1: entrance motion (not per-breakpoint). Empty / invalid dropped on save.
+   * Shape: see `NodeMotion` after StyleProps.
+   */
+  motion?: NodeMotion;
 };
 
 export type NodeProps =
@@ -774,6 +781,39 @@ export const NODE_STATE_NAMES = [
   "active",
   "focusVisible",
 ] as const satisfies readonly NodeStateName[];
+
+/** E1: entrance presets (transform/opacity only). */
+export type MotionEntrancePreset =
+  | "fade"
+  | "slideUp"
+  | "slideDown"
+  | "slideLeft"
+  | "slideRight"
+  | "scaleIn";
+export const MOTION_ENTRANCE_PRESETS = [
+  "fade",
+  "slideUp",
+  "slideDown",
+  "slideLeft",
+  "slideRight",
+  "scaleIn",
+] as const satisfies readonly MotionEntrancePreset[];
+export type MotionTrigger = "load" | "view";
+export const MOTION_TRIGGERS = ["load", "view"] as const satisfies readonly MotionTrigger[];
+export const MOTION_DURATION_MIN = 100;
+export const MOTION_DURATION_MAX = 2000;
+export const MOTION_DELAY_MIN = 0;
+export const MOTION_DELAY_MAX = 2000;
+export type MotionEntrance = {
+  preset: MotionEntrancePreset;
+  trigger: MotionTrigger;
+  durationMs: number;
+  delayMs: number;
+  easing: TransitionEasing;
+};
+export type NodeMotion = {
+  entrance?: MotionEntrance;
+};
 
 export type BoxSpacing =
   | number

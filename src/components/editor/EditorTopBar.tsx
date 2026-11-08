@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { EditorMenubar } from "@/components/editor/EditorMenubar";
 import { ModeSwitch } from "@/components/editor/ModeSwitch";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { lazyNamed } from "@/lib/lazy";
@@ -42,7 +43,8 @@ type Props = {
 };
 
 /** DEVICE-PREVIEW-SPEC §5: below ~1200 px move secondary preview controls into a menu. */
-const COMPACT_BELOW_PX = 1200;
+// DW-M2 added the ไฟล์/แก้ไข/มุมมอง menubar (~160 px) to the left cluster.
+const COMPACT_BELOW_PX = 1400;
 
 function VSep() {
   return (
@@ -127,18 +129,34 @@ export function EditorTopBar({
           <TooltipContent>แสดง/ซ่อนแผงเลเยอร์</TooltipContent>
         </Tooltip>
         <VSep />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onBack}
-          aria-label="กลับไปรายการโปรเจกต์"
-          className="text-muted-foreground hover:text-foreground"
-        >
-          โปรเจกต์
-        </Button>
-        <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-        {mode === "design" ? (
+        <div className="shrink-0">
+          <EditorMenubar
+            onSave={onSave}
+            onExport={onExport}
+            onBack={onBack}
+            saveDisabled={!dirty || !!saving}
+            exportDisabled={exporting || exportDisabled}
+            modeDisabled={modeDisabled}
+          />
+        </div>
+        {/* Preview's device toolbar needs the room: the crumb + title give way (ไฟล์ › กลับไปรายการโปรเจกต์ stays). */}
+        {previewTools && compact ? null : (
+          <>
+            <VSep />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              aria-label="กลับไปรายการโปรเจกต์"
+              className="shrink-0 text-muted-foreground hover:text-foreground"
+            >
+              โปรเจกต์
+            </Button>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          </>
+        )}
+        {previewTools && compact ? null : mode === "design" ? (
           <Input
             value={draft}
             onChange={(e) => {

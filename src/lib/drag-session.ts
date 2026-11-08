@@ -6,7 +6,9 @@ import type { PaletteType } from "@/lib/document-ops";
  */
 export type DragPayload =
   | { kind: "move"; nodeId: string }
-  | { kind: "new"; nodeType: PaletteType };
+  | { kind: "new"; nodeType: PaletteType }
+  /** Phase 11 D5 — block card → canvas. */
+  | { kind: "block"; blockId: string; scope: "page" | "inline" };
 
 let current: DragPayload | null = null;
 
@@ -19,3 +21,5 @@ export function getDragPayload(): DragPayload | null {
 }
 
 export const PALETTE_DRAG_MIME = "application/x-webapp-new-node";
+/** Distinct MIME so legacy drop handlers ignore block drags until wired. */
+export const BLOCK_DRAG_MIME = "application/x-webapp-block";

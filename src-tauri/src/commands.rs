@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use crate::testdb::{self, OpenResult, Rows, TestDbState};
 use crate::testmigrate::{self, PlanResult};
 use tauri::State;
+use tauri_plugin_opener::OpenerExt;
 
 #[tauri::command]
 pub fn list_projects(state: State<'_, DbState>) -> Result<Vec<ProjectSummary>, String> {
@@ -54,9 +55,8 @@ pub fn save_project(
     Ok(())
 }
 
-/// Compile the in-memory document (unsaved edits included) to static HTML for
-/// the sandboxed Preview iframe. `project_id` selects asset rows so an image
-/// `src` is a Tauri asset URL. Device framing does not call this again.
+/// Static HTML snapshot of a document (S10: snapshot tests / goldens only).
+/// Live Preview uses `preview_bundle` (Tier 1) or the Vite sidecar (Tier 2).
 #[tauri::command]
 pub async fn compile_preview(
     state: State<'_, DbState>,
@@ -125,6 +125,60 @@ pub async fn export_project(
     };
     let written = write_zip(&PathBuf::from(dest), &doc, &opts, &files)?;
     Ok(written.to_string_lossy().into_owned())
+}
+
+/// S2 Tier 1 Preview: `site.json` + generated CSS (export bytes) + asset URLs for the
+/// prebuilt runtime frame. Takes the in-memory document (unsaved edits included).
+#[tauri::command]
+pub async fn preview_bundle(
+    state: State<'_, DbState>,
+    project_id: String,
+    document: Value,
+) -> Result<crate::export::PreviewBundle, String> {
+    let doc = parse_document(&document)?;
+    let (opts, urls) = {
+        let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
+        crate::assets::preview_bundle_parts(&conn, &state.assets_dir, &project_id, &doc)?
+    };
+    crate::export::build_preview_bundle(&doc, &opts, urls)
+}
+
+/// R1: validate Code-view `site.json` after stripping renderer-only keys.
+#[tauri::command]
+pub fn parse_site_json(text: String) -> Result<Value, String> {
+    let doc = crate::export::document_from_site_json(&text)?;
+    Ok(crate::export::document_to_editor_json(&doc))
+}
+
+/// DW-M3: zip file list + text bodies for the read-only Code view (no disk write).
+#[tauri::command]
+pub async fn list_export_files(
+    state: State<'_, DbState>,
+    project_id: String,
+    document: Option<Value>,
+) -> Result<Vec<crate::export::ExportListEntry>, String> {
+    let doc = match document {
+        Some(v) => parse_document(&v)?,
+        None => {
+            let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
+            db_open(&conn, &project_id)?.document
+        }
+    };
+    let (opts, files) = {
+        let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
+        crate::assets::export_parts(&conn, &state.assets_dir, &project_id, &doc)?
+    };
+    crate::export::build_export_listing(&doc, &opts, &files)
+}
+
+/// S3 A5: open the folder that contains the last exported zip, after validating
+/// it is still the chosen destination (no `..`, no symlink escape).
+#[tauri::command]
+pub fn open_export_folder(app: tauri::AppHandle, dest_path: String) -> Result<(), String> {
+    let folder = crate::export::export_folder_for(Path::new(&dest_path))?;
+    app.opener()
+        .open_path(folder.to_string_lossy().as_ref(), None::<&str>)
+        .map_err(|e| format!("เปิดโฟลเดอร์ไม่สำเร็จ: {e}"))
 }
 
 /// Copy a picked image into app-data assets and return its id. Does not
@@ -354,4 +408,119 @@ pub fn library_put(
 pub fn library_delete(state: State<'_, DbState>, id: String) -> Result<bool, String> {
     let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
     crate::library::library_delete(&conn, &id)
+}
+
+#[tauri::command]
+pub fn preview_sidecar_sweep(
+    sc: State<'_, std::sync::Arc<crate::sidecar::Sidecar>>,
+) -> Result<u32, String> {
+    crate::sidecar::sweep_orphans(&sc.cache_dir)
+}
+
+#[tauri::command]
+pub fn preview_sidecar_status(
+    sc: State<'_, std::sync::Arc<crate::sidecar::Sidecar>>,
+) -> Result<crate::sidecar::SidecarStatus, String> {
+    crate::sidecar::reap_if_dead(&sc);
+    Ok(sc.status())
+}
+
+#[tauri::command]
+pub fn preview_sidecar_stop(sc: State<'_, std::sync::Arc<crate::sidecar::Sidecar>>) -> Result<(), String> {
+    sc.stop();
+    Ok(())
+}
+
+#[tauri::command]
+pub fn preview_sidecar_note_activity(
+    sc: State<'_, std::sync::Arc<crate::sidecar::Sidecar>>,
+) -> Result<(), String> {
+    sc.note_activity();
+    Ok(())
+}
+
+#[tauri::command]
+pub fn preview_sidecar_set_visible(
+    sc: State<'_, std::sync::Arc<crate::sidecar::Sidecar>>,
+    visible: bool,
+) -> Result<(), String> {
+    sc.set_visible(visible);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn preview_sidecar_start(
+    state: State<'_, DbState>,
+    sc: State<'_, std::sync::Arc<crate::sidecar::Sidecar>>,
+    project_id: String,
+    document: Value,
+) -> Result<crate::sidecar::SidecarStatus, String> {
+    let st = sc.status();
+    if st.state == crate::sidecar::SidecarPhase::Running || st.state == crate::sidecar::SidecarPhase::Starting {
+        return Ok(st);
+    }
+    sc.reset_restarts();
+    let doc = parse_document(&document)?;
+    let (opts, files) = {
+        let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
+        crate::assets::export_parts(&conn, &state.assets_dir, &project_id, &doc)?
+    };
+    let ws = sc.cache_dir.join("preview").join("ws").join(&project_id);
+    crate::export::write_export_tree(&ws, &doc, &opts, &files)?;
+    let bun_ver = if sc.bun.is_file() {
+        std::process::Command::new(&sc.bun)
+            .arg("--version")
+            .output()
+            .ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .unwrap_or_default()
+    } else {
+        String::new()
+    };
+    let deps = sc.cache_dir.join("preview").join("deps");
+    match crate::sidecar::start_vite(&sc, &ws, &deps, bun_ver.trim()) {
+        Ok(_) => Ok(sc.status()),
+        Err(code) => {
+            sc.set_error(&code);
+            let thai = crate::sidecar::error_thai(&code);
+            Err(if thai == code { code } else { format!("{code}:{thai}") })
+        }
+    }
+}
+
+#[tauri::command]
+pub fn preview_sidecar_open_log(
+    app: tauri::AppHandle,
+    sc: State<'_, std::sync::Arc<crate::sidecar::Sidecar>>,
+) -> Result<(), String> {
+    let path = sc.log_dir.join("preview-sidecar.log");
+    if !path.is_file() {
+        return Err("ยังไม่มีบันทึกเครื่องมือแสดงตัวอย่าง".into());
+    }
+    app.opener()
+        .open_path(path.to_string_lossy().as_ref(), None::<&str>)
+        .map_err(|e| format!("เปิดบันทึกไม่สำเร็จ: {e}"))
+}
+
+/// S8: rewrite workspace site.json (atomic) while the sidecar is running.
+#[tauri::command]
+pub async fn preview_sidecar_write_site(
+    state: State<'_, DbState>,
+    sc: State<'_, std::sync::Arc<crate::sidecar::Sidecar>>,
+    project_id: String,
+    document: Value,
+) -> Result<bool, String> {
+    crate::sidecar::hmr_mark(&sc);
+    let st = sc.status();
+    if st.state != crate::sidecar::SidecarPhase::Running {
+        return Ok(false);
+    }
+    let doc = parse_document(&document)?;
+    let (opts, _) = {
+        let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
+        crate::assets::export_parts(&conn, &state.assets_dir, &project_id, &doc)?
+    };
+    let ws = sc.cache_dir.join("preview").join("ws").join(&project_id);
+    let json = crate::export::build_site_json(&doc, &opts.asset_exts)?;
+    crate::export::write_site_json_atomic(&ws, &json)
 }

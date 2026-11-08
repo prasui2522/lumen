@@ -30,6 +30,7 @@ fn empty_page_document(title: &str) -> PageDocument {
             style: StyleProps::default(),
             style_breakpoints: None,
             states: None,
+            motion: None,
         },
     );
     PageDocument {
@@ -39,6 +40,7 @@ fn empty_page_document(title: &str) -> PageDocument {
             description: None,
             lang: Some("th".into()),
             favicon: None,
+            dark_mode: None,
         },
         root: root_id,
         nodes,
@@ -687,6 +689,7 @@ mod tests {
                 style: StyleProps::default(),
                 style_breakpoints: None,
                 states: None,
+                motion: None,
             },
         );
         doc.pages = vec![

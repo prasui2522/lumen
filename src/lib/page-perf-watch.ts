@@ -2,7 +2,8 @@
  * B6.2: evaluate page perf once after a heavy write or page open.
  * Announces each warning kind at most once while it stays over threshold.
  */
-import type { PageDocument, StyleKey } from "@/schema";
+import type { PageDocument } from "@/schema";
+import type { StyleKey } from "@/lib/document-ops";
 import {
   HEAVY_STYLE_KEYS,
   countPagePerfFromDoc,

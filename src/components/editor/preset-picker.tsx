@@ -1,62 +1,41 @@
 /**
- * Phase 11 C3/C7: lazy `preset-picker` chunk — Style panel พรีเซ็ต popover + save/delete.
- * Chunk name must stay `preset-picker` (PHASE-11-SPEC §5.1 / §9.C).
+ * Phase 11 C3: lazy `preset-picker` chunk — Style panel พรีเซ็ต popover.
+ * Chunk name must stay `preset-picker` (PHASE-11-SPEC §5.1 / §9.C). Save/delete live in
+ * `preset-library-dialogs` so this chunk stays ≤ 3 kB gz.
  */
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { Suspense, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import type { Node } from "@/schema";
 import {
   loadBuiltInPresets,
   presetsForType,
   type StylePreset,
 } from "@/lib/presets-registry";
-import { capturePresetFromNode } from "@/lib/preset-capture";
-import {
-  libraryDelete,
-  libraryList,
-  libraryPut,
-  presetsFromLibraryItems,
-} from "@/lib/library-api";
+import { libraryList, presetsFromLibraryItems } from "@/lib/library-api";
 import { writeApplyPreset } from "@/components/editor/style/write";
 import { useEditorStore } from "@/stores/editor-store";
 import { cn } from "@/lib/utils";
-import { toast } from "@/lib/toast";
+import { lazyNamed } from "@/lib/lazy";
+
+const PresetSaveDialog = lazyNamed(() =>
+  import("@/components/editor/preset-library-dialogs").then((m) => m.PresetSaveDialog),
+);
+const PresetDeleteDialog = lazyNamed(() =>
+  import("@/components/editor/preset-library-dialogs").then((m) => m.PresetDeleteDialog),
+);
 
 /** T120 */
 export const PRESET_BUTTON_LABEL = "พรีเซ็ต";
 /** T121 */
 export const PRESET_APPLIED_MSG = (name: string) => `ใช้พรีเซ็ต ${name} แล้ว`;
-/** T122 */
+/** T122 — re-export label for the save trigger (dialog chunk owns the dialog). */
 export const PRESET_SAVE_LABEL = "บันทึกเป็นพรีเซ็ต";
-/** T123 */
-export const PRESET_NAME_LABEL = "ชื่อพรีเซ็ต";
-/** T124 */
-export const PRESET_SAVED_MSG = "บันทึกพรีเซ็ตแล้ว";
-/** T125 */
-export const PRESET_DELETE_CONFIRM = (name: string) => `ลบพรีเซ็ต ${name}?`;
 /** T126 */
 export const PRESET_MINE = "พรีเซ็ตของฉัน";
 /** T127 */
 export const PRESET_SEARCH_LABEL = "ค้นหาพรีเซ็ต";
-/** T134 */
-export const PRESET_DELETED_MSG = "ลบพรีเซ็ตแล้ว";
 /** T135 */
 export const PRESET_EMPTY = "ไม่พบพรีเซ็ต";
 /** T136 */
@@ -72,23 +51,22 @@ function PresetThumb({ preset }: { preset: StylePreset }) {
   const s = preset.style;
   const bg =
     preset.id === "card-glass"
-      ? "linear-gradient(135deg, #94a3b8 0%, #e2e8f0 100%)"
+      ? "linear-gradient(135deg,#94a3b8,#e2e8f0)"
       : s.backgroundGradient
-        ? "linear-gradient(135deg, #0369a1 0%, #4338ca 100%)"
+        ? "linear-gradient(135deg,#0369a1,#4338ca)"
         : s.backgroundColor === "transparent"
           ? "transparent"
           : (s.backgroundColor ?? "#e2e8f0");
-  const border = s.borderColor
-    ? `${s.borderWidth ?? 1}px solid ${s.borderColor}`
-    : "1px solid #e2e8f0";
   return (
     <span
       aria-hidden
       className="block h-8 w-full rounded-md"
       style={{
         background: bg,
-        border,
-        borderRadius: s.borderRadius !== undefined ? s.borderRadius : 6,
+        border: s.borderColor
+          ? `${s.borderWidth ?? 1}px solid ${s.borderColor}`
+          : "1px solid #e2e8f0",
+        borderRadius: s.borderRadius ?? 6,
         boxShadow:
           preset.id === "outline-glow"
             ? "0 0 0 2px #0ea5e933"
@@ -107,19 +85,15 @@ export function PresetPicker({ node, locked }: PresetPickerProps) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const [saveOpen, setSaveOpen] = useState(false);
-  const [saveName, setSaveName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<StylePreset | null>(null);
   const announce = useEditorStore((s) => s.announce);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const saveInputRef = useRef<HTMLInputElement>(null);
-  const deleteCancelRef = useRef<HTMLButtonElement>(null);
   const listId = useId();
   const searchId = useId();
 
   const reloadMine = async () => {
     try {
-      const items = await libraryList();
-      setMine(presetsFromLibraryItems(items));
+      setMine(presetsFromLibraryItems(await libraryList()));
     } catch {
       setMine([]);
     }
@@ -137,31 +111,22 @@ export function PresetPicker({ node, locked }: PresetPickerProps) {
     };
   }, [open, node.type]);
 
+  const match = (p: StylePreset, q: string) =>
+    !q ||
+    p.name.toLowerCase().includes(q) ||
+    p.nameEn.toLowerCase().includes(q) ||
+    p.id.includes(q);
+
   const builtFiltered = useMemo(() => {
-    const list = builtIns ?? [];
     const q = query.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.nameEn.toLowerCase().includes(q) ||
-        p.id.includes(q),
-    );
+    return (builtIns ?? []).filter((p) => match(p, q));
   }, [builtIns, query]);
 
   const mineFiltered = useMemo(() => {
-    const list = presetsForType(mine, node.type);
     const q = query.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.nameEn.toLowerCase().includes(q) ||
-        p.id.includes(q),
-    );
+    return presetsForType(mine, node.type).filter((p) => match(p, q));
   }, [mine, node.type, query]);
 
-  /** Flat list for keyboard roving (built-ins then mine), capped at 12 thumbs. */
   const flat = useMemo(() => {
     const rows: { preset: StylePreset; mine: boolean }[] = [
       ...builtFiltered.map((p) => ({ preset: p, mine: false })),
@@ -176,8 +141,7 @@ export function PresetPicker({ node, locked }: PresetPickerProps) {
 
   const apply = (preset: StylePreset) => {
     if (locked) return;
-    const ok = writeApplyPreset(node.id, preset);
-    if (!ok) {
+    if (!writeApplyPreset(node.id, preset)) {
       announce(PRESET_REFUSED);
       return;
     }
@@ -198,35 +162,6 @@ export function PresetPicker({ node, locked }: PresetPickerProps) {
       e.preventDefault();
       const row = flat[active];
       if (row) apply(row.preset);
-    }
-  };
-
-  const commitSave = async () => {
-    const preset = capturePresetFromNode(node, saveName);
-    if (!preset) {
-      toast.error("ไม่มีสไตล์ที่จะบันทึก");
-      return;
-    }
-    try {
-      await libraryPut(preset.id, preset.name, JSON.stringify(preset));
-      announce(PRESET_SAVED_MSG);
-      setSaveOpen(false);
-      setSaveName("");
-      await reloadMine();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const commitDelete = async () => {
-    if (!deleteTarget) return;
-    try {
-      await libraryDelete(deleteTarget.id);
-      announce(PRESET_DELETED_MSG);
-      setDeleteTarget(null);
-      await reloadMine();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -363,88 +298,31 @@ export function PresetPicker({ node, locked }: PresetPickerProps) {
           size="xs"
           className="h-7 px-1.5 text-[11px]"
           disabled={locked}
-          onClick={() => {
-            setSaveName("");
-            setSaveOpen(true);
-          }}
+          onClick={() => setSaveOpen(true)}
         >
           {PRESET_SAVE_LABEL}
         </Button>
       </div>
 
-      <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
-        <DialogContent
-          className="sm:max-w-sm"
-          onOpenAutoFocus={(e) => {
-            e.preventDefault();
-            saveInputRef.current?.focus();
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>{PRESET_SAVE_LABEL}</DialogTitle>
-          </DialogHeader>
-          <label className="text-xs text-muted-foreground" htmlFor="preset-save-name">
-            {PRESET_NAME_LABEL}
-          </label>
-          <Input
-            ref={saveInputRef}
-            id="preset-save-name"
-            value={saveName}
-            onChange={(e) => setSaveName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                void commitSave();
-              }
-            }}
-            className="h-8"
-          />
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setSaveOpen(false)}>
-              ยกเลิก
-            </Button>
-            <Button type="button" onClick={() => void commitSave()} disabled={!saveName.trim()}>
-              บันทึก
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog
-        open={deleteTarget !== null}
-        onOpenChange={(o) => {
-          if (!o) setDeleteTarget(null);
-        }}
-      >
-        <AlertDialogContent
-          onOpenAutoFocus={(e) => {
-            e.preventDefault();
-            deleteCancelRef.current?.focus();
-          }}
-        >
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {deleteTarget ? PRESET_DELETE_CONFIRM(deleteTarget.name) : ""}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              การลบเอาพรีเซ็ตออกจากเครื่องนี้เท่านั้น องค์ประกอบที่ใช้ไปแล้วไม่เปลี่ยน
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              type="button"
-              ref={deleteCancelRef}
-              variant="outline"
-              onClick={() => setDeleteTarget(null)}
-            >
-              ยกเลิก
-            </Button>
-            <Button type="button" variant="destructive" onClick={() => void commitDelete()}>
-              ลบ
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Suspense fallback={null}>
+        {(saveOpen || deleteTarget) && (
+          <>
+            <PresetSaveDialog
+              open={saveOpen}
+              onOpenChange={setSaveOpen}
+              node={node}
+              onSaved={() => void reloadMine()}
+            />
+            <PresetDeleteDialog
+              target={deleteTarget}
+              onOpenChange={(v) => {
+                if (!v) setDeleteTarget(null);
+              }}
+              onDeleted={() => void reloadMine()}
+            />
+          </>
+        )}
+      </Suspense>
     </>
   );
 }

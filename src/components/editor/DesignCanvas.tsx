@@ -34,11 +34,18 @@ import { canEditText, deleteNodeAction } from "@/lib/node-actions";
 import { toast } from "@/lib/toast";
 import { isEditableInOverlay, isOverlayOpen, nativeUndoAllowed } from "@/lib/modal";
 import {
+  BLOCK_DRAG_MIME,
   PALETTE_DRAG_MIME,
   getDragPayload,
   setDragPayload,
   type DragPayload,
 } from "@/lib/drag-session";
+import {
+  findRegistryBlock,
+  getCachedBlocksRegistry,
+} from "@/lib/blocks-registry";
+import { insertBlock } from "@/lib/block-insert";
+import { playEntranceReplay, prefersReducedMotion } from "@/lib/motion";
 import { getChildren, isContainerType, type PageDocument } from "@/schema";
 import { useEditorStore } from "@/stores/editor-store";
 import { useProjectsStore } from "@/stores/projects-store";
@@ -117,10 +124,43 @@ function isNativeTextTarget(el: Element | null): boolean {
 function readPayload(e: DragEvent): DragPayload | null {
   const p = getDragPayload();
   if (p) return p;
+  const blockId = e.dataTransfer.getData(BLOCK_DRAG_MIME);
+  if (blockId) {
+    const block = findRegistryBlock(getCachedBlocksRegistry() ?? [], blockId);
+    if (block) return { kind: "block", blockId, scope: block.scope };
+  }
   const t = e.dataTransfer.getData(PALETTE_DRAG_MIME);
   if (t && isPaletteType(t)) return { kind: "new", nodeType: t };
   const id = getDraggedNodeId(e);
   return id ? { kind: "move", nodeId: id } : null;
+}
+
+/** Page-scope blocks snap to the nearest top-level child slot by pointer Y. */
+function resolvePageBlockDrop(
+  doc: PageDocument,
+  clientY: number,
+  canvasEl: HTMLElement | null,
+): ParentRef | null {
+  const page = doc.nodes[doc.root];
+  if (!page || page.props.type !== "page") return null;
+  const kids = getChildren(page);
+  let index = kids.length;
+  for (let i = 0; i < kids.length; i++) {
+    const childEl =
+      (canvasEl?.querySelector(
+        `:scope > [data-node-id="${doc.root}"] > [data-node-id="${kids[i]}"]`,
+      ) as HTMLElement | null) ??
+      (canvasEl?.querySelector(
+        `[data-node-id="${kids[i]}"]`,
+      ) as HTMLElement | null);
+    if (!childEl) continue;
+    const rect = childEl.getBoundingClientRect();
+    if (clientY < rect.top + rect.height / 2) {
+      index = i;
+      break;
+    }
+  }
+  return { parentId: doc.root, index };
 }
 
 function isValidSlot(
@@ -128,9 +168,14 @@ function isValidSlot(
   payload: DragPayload,
   slot: ParentRef,
 ): boolean {
-  return payload.kind === "move"
-    ? canDropNode(doc, payload.nodeId, slot.parentId, slot.index)
-    : canInsertInto(doc, slot.parentId, slot.index);
+  if (payload.kind === "move") {
+    return canDropNode(doc, payload.nodeId, slot.parentId, slot.index);
+  }
+  if (payload.kind === "block") {
+    if (payload.scope === "page") return slot.parentId === doc.root;
+    return canInsertInto(doc, slot.parentId, slot.index);
+  }
+  return canInsertInto(doc, slot.parentId, slot.index);
 }
 
 /**
@@ -174,7 +219,10 @@ export function DesignCanvas() {
       const doc = useProjectsStore.getState().openDocument;
       const payload = getDragPayload();
       if (!doc || !payload) return;
-      const slot = resolveDrop(doc, nodeId, e.clientY, el);
+      const slot =
+        payload.kind === "block" && payload.scope === "page"
+          ? resolvePageBlockDrop(doc, e.clientY, canvasRef.current)
+          : resolveDrop(doc, nodeId, e.clientY, el);
       if (slot && isValidSlot(doc, payload, slot)) {
         e.dataTransfer.dropEffect = payload.kind === "move" ? "move" : "copy";
         setIndicator(slot);
@@ -193,7 +241,10 @@ export function DesignCanvas() {
       setIndicator(null);
       setDragPayload(null);
       if (!doc || !payload) return;
-      const slot = resolveDrop(doc, nodeId, e.clientY, el);
+      const slot =
+        payload.kind === "block" && payload.scope === "page"
+          ? resolvePageBlockDrop(doc, e.clientY, canvasRef.current)
+          : resolveDrop(doc, nodeId, e.clientY, el);
       if (!slot || !isValidSlot(doc, payload, slot)) return;
 
       if (payload.kind === "move") {
@@ -206,6 +257,29 @@ export function DesignCanvas() {
         if (!next) return;
         updateOpenDocument(next);
         setSelectedNodeId(payload.nodeId);
+      } else if (payload.kind === "block") {
+        const block = findRegistryBlock(
+          getCachedBlocksRegistry() ?? [],
+          payload.blockId,
+        );
+        if (!block) return;
+        const position =
+          payload.scope === "page"
+            ? ({ kind: "page", index: slot.index } as const)
+            : ({
+                kind: "inline",
+                parentId: slot.parentId,
+                index: slot.index,
+              } as const);
+        const result = insertBlock(doc, null, block, position);
+        if (!result) {
+          useEditorStore.getState().announce("หน้าถูกล็อก จึงแทรกไม่ได้");
+          return;
+        }
+        updateOpenDocument(result.doc, { historyKey: `block:${block.id}` });
+        setSelectedNodeId(result.rootId);
+        useEditorStore.getState().setFocusLayerId(result.rootId);
+        useEditorStore.getState().announce(`แทรกบล็อก ${block.name} แล้ว`);
       } else {
         const node = createNode(payload.nodeType);
         const next = insertNode(doc, node, slot.parentId, slot.index);
@@ -230,6 +304,32 @@ export function DesignCanvas() {
       window.removeEventListener("drop", clear);
     };
   }, [setIndicator]);
+
+  // E5: play entrance on the selected canvas node (transient inline animation).
+  const motionReplay = useEditorStore((s) => s.motionReplay);
+  useEffect(() => {
+    if (!motionReplay) return;
+    const doc = useProjectsStore.getState().openDocument;
+    const entrance = doc?.nodes[motionReplay.nodeId]?.motion?.entrance;
+    if (!entrance || prefersReducedMotion()) {
+      useEditorStore.getState().clearMotionReplay();
+      return;
+    }
+    const el = canvasRef.current?.querySelector(
+      `[data-node-id="${motionReplay.nodeId}"]`,
+    ) as HTMLElement | null;
+    if (!el) {
+      useEditorStore.getState().clearMotionReplay();
+      return;
+    }
+    let cancelled = false;
+    void playEntranceReplay(el, entrance).then(() => {
+      if (!cancelled) useEditorStore.getState().clearMotionReplay();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [motionReplay]);
 
   // Undo / redo (Design only). Works from palette/Style buttons etc., but not
   // inside native text fields or the inline editor (browser text undo).

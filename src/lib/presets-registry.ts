@@ -161,17 +161,19 @@ export function validatePreset(raw: unknown): {
       }
     }
   }
-  if (
-    !isPlainObject(raw.source) ||
-    (raw.source.kind !== "original" && raw.source.kind !== "user")
-  ) {
+  const sourceObj = isPlainObject(raw.source) ? raw.source : null;
+  const sourceKind =
+    sourceObj && (sourceObj.kind === "original" || sourceObj.kind === "user")
+      ? (sourceObj.kind as "original" | "user")
+      : null;
+  if (!sourceKind) {
     errors.push({ path: "source", message: 'must be {kind:"original"|"user"}' });
   }
 
   const style = validateStyleKeys(raw.style, "style", STYLE_KEY_SET, errors) ?? {};
   const states = validateStates(raw.states, "states", errors);
 
-  if (errors.length) return { errors };
+  if (errors.length || !sourceKind) return { errors };
 
   const preset: StylePreset = {
     formatVersion: 1,
@@ -181,7 +183,7 @@ export function validatePreset(raw: unknown): {
     category: raw.category as PresetCategory,
     appliesTo: raw.appliesTo as NodeType[],
     style,
-    source: { kind: raw.source.kind as "original" | "user" },
+    source: { kind: sourceKind },
   };
   if (states) preset.states = states;
   if (typeof raw.note === "string" && raw.note.trim()) preset.note = raw.note.trim();

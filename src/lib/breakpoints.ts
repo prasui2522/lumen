@@ -1,6 +1,8 @@
 import type {
+  MotionEntrance,
   Node,
   NodeId,
+  NodeMotion,
   NodeStates,
   PageDocument,
   ProjectPage,
@@ -9,8 +11,20 @@ import type {
   StyleBreakpoint,
   StyleBreakpoints,
   StyleProps,
+  TransitionEasing,
 } from "@/schema";
-import { isVersion4Kind, NODE_STATE_NAMES, STATE_PAINT_KEYS } from "@/schema";
+import {
+  isVersion4Kind,
+  MOTION_DELAY_MAX,
+  MOTION_DELAY_MIN,
+  MOTION_DURATION_MAX,
+  MOTION_DURATION_MIN,
+  MOTION_ENTRANCE_PRESETS,
+  MOTION_TRIGGERS,
+  NODE_STATE_NAMES,
+  STATE_PAINT_KEYS,
+  TRANSITION_EASINGS,
+} from "@/schema";
 import { ensurePages, openPageIdOf, syncOpenIntoPages } from "@/lib/project-pages";
 import { previewPageMarkers, previewPagePaths } from "@/lib/preview-links";
 
@@ -121,6 +135,30 @@ export function cleanStates(states: NodeStates | undefined): NodeStates | undefi
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
+function clampInt(n: number, min: number, max: number): number {
+  if (!Number.isFinite(n)) return min;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+/** E1: drop invalid / empty motion; clamp duration/delay. */
+export function cleanMotion(motion: NodeMotion | undefined): NodeMotion | undefined {
+  if (!motion?.entrance) return undefined;
+  const e = motion.entrance;
+  if (!(MOTION_ENTRANCE_PRESETS as readonly string[]).includes(e.preset)) return undefined;
+  if (!(MOTION_TRIGGERS as readonly string[]).includes(e.trigger)) return undefined;
+  const easing = (TRANSITION_EASINGS as readonly string[]).includes(e.easing)
+    ? (e.easing as TransitionEasing)
+    : "ease-out";
+  const entrance: MotionEntrance = {
+    preset: e.preset,
+    trigger: e.trigger,
+    durationMs: clampInt(e.durationMs, MOTION_DURATION_MIN, MOTION_DURATION_MAX),
+    delayMs: clampInt(e.delayMs, MOTION_DELAY_MIN, MOTION_DELAY_MAX),
+    easing,
+  };
+  return { entrance };
+}
+
 function cleanNodes(nodes: Record<NodeId, Node>): {
   nodes: Record<NodeId, Node>;
   anyBp: boolean;
@@ -149,6 +187,14 @@ function cleanNodes(nodes: Record<NodeId, Node>): {
       next = { ...next, states };
     } else if (node.states) {
       const { states: _drop, ...rest } = next;
+      next = rest;
+    }
+    const motion = cleanMotion(node.motion);
+    if (motion) {
+      anyBp = true; // E1: motion counts as tier-2 (§4.4)
+      next = { ...next, motion };
+    } else if (node.motion) {
+      const { motion: _drop, ...rest } = next;
       next = rest;
     }
     out[id] = next;

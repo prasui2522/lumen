@@ -19,7 +19,8 @@ describe("D3 blocks registry", () => {
   test("all migrated entries validate and declare source", async () => {
     resetBlocksRegistryCache();
     const list = await loadBlocksRegistry();
-    expect(list.length).toBe(11);
+    expect(list.length).toBeGreaterThanOrEqual(11);
+    expect(list.filter((b) => b.id.startsWith("elements-") || b.id.startsWith("template-")).length).toBe(11);
     expect(list.every((b) => b.source.kind === "original")).toBe(true);
     for (const b of list) {
       expect(validateBlock(b).errors).toEqual([]);

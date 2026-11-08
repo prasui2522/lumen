@@ -3,13 +3,17 @@ import { invoke } from "@tauri-apps/api/core";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isDocumentEmpty } from "@/components/editor/node-view";
-import { documentForPreview } from "@/lib/breakpoints";
+import { ensurePages, openPageIdOf, syncOpenIntoPages } from "@/lib/project-pages";
+import {
+  RUNTIME_UPDATE_MS,
+  payloadFromBundle,
+  type PreviewBundle,
+  type RuntimePayload,
+} from "@/lib/preview-runtime";
+import { useSidecarStatus, viteFrameUrl } from "@/lib/preview-sidecar";
 import { useProjectsStore } from "@/stores/projects-store";
 import { useEditorStore } from "@/stores/editor-store";
-import { DeviceStage } from "@/components/editor/preview/DeviceStage";
-
-/** Debounce for recompiles while Preview is open (doc edits, e.g. title). */
-const RECOMPILE_MS = 200;
+import { DeviceStage, type FrameSource } from "@/components/editor/preview/DeviceStage";
 
 function errMessage(e: unknown): string {
   if (typeof e === "string") return e;
@@ -18,37 +22,28 @@ function errMessage(e: unknown): string {
 }
 
 /**
- * Preview stage (DESIGN-PREVIEW-UX.md §4/§5, Phase 3): the in-memory
- * PageDocument (unsaved edits included) is compiled by the Rust
- * `compile_preview` command and shown in a sandboxed iframe (`srcdoc`,
- * `sandbox="allow-same-origin"` WITHOUT allow-scripts → no scripts, no
- * navigation of the app, no popups; same-origin only so the parent can read
- * the content height for auto-sizing). The compiler also emits inert links
- * and a strict CSP for Preview. Framing (device presets, fill) is DeviceStage
- * (DEVICE-PREVIEW-SPEC §4).
+ * Preview stage (DESIGN-PREVIEW-UX.md §4/§5; PREVIEW-CODE-VIEW S2/S6/S10).
+ * Default is the Tier 1 export runtime. รันด้วย Vite swaps the frame to the
+ * sidecar. S10: live Preview does not invoke the static HTML compiler.
  */
 export function PreviewStage() {
   const openDocument = useProjectsStore((s) => s.openDocument);
+  const openPageId = useEditorStore((s) => s.openPageId);
   const previewStatus = useEditorStore((s) => s.previewStatus);
   const previewError = useEditorStore((s) => s.previewError);
   const setPreviewStatus = useEditorStore((s) => s.setPreviewStatus);
   const setPreviewError = useEditorStore((s) => s.setPreviewError);
   const setMode = useEditorStore((s) => s.setMode);
+  const sidecar = useSidecarStatus();
 
-  const [html, setHtml] = useState<string | null>(null);
-  const htmlRef = useRef<string | null>(null);
-  /** Monotonic request id — responses from older requests are ignored. */
+  const [fellBack, setFellBack] = useState(false);
+  const [payload, setPayload] = useState<RuntimePayload | null>(null);
+  const payloadRef = useRef<RuntimePayload | null>(null);
   const seq = useRef(0);
   const entered = useRef(false);
-  /** Mounted flag: responses after leaving Preview are dropped. */
   const alive = useRef(false);
-  /**
-   * Document object last sent to compile_preview (in flight or done). Same
-   * object again → skip: dedupes StrictMode's double effect run in dev (which
-   * used to invoke twice on entering Preview). Every edit produces a new
-   * document object, so recompiles after edits are unaffected; `retry` forces.
-   */
   const lastDoc = useRef<unknown>(null);
+
   const compile = useCallback(async (force = false) => {
     const { openDocument: doc, openId } = useProjectsStore.getState();
     if (!force && doc && doc === lastDoc.current) return;
@@ -60,53 +55,43 @@ export function PreviewStage() {
       return;
     }
     if (isDocumentEmpty(doc)) {
-      setPreviewStatus("ready"); // empty state renders below
+      setPreviewStatus("ready");
       return;
     }
-    // First build shows the loading state; later rebuilds keep the old frame.
-    if (htmlRef.current === null) setPreviewStatus("loading");
+    const first = payloadRef.current === null;
+    if (first) setPreviewStatus("loading");
     try {
-      const out = await invoke<string>("compile_preview", {
-        document: documentForPreview(doc),
+      const bundle = await invoke<PreviewBundle>("preview_bundle", {
         projectId: openId,
+        document: syncOpenIntoPages(ensurePages(doc), useEditorStore.getState().openPageId),
       });
-      if (my !== seq.current || !alive.current) return; // stale / left Preview
-      htmlRef.current = out;
-      setHtml(out);
+      if (my !== seq.current || !alive.current) return;
+      const p = payloadFromBundle(bundle);
+      payloadRef.current = p;
+      setPayload(p);
       setPreviewError(null);
       setPreviewStatus("ready");
     } catch (e) {
       if (my !== seq.current || !alive.current) return;
+      if (payloadRef.current) {
+        setPreviewStatus("ready");
+        return;
+      }
       setPreviewError(errMessage(e));
       setPreviewStatus("error");
     }
   }, [setPreviewError, setPreviewStatus]);
 
-  /** Open page root at the last effect run: a change means a page switch. */
-  const lastRoot = useRef<string | null>(null);
-
-  // Enter Preview → compile now; doc changes while open → debounced. A page
-  // switch (e.g. a Preview page link) compiles at once: the frame is on the
-  // blank marker page until the new srcDoc arrives.
   useEffect(() => {
-    const root = openDocument?.root ?? null;
-    const pageSwitched = lastRoot.current !== null && root !== lastRoot.current;
-    lastRoot.current = root;
     if (!entered.current) {
       entered.current = true;
       void compile();
       return;
     }
-    if (pageSwitched) {
-      void compile();
-      return;
-    }
-    const t = window.setTimeout(() => void compile(), RECOMPILE_MS);
+    const t = window.setTimeout(() => void compile(), RUNTIME_UPDATE_MS);
     return () => window.clearTimeout(t);
   }, [openDocument, compile]);
 
-  // Leaving Preview: drop any in-flight response. (Not seq++: StrictMode's
-  // simulated unmount/remount must not invalidate the deduped first compile.)
   useEffect(() => {
     alive.current = true;
     return () => {
@@ -115,11 +100,24 @@ export function PreviewStage() {
   }, []);
 
   const retry = () => {
-    htmlRef.current = null;
-    setHtml(null);
+    payloadRef.current = null;
+    setPayload(null);
     setPreviewError(null);
+    setFellBack(false);
     void compile(true);
   };
+
+  const fallbackToBuiltIn = useCallback(() => {
+    if (payloadRef.current) {
+      setFellBack(true);
+      useEditorStore.getState().announce("กลับไปใช้ตัวอย่างในแอป");
+      return;
+    }
+    setFellBack(true);
+    setPreviewError("สร้างตัวอย่างไม่ได้");
+    setPreviewStatus("error");
+    useEditorStore.getState().announce("กลับไปใช้ตัวอย่างในแอป");
+  }, [setPreviewError, setPreviewStatus]);
 
   if (openDocument && isDocumentEmpty(openDocument)) {
     return (
@@ -140,6 +138,26 @@ export function PreviewStage() {
     );
   }
 
+  const viteOn = sidecar.state === "running" && sidecar.port != null;
+  const pages = openDocument ? ensurePages(openDocument).pages! : [];
+  const pid = openPageId ?? (openDocument ? openPageIdOf(openDocument) : null);
+  const page = pages.find((p) => p.id === pid) ?? pages[0];
+
+  if (viteOn && page && sidecar.port != null) {
+    const source: FrameSource = {
+      kind: "vite",
+      url: viteFrameUrl(sidecar.port, page.path),
+      port: sidecar.port,
+      path: page.path,
+      pageName: page.name,
+    };
+    return (
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <DeviceStage source={source} />
+      </div>
+    );
+  }
+
   if (previewStatus === "error") {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-muted/40 p-6">
@@ -156,7 +174,7 @@ export function PreviewStage() {
     );
   }
 
-  if (html === null || previewStatus === "loading" || previewStatus === "idle") {
+  if (!payload || previewStatus === "loading" || previewStatus === "idle") {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-muted/40 p-6">
         <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden />
@@ -165,7 +183,25 @@ export function PreviewStage() {
     );
   }
 
-  // Device frames, scale-to-fit and fill auto-height live in DeviceStage. A
-  // device switch never reaches this component's compile logic.
-  return <DeviceStage html={html} />;
+  const source: FrameSource = {
+    kind: "runtime",
+    payload,
+    path: page?.path ?? "/",
+    pageName: page?.name ?? "",
+    onTimeout: fallbackToBuiltIn,
+  };
+
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      {fellBack ? (
+        <p
+          role="status"
+          className="shrink-0 border-b border-border bg-muted/60 px-3 py-1 text-[11px] text-muted-foreground"
+        >
+          กลับไปใช้ตัวอย่างในแอป (Fell back to built-in Preview)
+        </p>
+      ) : null}
+      <DeviceStage source={source} />
+    </div>
+  );
 }

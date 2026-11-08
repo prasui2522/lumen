@@ -13,19 +13,33 @@ import { getChildren } from "@/schema";
 
 let cached: StyleBlock[] | null = null;
 
+const REGISTRY_CHUNKS = [
+  () => import("@/lib/blocks-registry/migrated.json"),
+  () => import("@/lib/blocks-registry/d6-batch1.json"),
+  () => import("@/lib/blocks-registry/d7-batch2.json"),
+  () => import("@/lib/blocks-registry/d8-batch3.json"),
+] as const;
+
 export async function loadBlocksRegistry(): Promise<StyleBlock[]> {
   if (cached) return cached;
-  const mod = await import("@/lib/blocks-registry/migrated.json");
-  const list = (mod.default ?? mod) as unknown[];
+  const mods = await Promise.all(REGISTRY_CHUNKS.map((load) => load()));
   const out: StyleBlock[] = [];
-  for (const item of list) {
-    const { block, errors } = validateBlock(item);
-    if (!block) {
-      throw new Error(
-        `invalid registry block: ${errors.map((e) => `${e.path}: ${e.message}`).join("; ")}`,
-      );
+  const seen = new Set<string>();
+  for (const mod of mods) {
+    const list = (mod.default ?? mod) as unknown[];
+    for (const item of list) {
+      const { block, errors } = validateBlock(item);
+      if (!block) {
+        throw new Error(
+          `invalid registry block: ${errors.map((e) => `${e.path}: ${e.message}`).join("; ")}`,
+        );
+      }
+      if (seen.has(block.id)) {
+        throw new Error(`duplicate registry block id: ${block.id}`);
+      }
+      seen.add(block.id);
+      out.push(block);
     }
-    out.push(block);
   }
   cached = out;
   return out;
@@ -33,6 +47,11 @@ export async function loadBlocksRegistry(): Promise<StyleBlock[]> {
 
 export function resetBlocksRegistryCache(): void {
   cached = null;
+}
+
+/** Sync peek after `loadBlocksRegistry` (D5 drop). Null until first open. */
+export function getCachedBlocksRegistry(): StyleBlock[] | null {
+  return cached;
 }
 
 export function findRegistryBlock(

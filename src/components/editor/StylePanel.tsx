@@ -10,6 +10,7 @@ import {
   breakpointKeySet,
   isContentLocked,
   nodeDisplayName,
+  setNodeMotion,
   type StyleKey,
 } from "@/lib/document-ops";
 import { effectiveSize, type DeviceId } from "@/lib/devices";
@@ -46,6 +47,7 @@ import {
   nodeOffersFocusState,
 } from "@/lib/node-state-ui";
 import { nodeTypeHasPresets } from "@/lib/presets-registry";
+import { evaluatePagePerf } from "@/lib/page-perf-watch";
 import { cn } from "@/lib/utils";
 import { lazyNamed, useMountedOnce, whenIdle } from "@/lib/lazy";
 import { useEditorStore } from "@/stores/editor-store";
@@ -120,6 +122,9 @@ const TransitionSubGroup = lazyNamed(() =>
 );
 const FilterSubGroup = lazyNamed(() =>
   import("@/components/editor/effects-panels").then((m) => m.FilterSubGroup),
+);
+const MotionPanel = lazyNamed(() =>
+  import("@/components/editor/motion-panel").then((m) => m.MotionPanel),
 );
 // Phase 11 C3: preset picker (own chunk; no whenIdle preload per §5).
 const PresetPicker = lazyNamed(() =>
@@ -204,7 +209,11 @@ export function StylePanel() {
   }, [selectedNodeId, node, setSelectedNodeId]);
 
   return (
-    <aside className="flex h-full w-full min-w-0 flex-col bg-sidebar text-sidebar-foreground">
+    <aside
+      data-kbd-pane="style"
+      tabIndex={-1}
+      className="flex h-full w-full min-w-0 flex-col bg-sidebar text-sidebar-foreground"
+    >
       <div className="flex h-10 shrink-0 items-center px-3">
         <span className="text-[11px] font-medium text-muted-foreground">
           สไตล์
@@ -356,6 +365,37 @@ function PanelBody({
         {isRoot ? (
           <p className="text-xs text-muted-foreground">สไตล์ของหน้าจะใช้กับทั้งหน้า</p>
         ) : null}
+        {isRoot ? (
+          <FieldRow
+            id="sf-dark"
+            label="โหมดมืดตอนส่งออก"
+            overridden={false}
+            locked={locked}
+            group
+          >
+            <SegmentedField
+              id="sf-dark"
+              label="โหมดมืดตอนส่งออก"
+              labelledBy={fieldLabelId("sf-dark")}
+              value={doc?.meta.darkMode === "auto" ? "auto" : "off"}
+              options={[
+                { value: "off", label: "ปิด" },
+                { value: "auto", label: "อัตโนมัติ" },
+              ]}
+              onChange={(v) => {
+                const d = useProjectsStore.getState().openDocument;
+                if (!d) return;
+                useProjectsStore.getState().updateOpenDocument({
+                  ...d,
+                  meta: {
+                    ...d.meta,
+                    darkMode: v === "auto" ? "auto" : undefined,
+                  },
+                });
+              }}
+            />
+          </FieldRow>
+        ) : null}
         {!isVisible(node) ? (
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
             <EyeOff className="size-3" aria-hidden /> ซ่อนอยู่บนผืนผ้าใบ
@@ -417,6 +457,8 @@ function PanelBody({
           />
         );
       })}
+
+      {onState ? null : <MotionSection node={node} locked={locked} />}
     </div>
   );
 }
@@ -1208,6 +1250,61 @@ type SectionProps = {
 
 
 /** B2.2 / B3.2: เอฟเฟกต์ — เงา + ไล่สี (lazy effects-panels). */
+/** E4: last Style section — entrance motion (lazy `motion-panel`). */
+const MotionSection = memo(function MotionSection({
+  node,
+  locked,
+}: {
+  node: Node;
+  locked: boolean;
+}) {
+  const collapsed = useEditorStore((s) => !!s.collapsedStyleSections["motion"]);
+  const toggle = useEditorStore((s) => s.toggleStyleSection);
+  const overridden = !!node.motion?.entrance;
+  const bodyId = "sf-sec-motion";
+  const reset = () => {
+    applyOps([(doc) => setNodeMotion(doc, node.id, undefined)], `motion:${node.id}`);
+    evaluatePagePerf(useProjectsStore.getState().openDocument);
+  };
+
+  return (
+    <section className="mt-3 border-t border-border pt-3">
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center gap-1 rounded-md px-1 py-1 text-left text-[11px] font-medium hover:bg-muted"
+          aria-expanded={!collapsed}
+          aria-controls={bodyId}
+          onClick={() => toggle("motion")}
+        >
+          {collapsed ? <ChevronRight className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+          <span
+            aria-hidden
+            className={
+              overridden
+                ? "size-1.5 shrink-0 rounded-full bg-primary"
+                : "size-1.5 shrink-0 rounded-full bg-transparent"
+            }
+          />
+          การเคลื่อนไหว
+        </button>
+        {overridden && !locked ? (
+          <Button type="button" variant="ghost" size="xs" onClick={reset}>
+            รีเซ็ต
+          </Button>
+        ) : null}
+      </div>
+      {collapsed ? null : (
+        <div id={bodyId} className="mt-1">
+          <Suspense fallback={<p className="text-[11px] text-muted-foreground">กำลังโหลด…</p>}>
+            <MotionPanel node={node} locked={locked} />
+          </Suspense>
+        </div>
+      )}
+    </section>
+  );
+});
+
 const EffectsSection = memo(function EffectsSection({
   node,
   locked,
