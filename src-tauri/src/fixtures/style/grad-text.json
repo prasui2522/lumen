@@ -1,0 +1,16 @@
+{
+  "textGradient": {
+    "kind": "linear",
+    "angle": 180,
+    "stops": [
+      {
+        "color": "#0ea5e9",
+        "at": 0
+      },
+      {
+        "color": "#a855f7",
+        "at": 100
+      }
+    ]
+  }
+}

@@ -21,6 +21,9 @@ const NewProjectDialog = lazyNamed(() =>
 const DeleteProjectDialog = lazyNamed(() =>
   import("@/components/projects/DeleteProjectDialog").then((m) => m.DeleteProjectDialog),
 );
+const AboutMenu = lazyNamed(() =>
+  import("@/components/about-notices").then((m) => m.AboutMenu),
+);
 
 export function ProjectListPage() {
   const navigate = useNavigate();
@@ -94,6 +97,9 @@ export function ProjectListPage() {
               className="h-8 pl-8"
             />
           </div>
+          <Suspense fallback={null}>
+            <AboutMenu />
+          </Suspense>
           <ThemeToggle />
           {/* data-focus-fallback: dialogs return focus here if their trigger is gone (e.g. a deleted card). */}
           <Button type="button" className="shrink-0" data-focus-fallback onClick={() => setNewOpen(true)}>

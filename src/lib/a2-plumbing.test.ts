@@ -128,11 +128,19 @@ describe("A2.1 key parity: schema.ts vs defaults.rs / compiler.rs", () => {
     for (const n of A2_NAMES) expect(DEFAULT_STYLES[n as NodeType]).toEqual(GOLDEN[n]);
   });
 
-  test("schema.ts StyleProps key count (B1.2: 21 with boxShadow)", () => {
+  test("schema.ts StyleProps key count (B6.1: 29 with filter/backdropFilter)", () => {
     const body = between(SCHEMA, "export type StyleProps = {", /\n};/);
     const keys = [...body.matchAll(/^  (\w+)\??:/gm)].map((m) => m[1]!);
-    expect(keys.length).toBe(21);
+    expect(keys.length).toBe(29);
     expect(keys).toContain("boxShadow");
+    expect(keys).toContain("backgroundGradient");
+    expect(keys).toContain("textGradient");
+    expect(keys).toContain("borderSides");
+    expect(keys).toContain("borderRadiusCorners");
+    expect(keys).toContain("transform");
+    expect(keys).toContain("transition");
+    expect(keys).toContain("filter");
+    expect(keys).toContain("backdropFilter");
   });
 });
 

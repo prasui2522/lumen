@@ -1,0 +1,12 @@
+{
+  "borderWidth": 1,
+  "borderColor": "#e2e8f0",
+  "borderStyle": "solid",
+  "borderSides": {
+    "t": {
+      "width": 4,
+      "color": "#ef4444",
+      "style": "dashed"
+    }
+  }
+}

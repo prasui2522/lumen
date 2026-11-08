@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://webapp.local/schemas/block-format.schema.json",
+  "title": "WebApp StyleBlock",
+  "type": "object",
+  "required": [
+    "formatVersion",
+    "id",
+    "category",
+    "scope",
+    "name",
+    "nameEn",
+    "keywords",
+    "source",
+    "thumb",
+    "root",
+    "nodes"
+  ],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "category": {
+      "type": "string",
+      "enum": [
+        "header",
+        "hero",
+        "features",
+        "pricing",
+        "testimonials",
+        "faq",
+        "cta",
+        "footer",
+        "contact",
+        "logoCloud",
+        "stats",
+        "elements"
+      ]
+    },
+    "scope": { "type": "string", "enum": ["page", "inline"] },
+    "name": { "type": "string", "minLength": 1 },
+    "nameEn": { "type": "string", "minLength": 1 },
+    "keywords": { "type": "array", "items": { "type": "string" } },
+    "source": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind"],
+          "properties": { "kind": { "const": "original" } },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "project", "ref", "retrieved"],
+          "properties": {
+            "kind": { "const": "mit" },
+            "project": { "type": "string", "minLength": 1 },
+            "ref": { "type": "string", "minLength": 1 },
+            "retrieved": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "thumb": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "required": ["x", "y", "w", "h", "tone"],
+        "properties": {
+          "x": { "type": "number" },
+          "y": { "type": "number" },
+          "w": { "type": "number" },
+          "h": { "type": "number" },
+          "tone": { "type": "string", "enum": ["ink", "muted", "fill", "accent"] }
+        }
+      }
+    },
+    "root": { "type": "string", "minLength": 1 },
+    "nodes": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 200,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["type", "props"],
+        "properties": {
+          "type": { "type": "string" },
+          "name": { "type": "string" },
+          "props": { "type": "object" },
+          "style": { "type": "object" },
+          "states": { "type": "object" },
+          "motion": { "type": "object" },
+          "styleBreakpoints": { "type": "object" }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

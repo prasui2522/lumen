@@ -1,0 +1,16 @@
+{
+  "backgroundGradient": {
+    "kind": "linear",
+    "angle": 90,
+    "stops": [
+      {
+        "color": "#0ea5e9",
+        "at": 0
+      },
+      {
+        "color": "#0369a1",
+        "at": 100
+      }
+    ]
+  }
+}

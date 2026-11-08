@@ -1,0 +1,814 @@
+[
+  {
+    "formatVersion": 1,
+    "id": "elements-card",
+    "category": "elements",
+    "scope": "page",
+    "name": "การ์ด",
+    "nameEn": "Card",
+    "keywords": [
+      "card",
+      "การ์ด"
+    ],
+    "source": {
+      "kind": "original"
+    },
+    "thumb": [
+      {
+        "x": 10,
+        "y": 10,
+        "w": 80,
+        "h": 60,
+        "tone": "muted"
+      }
+    ],
+    "root": "n0",
+    "focus": "n1",
+    "nodes": {
+      "n0": {
+        "type": "container",
+        "props": {
+          "type": "container",
+          "children": [
+            "n1",
+            "n2"
+          ]
+        },
+        "style": {
+          "padding": 16,
+          "borderWidth": 1,
+          "borderStyle": "solid",
+          "borderColor": "#e2e8f0",
+          "borderRadius": 8
+        }
+      },
+      "n1": {
+        "type": "heading",
+        "props": {
+          "type": "heading",
+          "level": 2,
+          "content": "การ์ด"
+        }
+      },
+      "n2": {
+        "type": "text",
+        "props": {
+          "type": "text",
+          "content": "รายละเอียดสั้น ๆ"
+        }
+      }
+    }
+  },
+  {
+    "formatVersion": 1,
+    "id": "elements-alert",
+    "category": "elements",
+    "scope": "page",
+    "name": "แจ้งเตือน",
+    "nameEn": "Alert",
+    "keywords": [
+      "alert",
+      "แจ้งเตือน"
+    ],
+    "source": {
+      "kind": "original"
+    },
+    "thumb": [
+      {
+        "x": 10,
+        "y": 20,
+        "w": 80,
+        "h": 40,
+        "tone": "accent"
+      }
+    ],
+    "root": "n0",
+    "focus": "n1",
+    "nodes": {
+      "n0": {
+        "type": "container",
+        "props": {
+          "type": "container",
+          "children": [
+            "n1",
+            "n2"
+          ]
+        },
+        "style": {
+          "padding": 16,
+          "backgroundColor": "#e0f2fe",
+          "borderWidth": 1,
+          "borderStyle": "solid",
+          "borderColor": "#e2e8f0"
+        }
+      },
+      "n1": {
+        "type": "heading",
+        "props": {
+          "type": "heading",
+          "level": 2,
+          "content": "หมายเหตุ"
+        }
+      },
+      "n2": {
+        "type": "text",
+        "props": {
+          "type": "text",
+          "content": "ข้อความแจ้งเตือน"
+        }
+      }
+    }
+  },
+  {
+    "formatVersion": 1,
+    "id": "elements-buttons",
+    "category": "elements",
+    "scope": "page",
+    "name": "ปุ่มเรียง",
+    "nameEn": "Button row",
+    "keywords": [
+      "buttons",
+      "ปุ่มเรียง"
+    ],
+    "source": {
+      "kind": "original"
+    },
+    "thumb": [
+      {
+        "x": 10,
+        "y": 40,
+        "w": 35,
+        "h": 16,
+        "tone": "fill"
+      },
+      {
+        "x": 55,
+        "y": 40,
+        "w": 35,
+        "h": 16,
+        "tone": "muted"
+      }
+    ],
+    "root": "n0",
+    "focus": "n1",
+    "nodes": {
+      "n0": {
+        "type": "container",
+        "props": {
+          "type": "container",
+          "children": [
+            "n1",
+            "n2"
+          ],
+          "direction": "row",
+          "gap": 8
+        }
+      },
+      "n1": {
+        "type": "button",
+        "props": {
+          "type": "button",
+          "label": "ยืนยัน"
+        }
+      },
+      "n2": {
+        "type": "button",
+        "props": {
+          "type": "button",
+          "label": "ยกเลิก"
+        },
+        "style": {
+          "backgroundColor": "transparent",
+          "color": "#0f172a",
+          "borderWidth": 1,
+          "borderStyle": "solid",
+          "borderColor": "#e2e8f0"
+        }
+      }
+    }
+  },
+  {
+    "formatVersion": 1,
+    "id": "elements-badge",
+    "category": "elements",
+    "scope": "page",
+    "name": "ป้าย",
+    "nameEn": "Badge",
+    "keywords": [
+      "badge",
+      "ป้าย"
+    ],
+    "source": {
+      "kind": "original"
+    },
+    "thumb": [
+      {
+        "x": 30,
+        "y": 40,
+        "w": 40,
+        "h": 14,
+        "tone": "muted"
+      }
+    ],
+    "root": "n0",
+    "focus": "n0",
+    "nodes": {
+      "n0": {
+        "type": "text",
+        "props": {
+          "type": "text",
+          "content": "ป้าย"
+        },
+        "style": {
+          "fontSize": 12,
+          "padding": {
+            "t": 2,
+            "r": 8,
+            "b": 2,
+            "l": 8
+          },
+          "borderRadius": 8,
+          "backgroundColor": "#f8fafc"
+        }
+      }
+    }
+  },
+  {
+    "formatVersion": 1,
+    "id": "elements-divider",
+    "category": "elements",
+    "scope": "page",
+    "name": "เส้นคั่น",
+    "nameEn": "Divider",
+    "keywords": [
+      "divider",
+      "เส้นคั่น"
+    ],
+    "source": {
+      "kind": "original"
+    },
+    "thumb": [
+      {
+        "x": 10,
+        "y": 48,
+        "w": 80,
+        "h": 2,
+        "tone": "ink"
+      }
+    ],
+    "root": "n0",
+    "focus": "n0",
+    "nodes": {
+      "n0": {
+        "type": "spacer",
+        "props": {
+          "type": "spacer",
+          "size": 1
+        },
+        "style": {
+          "backgroundColor": "#e2e8f0"
+        }
+      }
+    }
+  },
+  {
+    "formatVersion": 1,
+    "id": "elements-list",
+    "category": "elements",
+    "scope": "page",
+    "name": "ข้อความเรียง",
+    "nameEn": "Text list",
+    "keywords": [
+      "list",
+      "ข้อความเรียง"
+    ],
+    "source": {
+      "kind": "original"
+    },
+    "thumb": [
+      {
+        "x": 10,
+        "y": 20,
+        "w": 80,
+        "h": 10,
+        "tone": "ink"
+      },
+      {
+        "x": 10,
+        "y": 40,
+        "w": 80,
+        "h": 10,
+        "tone": "ink"
+      },
+      {
+        "x": 10,
+        "y": 60,
+        "w": 80,
+        "h": 10,
+        "tone": "ink"
+      }
+    ],
+    "root": "n0",
+    "focus": "n1",
+    "nodes": {
+      "n0": {
+        "type": "container",
+        "props": {
+          "type": "container",
+          "children": [
+            "n1",
+            "n2",
+            "n3"
+          ],
+          "gap": 8
+        }
+      },
+      "n1": {
+        "type": "text",
+        "props": {
+          "type": "text",
+          "content": "ข้อแรก"
+        }
+      },
+      "n2": {
+        "type": "text",
+        "props": {
+          "type": "text",
+          "content": "ข้อสอง"
+        }
+      },
+      "n3": {
+        "type": "text",
+        "props": {
+          "type": "text",
+          "content": "ข้อสาม"
+        }
+      }
+    }
+  },
+  {
+    "formatVersion": 1,
+    "id": "template-hero",
+    "category": "hero",
+    "scope": "page",
+    "name": "แนะนำ",
+    "nameEn": "Hero",
+    "keywords": [
+      "hero",
+      "แนะนำ",
+      "หัวข้อ ข้อความ และปุ่มกลางหน้า"
+    ],
+    "source": {
+      "kind": "original"
+    },
+    "thumb": [
+      {
+        "x": 20,
+        "y": 20,
+        "w": 60,
+        "h": 50,
+        "tone": "fill"
+      }
+    ],
+    "root": "n0",
+    "focus": "n1",
+    "nodes": {
+      "n0": {
+        "type": "section",
+        "props": {
+          "type": "section",
+          "children": [
+            "n1",
+            "n2",
+            "n3"
+          ]
+        },
+        "style": {
+          "textAlign": "center"
+        }
+      },
+      "n1": {
+        "type": "heading",
+        "props": {
+          "type": "heading",
+          "level": 1,
+          "content": "ยินดีต้อนรับ"
+        },
+        "style": {
+          "textAlign": "center"
+        }
+      },
+      "n2": {
+        "type": "text",
+        "props": {
+          "type": "text",
+          "content": "แนะนำตัวสั้น ๆ"
+        },
+        "style": {
+          "textAlign": "center"
+        }
+      },
+      "n3": {
+        "type": "button",
+        "props": {
+          "type": "button",
+          "label": "เริ่มต้น"
+        }
+      }
+    }
+  },
+  {
+    "formatVersion": 1,
+    "id": "template-split",
+    "category": "features",
+    "scope": "page",
+    "name": "ข้อความและรูป",
+    "nameEn": "Text and image",
+    "keywords": [
+      "split",
+      "ข้อความและรูป",
+      "รูปคู่กับหัวข้อและข้อความ"
+    ],
+    "source": {
+      "kind": "original"
+    },
+    "thumb": [
+      {
+        "x": 5,
+        "y": 20,
+        "w": 40,
+        "h": 50,
+        "tone": "muted"
+      },
+      {
+        "x": 55,
+        "y": 20,
+        "w": 40,
+        "h": 50,
+        "tone": "fill"
+      }
+    ],
+    "root": "n0",
+    "focus": "n5",
+    "nodes": {
+      "n0": {
+        "type": "section",
+        "props": {
+          "type": "section",
+          "children": [
+            "n1"
+          ]
+        }
+      },
+      "n1": {
+        "type": "container",
+        "props": {
+          "type": "container",
+          "children": [
+            "n2",
+            "n4"
+          ],
+          "direction": "row",
+          "gap": 16
+        }
+      },
+      "n2": {
+        "type": "container",
+        "props": {
+          "type": "container",
+          "children": [
+            "n3"
+          ]
+        }
+      },
+      "n3": {
+        "type": "image",
+        "props": {
+          "type": "image",
+          "src": {
+            "id": ""
+          }
+        }
+      },
+      "n4": {
+        "type": "container",
+        "props": {
+          "type": "container",
+          "children": [
+            "n5",
+            "n6"
+          ]
+        }
+      },
+      "n5": {
+        "type": "heading",
+        "props": {
+          "type": "heading",
+          "level": 2,
+          "content": "เรื่องราว"
+        }
+      },
+      "n6": {
+        "type": "text",
+        "props": {
+          "type": "text",
+          "content": "ข้อความคู่กับรูป"
+        }
+      }
+    }
+  },
+  {
+    "formatVersion": 1,
+    "id": "template-cta",
+    "category": "cta",
+    "scope": "page",
+    "name": "ชวนทำ",
+    "nameEn": "Call to action",
+    "keywords": [
+      "cta",
+      "ชวนทำ",
+      "หัวข้อ ข้อความ และปุ่มชวนทำ"
+    ],
+    "source": {
+      "kind": "original"
+    },
+    "thumb": [
+      {
+        "x": 15,
+        "y": 25,
+        "w": 70,
+        "h": 45,
+        "tone": "accent"
+      }
+    ],
+    "root": "n0",
+    "focus": "n1",
+    "nodes": {
+      "n0": {
+        "type": "section",
+        "props": {
+          "type": "section",
+          "children": [
+            "n1",
+            "n2",
+            "n3"
+          ]
+        }
+      },
+      "n1": {
+        "type": "heading",
+        "props": {
+          "type": "heading",
+          "level": 2,
+          "content": "พร้อมหรือยัง"
+        }
+      },
+      "n2": {
+        "type": "text",
+        "props": {
+          "type": "text",
+          "content": "ชวนให้ลงมือทำ"
+        }
+      },
+      "n3": {
+        "type": "button",
+        "props": {
+          "type": "button",
+          "label": "ติดต่อ"
+        }
+      }
+    }
+  },
+  {
+    "formatVersion": 1,
+    "id": "template-features",
+    "category": "features",
+    "scope": "page",
+    "name": "จุดเด่น",
+    "nameEn": "Features",
+    "keywords": [
+      "features",
+      "จุดเด่น",
+      "หัวข้อกับสามจุดเด่น ไม่มีไอคอน"
+    ],
+    "source": {
+      "kind": "original"
+    },
+    "thumb": [
+      {
+        "x": 5,
+        "y": 30,
+        "w": 28,
+        "h": 40,
+        "tone": "muted"
+      },
+      {
+        "x": 36,
+        "y": 30,
+        "w": 28,
+        "h": 40,
+        "tone": "muted"
+      },
+      {
+        "x": 67,
+        "y": 30,
+        "w": 28,
+        "h": 40,
+        "tone": "muted"
+      }
+    ],
+    "root": "n0",
+    "focus": "n1",
+    "nodes": {
+      "n0": {
+        "type": "section",
+        "props": {
+          "type": "section",
+          "children": [
+            "n1",
+            "n2"
+          ]
+        }
+      },
+      "n1": {
+        "type": "heading",
+        "props": {
+          "type": "heading",
+          "level": 2,
+          "content": "จุดเด่น"
+        }
+      },
+      "n2": {
+        "type": "container",
+        "props": {
+          "type": "container",
+          "children": [
+            "n3",
+            "n6",
+            "n9"
+          ],
+          "direction": "row",
+          "gap": 16
+        }
+      },
+      "n3": {
+        "type": "container",
+        "props": {
+          "type": "container",
+          "children": [
+            "n4",
+            "n5"
+          ]
+        }
+      },
+      "n4": {
+        "type": "heading",
+        "props": {
+          "type": "heading",
+          "level": 3,
+          "content": "เร็ว"
+        }
+      },
+      "n5": {
+        "type": "text",
+        "props": {
+          "type": "text",
+          "content": "โหลดไม่นาน"
+        }
+      },
+      "n6": {
+        "type": "container",
+        "props": {
+          "type": "container",
+          "children": [
+            "n7",
+            "n8"
+          ]
+        }
+      },
+      "n7": {
+        "type": "heading",
+        "props": {
+          "type": "heading",
+          "level": 3,
+          "content": "ชัด"
+        }
+      },
+      "n8": {
+        "type": "text",
+        "props": {
+          "type": "text",
+          "content": "อ่านง่าย"
+        }
+      },
+      "n9": {
+        "type": "container",
+        "props": {
+          "type": "container",
+          "children": [
+            "n10",
+            "n11"
+          ]
+        }
+      },
+      "n10": {
+        "type": "heading",
+        "props": {
+          "type": "heading",
+          "level": 3,
+          "content": "ใช้งานง่าย"
+        }
+      },
+      "n11": {
+        "type": "text",
+        "props": {
+          "type": "text",
+          "content": "แก้ได้ทันที"
+        }
+      }
+    }
+  },
+  {
+    "formatVersion": 1,
+    "id": "template-footer",
+    "category": "footer",
+    "scope": "page",
+    "name": "ท้ายหน้า",
+    "nameEn": "Footer",
+    "keywords": [
+      "footer",
+      "ท้ายหน้า",
+      "ข้อความลิขสิทธิ์และลิงก์ท้ายหน้า"
+    ],
+    "source": {
+      "kind": "original"
+    },
+    "thumb": [
+      {
+        "x": 10,
+        "y": 70,
+        "w": 80,
+        "h": 16,
+        "tone": "ink"
+      }
+    ],
+    "root": "n0",
+    "focus": "n1",
+    "nodes": {
+      "n0": {
+        "type": "section",
+        "props": {
+          "type": "section",
+          "children": [
+            "n1",
+            "n2"
+          ]
+        }
+      },
+      "n1": {
+        "type": "text",
+        "props": {
+          "type": "text",
+          "content": "© 2026"
+        }
+      },
+      "n2": {
+        "type": "container",
+        "props": {
+          "type": "container",
+          "children": [
+            "n3",
+            "n4",
+            "n5"
+          ],
+          "direction": "row",
+          "gap": 16
+        }
+      },
+      "n3": {
+        "type": "link",
+        "props": {
+          "type": "link",
+          "label": "หน้าแรก",
+          "href": "#"
+        }
+      },
+      "n4": {
+        "type": "link",
+        "props": {
+          "type": "link",
+          "label": "เกี่ยวกับ",
+          "href": "#"
+        }
+      },
+      "n5": {
+        "type": "link",
+        "props": {
+          "type": "link",
+          "label": "ติดต่อ",
+          "href": "#"
+        }
+      }
+    }
+  }
+]

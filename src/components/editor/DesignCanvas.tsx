@@ -142,6 +142,7 @@ export function DesignCanvas() {
   const updateOpenDocument = useProjectsStore((s) => s.updateOpenDocument);
   const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
   const setSelectedNodeId = useEditorStore((s) => s.setSelectedNodeId);
+  const forceDisplayState = useEditorStore((s) => s.forceDisplayState);
   const editingNodeId = useEditorStore((s) => s.editingNodeId);
   const setEditingNodeId = useEditorStore((s) => s.setEditingNodeId);
   const scopeRef = useRef<HTMLDivElement | null>(null);
@@ -362,6 +363,7 @@ export function DesignCanvas() {
       document: openDocument,
       editable: true,
       selectedNodeId,
+      forceDisplayState,
       dropIndicator,
       suppressRootEmptyHint: empty,
       editingNodeId,
@@ -378,6 +380,7 @@ export function DesignCanvas() {
   }, [
     openDocument,
     selectedNodeId,
+    forceDisplayState,
     dropIndicator,
     empty,
     editingNodeId,

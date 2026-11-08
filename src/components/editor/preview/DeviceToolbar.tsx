@@ -251,6 +251,7 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
   const toggleMultiDevice = usePreviewDeviceStore((s) => s.toggleMultiDevice);
 
   const previewStatus = useEditorStore((s) => s.previewStatus);
+  const pagePerfToolbar = useEditorStore((s) => s.pagePerfToolbar);
   const empty = useProjectsStore((s) => !s.openDocument || isDocumentEmpty(s.openDocument));
   const disabled = previewStatus !== "ready" || empty;
 
@@ -286,6 +287,15 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
   return (
     <>
     <OpenPageName compact={compact} />
+    {pagePerfToolbar ? (
+      <span
+        data-page-perf-toolbar
+        className="max-w-[10rem] truncate text-[11px] text-amber-700 dark:text-amber-400"
+        title={pagePerfToolbar}
+      >
+        {pagePerfToolbar}
+      </span>
+    ) : null}
     <div className="flex shrink-0 items-center gap-1.5" role="group" aria-label="อุปกรณ์ตัวอย่าง">
       {multi ? (
         <DropdownMenu>

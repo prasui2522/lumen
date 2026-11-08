@@ -297,6 +297,8 @@ export const FIELDS: readonly FieldDef[] = [
     options: [
       { value: "none", label: "ไม่มี" },
       { value: "solid", label: "เส้นทึบ" },
+      { value: "dashed", label: "เส้นประ" },
+      { value: "dotted", label: "จุด" },
     ],
   },
   {

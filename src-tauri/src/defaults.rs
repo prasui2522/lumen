@@ -197,6 +197,87 @@ pub enum NodeType {
     Calendar,
 }
 
+/// B7.1: paint-only style subset for `Node.states` (same keys as TS `STATE_PAINT_KEYS`).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StateStyle {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub background_color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub border_color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub opacity: Option<f64>,
+    #[serde(default, skip_serializing_if = "skip_empty_box_shadow")]
+    pub box_shadow: Option<Vec<BoxShadowLayer>>,
+    #[serde(default, skip_serializing_if = "skip_empty_gradient")]
+    pub background_gradient: Option<GradientValue>,
+    #[serde(default, skip_serializing_if = "skip_empty_gradient")]
+    pub text_gradient: Option<GradientValue>,
+    #[serde(default, skip_serializing_if = "skip_empty_filter")]
+    pub filter: Option<FilterValue>,
+    #[serde(default, skip_serializing_if = "skip_empty_backdrop_filter")]
+    pub backdrop_filter: Option<BackdropFilterValue>,
+    #[serde(default, skip_serializing_if = "skip_empty_transform")]
+    pub transform: Option<TransformValue>,
+}
+
+impl StateStyle {
+    pub fn is_empty(&self) -> bool {
+        self.background_color.is_none()
+            && self.color.is_none()
+            && self.border_color.is_none()
+            && self.opacity.is_none()
+            && self.box_shadow.as_ref().map_or(true, |v| v.is_empty())
+            && self.background_gradient.as_ref().map_or(true, GradientValue::is_unset)
+            && self.text_gradient.as_ref().map_or(true, GradientValue::is_unset)
+            && self.filter.as_ref().map_or(true, FilterValue::is_unset)
+            && self.backdrop_filter.as_ref().map_or(true, BackdropFilterValue::is_unset)
+            && self.transform.as_ref().map_or(true, TransformValue::is_unset)
+    }
+}
+
+/// B7.1: hover / active / focusVisible on a node (not per-breakpoint).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeStates {
+    #[serde(default, skip_serializing_if = "skip_empty_state_style")]
+    pub hover: Option<StateStyle>,
+    #[serde(default, skip_serializing_if = "skip_empty_state_style")]
+    pub active: Option<StateStyle>,
+    #[serde(default, skip_serializing_if = "skip_empty_state_style")]
+    pub focus_visible: Option<StateStyle>,
+}
+
+impl NodeStates {
+    pub fn is_empty(&self) -> bool {
+        skip_empty_state_style(&self.hover)
+            && skip_empty_state_style(&self.active)
+            && skip_empty_state_style(&self.focus_visible)
+    }
+
+    fn drop_empty(&mut self) {
+        if skip_empty_state_style(&self.hover) {
+            self.hover = None;
+        }
+        if skip_empty_state_style(&self.active) {
+            self.active = None;
+        }
+        if skip_empty_state_style(&self.focus_visible) {
+            self.focus_visible = None;
+        }
+    }
+}
+
+fn skip_empty_state_style(s: &Option<StateStyle>) -> bool {
+    s.as_ref().map(StateStyle::is_empty).unwrap_or(true)
+}
+
+fn skip_empty_states(v: &Option<NodeStates>) -> bool {
+    v.as_ref().map(NodeStates::is_empty).unwrap_or(true)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Node {
@@ -219,6 +300,9 @@ pub struct Node {
     /// Sparse per-breakpoint style overrides. Absent when no breakpoint has a key.
     #[serde(default, skip_serializing_if = "skip_empty_breakpoints")]
     pub style_breakpoints: Option<StyleBreakpoints>,
+    /// B7.1: paint-only interaction states.
+    #[serde(default, skip_serializing_if = "skip_empty_states")]
+    pub states: Option<NodeStates>,
 }
 
 /// Children only on page / section / container — leaf variants have none.
@@ -751,6 +835,241 @@ fn skip_empty_box_shadow(v: &Option<Vec<BoxShadowLayer>>) -> bool {
     v.as_ref().map_or(true, |layers| layers.is_empty())
 }
 
+/// B3.1 (§4.2): gradient kind.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum GradientKind {
+    Linear,
+    Radial,
+    Conic,
+}
+
+/// B3.1: one colour stop (`at` 0–100).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GradientStop {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<f64>,
+}
+
+/// B3.1: background or text gradient value. Empty / no stops ≡ unset.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GradientValue {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<GradientKind>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub angle: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stops: Option<Vec<GradientStop>>,
+}
+
+impl GradientValue {
+    /// True when there are no stops (or an empty list). Used by serde skip + `is_empty`.
+    pub fn is_unset(&self) -> bool {
+        self.stops.as_ref().map_or(true, |s| s.is_empty())
+    }
+}
+
+fn skip_empty_gradient(v: &Option<GradientValue>) -> bool {
+    v.as_ref().map_or(true, GradientValue::is_unset)
+}
+
+/// B4.1 (§4.2): one side's border override.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BorderSide {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub style: Option<String>,
+}
+
+impl BorderSide {
+    pub fn is_unset(&self) -> bool {
+        self.width.is_none() && self.color.is_none() && self.style.is_none()
+    }
+}
+
+/// B4.1: per-side border overrides. All sides empty ≡ unset.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BorderSides {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub t: Option<BorderSide>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r: Option<BorderSide>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub b: Option<BorderSide>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub l: Option<BorderSide>,
+}
+
+impl BorderSides {
+    pub fn is_unset(&self) -> bool {
+        self.t.as_ref().map_or(true, BorderSide::is_unset)
+            && self.r.as_ref().map_or(true, BorderSide::is_unset)
+            && self.b.as_ref().map_or(true, BorderSide::is_unset)
+            && self.l.as_ref().map_or(true, BorderSide::is_unset)
+    }
+}
+
+fn skip_empty_border_sides(v: &Option<BorderSides>) -> bool {
+    v.as_ref().map_or(true, BorderSides::is_unset)
+}
+
+/// B4.1: per-corner radius overrides. All unset ≡ empty.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BorderRadiusCorners {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tl: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tr: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub br: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bl: Option<f64>,
+}
+
+impl BorderRadiusCorners {
+    pub fn is_unset(&self) -> bool {
+        self.tl.is_none() && self.tr.is_none() && self.br.is_none() && self.bl.is_none()
+    }
+}
+
+fn skip_empty_border_radius_corners(v: &Option<BorderRadiusCorners>) -> bool {
+    v.as_ref().map_or(true, BorderRadiusCorners::is_unset)
+}
+
+/// B5.1 (§4.2): transform value. All-unset ≡ empty.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TransformValue {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub translate_x: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub translate_y: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scale: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scale_x: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scale_y: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rotate: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skew_x: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skew_y: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub origin: Option<String>,
+}
+
+impl TransformValue {
+    pub fn is_unset(&self) -> bool {
+        self.translate_x.is_none()
+            && self.translate_y.is_none()
+            && self.scale.is_none()
+            && self.scale_x.is_none()
+            && self.scale_y.is_none()
+            && self.rotate.is_none()
+            && self.skew_x.is_none()
+            && self.skew_y.is_none()
+            && self.origin.is_none()
+    }
+}
+
+fn skip_empty_transform(v: &Option<TransformValue>) -> bool {
+    v.as_ref().map_or(true, TransformValue::is_unset)
+}
+
+/// B5.1: transition value. All-unset ≡ empty.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TransitionValue {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delay_ms: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub easing: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub property: Option<String>,
+}
+
+impl TransitionValue {
+    pub fn is_unset(&self) -> bool {
+        self.duration_ms.is_none()
+            && self.delay_ms.is_none()
+            && self.easing.is_none()
+            && self.property.is_none()
+    }
+}
+
+fn skip_empty_transition(v: &Option<TransitionValue>) -> bool {
+    v.as_ref().map_or(true, TransitionValue::is_unset)
+}
+
+/// B6.1 (§4.2): CSS `filter`.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FilterValue {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blur: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub brightness: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contrast: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saturate: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grayscale: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hue_rotate: Option<f64>,
+}
+
+impl FilterValue {
+    pub fn is_unset(&self) -> bool {
+        self.blur.is_none()
+            && self.brightness.is_none()
+            && self.contrast.is_none()
+            && self.saturate.is_none()
+            && self.grayscale.is_none()
+            && self.hue_rotate.is_none()
+    }
+}
+
+fn skip_empty_filter(v: &Option<FilterValue>) -> bool {
+    v.as_ref().map_or(true, FilterValue::is_unset)
+}
+
+/// B6.1: `backdrop-filter` (+ `-webkit-backdrop-filter`).
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BackdropFilterValue {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blur: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saturate: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub brightness: Option<f64>,
+}
+
+impl BackdropFilterValue {
+    pub fn is_unset(&self) -> bool {
+        self.blur.is_none() && self.saturate.is_none() && self.brightness.is_none()
+    }
+}
+
+fn skip_empty_backdrop_filter(v: &Option<BackdropFilterValue>) -> bool {
+    v.as_ref().map_or(true, BackdropFilterValue::is_unset)
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StyleProps {
@@ -797,6 +1116,30 @@ pub struct StyleProps {
     /// B1.2: layered box-shadow. Empty vec is treated as unset (see `skip_empty_box_shadow`).
     #[serde(default, skip_serializing_if = "skip_empty_box_shadow")]
     pub box_shadow: Option<Vec<BoxShadowLayer>>,
+    /// B3.1: fill gradient. Empty / no stops ≡ unset (see `skip_empty_gradient`).
+    #[serde(default, skip_serializing_if = "skip_empty_gradient")]
+    pub background_gradient: Option<GradientValue>,
+    /// B3.1: text-fill gradient. Empty / no stops ≡ unset.
+    #[serde(default, skip_serializing_if = "skip_empty_gradient")]
+    pub text_gradient: Option<GradientValue>,
+    /// B4.1: per-side border overrides. Empty ≡ unset.
+    #[serde(default, skip_serializing_if = "skip_empty_border_sides")]
+    pub border_sides: Option<BorderSides>,
+    /// B4.1: per-corner radius overrides. Empty ≡ unset.
+    #[serde(default, skip_serializing_if = "skip_empty_border_radius_corners")]
+    pub border_radius_corners: Option<BorderRadiusCorners>,
+    /// B5.1: transform. Empty ≡ unset.
+    #[serde(default, skip_serializing_if = "skip_empty_transform")]
+    pub transform: Option<TransformValue>,
+    /// B5.1: transition. Empty ≡ unset.
+    #[serde(default, skip_serializing_if = "skip_empty_transition")]
+    pub transition: Option<TransitionValue>,
+    /// B6.1: filter. Empty ≡ unset.
+    #[serde(default, skip_serializing_if = "skip_empty_filter")]
+    pub filter: Option<FilterValue>,
+    /// B6.1: backdrop-filter. Empty ≡ unset.
+    #[serde(default, skip_serializing_if = "skip_empty_backdrop_filter")]
+    pub backdrop_filter: Option<BackdropFilterValue>,
 }
 
 impl StyleProps {
@@ -823,6 +1166,14 @@ impl StyleProps {
             && self.opacity.is_none()
             && self.overflow.is_none()
             && self.box_shadow.as_ref().map_or(true, |v| v.is_empty())
+            && self.background_gradient.as_ref().map_or(true, GradientValue::is_unset)
+            && self.text_gradient.as_ref().map_or(true, GradientValue::is_unset)
+            && self.border_sides.as_ref().map_or(true, BorderSides::is_unset)
+            && self.border_radius_corners.as_ref().map_or(true, BorderRadiusCorners::is_unset)
+            && self.transform.as_ref().map_or(true, TransformValue::is_unset)
+            && self.transition.as_ref().map_or(true, TransitionValue::is_unset)
+            && self.filter.as_ref().map_or(true, FilterValue::is_unset)
+            && self.backdrop_filter.as_ref().map_or(true, BackdropFilterValue::is_unset)
     }
 }
 
@@ -887,6 +1238,18 @@ fn normalize_page_nodes(nodes: &mut HashMap<NodeId, Node>) -> (bool, bool, bool)
         if clear {
             node.style_breakpoints = None;
         } else if node.style_breakpoints.is_some() {
+            any = true;
+        }
+        // B7.1: drop empty states; presence counts as tier-2 like breakpoints.
+        let clear_states = if let Some(states) = node.states.as_mut() {
+            states.drop_empty();
+            states.is_empty()
+        } else {
+            false
+        };
+        if clear_states {
+            node.states = None;
+        } else if node.states.is_some() {
             any = true;
         }
     }
@@ -1712,6 +2075,30 @@ fn overlay_style(base: &mut StyleProps, over: &StyleProps) {
     if over.box_shadow.is_some() {
         base.box_shadow = over.box_shadow.clone();
     }
+    if over.background_gradient.is_some() {
+        base.background_gradient = over.background_gradient.clone();
+    }
+    if over.text_gradient.is_some() {
+        base.text_gradient = over.text_gradient.clone();
+    }
+    if over.border_sides.is_some() {
+        base.border_sides = over.border_sides.clone();
+    }
+    if over.border_radius_corners.is_some() {
+        base.border_radius_corners = over.border_radius_corners.clone();
+    }
+    if over.transform.is_some() {
+        base.transform = over.transform.clone();
+    }
+    if over.transition.is_some() {
+        base.transition = over.transition.clone();
+    }
+    if over.filter.is_some() {
+        base.filter = over.filter.clone();
+    }
+    if over.backdrop_filter.is_some() {
+        base.backdrop_filter = over.backdrop_filter.clone();
+    }
 }
 
 impl Node {
@@ -1738,5 +2125,98 @@ impl Node {
             | NodeProps::Carousel { children, .. } => children.as_slice(),
             _ => &[],
         }
+    }
+}
+
+#[cfg(test)]
+mod b7_states_tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn b7_states_normalize_to_version_2() {
+        let mut nodes = HashMap::new();
+        nodes.insert(
+            "page".into(),
+            Node {
+                id: "page".into(),
+                node_type: NodeType::Page,
+                name: None,
+                visible: None,
+                locked: None,
+                class_names: None,
+                props: NodeProps::Page {
+                    children: vec!["n1".into()],
+                },
+                style: StyleProps::default(),
+                style_breakpoints: None,
+                states: None,
+            },
+        );
+        nodes.insert(
+            "n1".into(),
+            Node {
+                id: "n1".into(),
+                node_type: NodeType::Button,
+                name: None,
+                visible: None,
+                locked: None,
+                class_names: None,
+                props: NodeProps::Button {
+                    label: "Go".into(),
+                    href: None,
+                    action: None,
+                },
+                style: StyleProps::default(),
+                style_breakpoints: None,
+                states: Some(NodeStates {
+                    hover: Some(StateStyle {
+                        background_color: Some("#38bdf8".into()),
+                        ..Default::default()
+                    }),
+                    active: Some(StateStyle::default()),
+                    focus_visible: None,
+                }),
+            },
+        );
+        let mut doc = PageDocument {
+            version: 1,
+            meta: PageMeta {
+                title: "t".into(),
+                description: None,
+                lang: None,
+                favicon: None,
+            },
+            root: "page".into(),
+            nodes: nodes.clone(),
+            pages: vec![ProjectPage {
+                id: "home".into(),
+                name: "หน้าแรก".into(),
+                path: "/".into(),
+                root: "page".into(),
+                nodes,
+            }],
+        };
+        normalize_saved_document(&mut doc);
+        assert_eq!(doc.version, 2);
+        let n1 = doc.nodes.get("n1").unwrap();
+        assert_eq!(
+            n1.states
+                .as_ref()
+                .unwrap()
+                .hover
+                .as_ref()
+                .unwrap()
+                .background_color
+                .as_deref(),
+            Some("#38bdf8")
+        );
+        assert!(n1.states.as_ref().unwrap().active.is_none());
+    }
+
+    #[test]
+    fn b7_state_style_empty() {
+        assert!(StateStyle::default().is_empty());
+        assert!(NodeStates::default().is_empty());
     }
 }

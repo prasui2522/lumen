@@ -20,8 +20,9 @@
 use crate::defaults::{
     a2_layout_defaults, a3_layout_defaults, a5_layout_defaults, default_styles, heading_font_size, resolved_style, Align, AssetRef, BoxSpacing,
     ButtonAction, ContainerPropDefaults, CssSize, Direction, FontWeight, Justify, LineOrientation, Node, ScrollOrientation,
-    EdgeAlign, AspectRatioValue, NodeProps, NodeType, ObjectFit, PageDocument, SheetSide, StyleProps, BoxShadowLayer,
-    DEFAULT_IMAGE_OBJECT_FIT,
+    EdgeAlign, AspectRatioValue, NodeProps, NodeStates, NodeType, ObjectFit, PageDocument, SheetSide, StateStyle, StyleProps, BoxShadowLayer,
+    BackdropFilterValue, BorderRadiusCorners, BorderSide, BorderSides, FilterValue,
+    GradientKind, GradientValue, TransformValue, TransitionValue, DEFAULT_IMAGE_OBJECT_FIT,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -142,6 +143,10 @@ fn build(doc: &PageDocument, opts: &CompileOptions) -> Result<(String, String), 
         hook_base: String::new(),
         pending_hook: None,
         page_attr_done: false,
+        text_grad_forced: String::new(),
+        state_css: String::new(),
+        state_reduced: String::new(),
+        state_forced: String::new(),
     };
     c.render(&doc.root, 0);
 
@@ -198,6 +203,10 @@ pub fn style_css(doc: &PageDocument, opts: &CompileOptions) -> Result<String, St
         hook_base: String::new(),
         pending_hook: None,
         page_attr_done: false,
+        text_grad_forced: String::new(),
+        state_css: String::new(),
+        state_reduced: String::new(),
+        state_forced: String::new(),
     };
     c.render(&doc.root, 0);
     Ok(c.style_block())
@@ -233,6 +242,10 @@ pub fn markup_kind_types(doc: &PageDocument, opts: &CompileOptions) -> Result<BT
         hook_base: String::new(),
         pending_hook: None,
         page_attr_done: false,
+        text_grad_forced: String::new(),
+        state_css: String::new(),
+        state_reduced: String::new(),
+        state_forced: String::new(),
     };
     c.render(&doc.root, 0);
     Ok(MARKUP_KINDS.iter().map(|t| *t as u8).filter(|t| c.used_types.contains(t)).collect())
@@ -250,10 +263,10 @@ pub fn markup_kinds_css(used: &BTreeSet<u8>) -> String {
 }
 
 impl Compiler<'_> {
-    /// §7.2 order: hook base restatements → state rules → `@keyframes` → breakpoint blocks (tablet, phone,
-    /// fold-open: a narrower width query wins over tablet; fold-open wins only when the segments query
-    /// matches, because it is last; no width stand-in) → other at-rules (`@supports`) →
-    /// `@media (prefers-reduced-motion: reduce)` → `@media (forced-colors: active)`.
+    /// §7.2 order: hook base restatements → type look rules → **node state rules** → `@keyframes` →
+    /// breakpoint blocks (tablet, phone, fold-open: a narrower width query wins over tablet; fold-open
+    /// wins only when the segments query matches, because it is last; no width stand-in) → other
+    /// at-rules (`@supports`) → `@media (prefers-reduced-motion: reduce)` → `@media (forced-colors: active)`.
     fn style_block(&self) -> String {
         let mut state = String::new();
         let mut keyframes = String::new();
@@ -282,6 +295,8 @@ impl Compiler<'_> {
         let mut css = String::new();
         css.push_str(&self.hook_base);
         css.push_str(&state);
+        // B7.2 §7.2: per-node `:hover` / `:focus-visible` / `:active` (after `.nN` base in `build`).
+        css.push_str(&self.state_css);
         css.push_str(&keyframes);
         if !self.bp_tablet.is_empty() {
             css.push_str("@media (max-width:1024px){");
@@ -300,7 +315,11 @@ impl Compiler<'_> {
         }
         css.push_str(&other_at);
         css.push_str(&reduced);
+        css.push_str(&self.state_reduced);
         css.push_str(&forced);
+        // B3.1 §7.3: per-node text-gradient forced-colours fallback (after type forced rules).
+        css.push_str(&self.text_grad_forced);
+        css.push_str(&self.state_forced);
         css
     }
 }
@@ -361,9 +380,10 @@ display:flex;align-items:center;justify-content:center;color:#64748b;font-size:1
 const INPUT_FOCUS_RULE: &str = ".t-input:focus-visible{outline:2px solid #0077c2;outline-offset:2px}";
 
 /// Preview only. Not in export CSS. Subtle press; no :hover.
+/// B8.3: scoped to `:not(.fx)` so a button with user `states` keeps only the authored rule.
 /// Under prefers-reduced-motion: reduce the press has no transform (cursor stays).
-const PREVIEW_BUTTON_FEEDBACK: &str = ".t-button{cursor:pointer}.t-button:active{transform:translateY(1px)}\
-@media (prefers-reduced-motion:reduce){.t-button:active{transform:none}}";
+const PREVIEW_BUTTON_FEEDBACK: &str = ".t-button{cursor:pointer}.t-button:not(.fx):active{transform:translateY(1px)}\
+@media (prefers-reduced-motion:reduce){.t-button:not(.fx):active{transform:none}}";
 
   const ALL_TYPES: [NodeType; 59] = [
     NodeType::Page,
@@ -859,7 +879,335 @@ fn box_shadow_css(layers: &[BoxShadowLayer]) -> Option<String> {
     }
 }
 
+/// B3.1: compile a gradient → CSS function, or `None` if fewer than 2 valid stops remain.
+/// Caps (§4.2): 2–8 stops; `at` 0–100; angle 0–360; stops sorted by `at`; colour via `css_color`.
+fn gradient_css(g: &GradientValue) -> Option<String> {
+    let stops_in = g.stops.as_deref().unwrap_or(&[]);
+    let mut stops: Vec<(f64, String)> = Vec::new();
+    for stop in stops_in.iter().take(8) {
+        let color = match stop.color.as_deref().and_then(css_color) {
+            Some(c) => c,
+            None => continue,
+        };
+        let at = clamp_f(stop.at.unwrap_or(0.0), 0.0, 100.0);
+        stops.push((at, color));
+    }
+    if stops.len() < 2 {
+        return None;
+    }
+    stops.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+    let stop_css: String = stops
+        .iter()
+        .map(|(at, color)| format!("{} {}%", color, num(*at)))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let kind = g.kind.unwrap_or(GradientKind::Linear);
+    let default_angle = match kind {
+        GradientKind::Linear => 180.0,
+        GradientKind::Conic | GradientKind::Radial => 0.0,
+    };
+    let angle = clamp_f(g.angle.unwrap_or(default_angle), 0.0, 360.0);
+    Some(match kind {
+        GradientKind::Linear => format!("linear-gradient({}deg, {stop_css})", num(angle)),
+        GradientKind::Radial => format!("radial-gradient(circle, {stop_css})"),
+        GradientKind::Conic => format!("conic-gradient(from {}deg, {stop_css})", num(angle)),
+    })
+}
+
+/// Whether `decls` will emit a text-gradient (background wins when both are set — §4.2 exclusive).
+fn uses_text_gradient(s: &StyleProps) -> bool {
+    let bg_ok = s
+        .background_gradient
+        .as_ref()
+        .and_then(gradient_css)
+        .is_some();
+    if bg_ok {
+        return false;
+    }
+    s.text_gradient.as_ref().and_then(gradient_css).is_some()
+}
+
+/// B4.1: allowlisted border style keyword (uniform + per-side).
+fn border_style_kw(raw: &str) -> Option<&'static str> {
+    match raw.trim().to_ascii_lowercase().as_str() {
+        "solid" => Some("solid"),
+        "dashed" => Some("dashed"),
+        "dotted" => Some("dotted"),
+        "none" => Some("none"),
+        _ => None,
+    }
+}
+
+/// B4.1: push longhands for one side after the uniform border (§4.2).
+fn push_border_side(
+    push: &mut impl FnMut(&'static str, Option<String>),
+    side: &BorderSide,
+    width_k: &'static str,
+    color_k: &'static str,
+    style_k: &'static str,
+) {
+    if side.is_unset() {
+        return;
+    }
+    if let Some(w) = side.width {
+        push(width_k, Some(px(clamp_f(w, 0.0, 20.0))));
+    }
+    if let Some(c) = side.color.as_deref().and_then(css_color) {
+        push(color_k, Some(c));
+    }
+    if let Some(st) = side.style.as_deref().and_then(border_style_kw) {
+        push(style_k, Some(st.into()));
+    }
+}
+
+fn push_border_sides(push: &mut impl FnMut(&'static str, Option<String>), sides: &BorderSides) {
+    if let Some(s) = sides.t.as_ref() {
+        push_border_side(push, s, "border-top-width", "border-top-color", "border-top-style");
+    }
+    if let Some(s) = sides.r.as_ref() {
+        push_border_side(push, s, "border-right-width", "border-right-color", "border-right-style");
+    }
+    if let Some(s) = sides.b.as_ref() {
+        push_border_side(push, s, "border-bottom-width", "border-bottom-color", "border-bottom-style");
+    }
+    if let Some(s) = sides.l.as_ref() {
+        push_border_side(push, s, "border-left-width", "border-left-color", "border-left-style");
+    }
+}
+
+fn push_border_radius_corners(
+    push: &mut impl FnMut(&'static str, Option<String>),
+    c: &BorderRadiusCorners,
+) {
+    if let Some(n) = c.tl {
+        push("border-top-left-radius", Some(px(clamp_f(n, 0.0, 400.0))));
+    }
+    if let Some(n) = c.tr {
+        push("border-top-right-radius", Some(px(clamp_f(n, 0.0, 400.0))));
+    }
+    if let Some(n) = c.br {
+        push("border-bottom-right-radius", Some(px(clamp_f(n, 0.0, 400.0))));
+    }
+    if let Some(n) = c.bl {
+        push("border-bottom-left-radius", Some(px(clamp_f(n, 0.0, 400.0))));
+    }
+}
+
+const TRANSFORM_ORIGINS: &[&str] = &[
+    "top left",
+    "top",
+    "top right",
+    "left",
+    "center",
+    "right",
+    "bottom left",
+    "bottom",
+    "bottom right",
+];
+
+/// B5.1: fixed order translate → rotate → scale → skew. `None` if no function parts.
+fn transform_css(t: &TransformValue) -> Option<String> {
+    let mut parts: Vec<String> = Vec::new();
+    let tx = t.translate_x.map(|n| clamp_f(n, -1000.0, 1000.0));
+    let ty = t.translate_y.map(|n| clamp_f(n, -1000.0, 1000.0));
+    if tx.is_some() || ty.is_some() {
+        parts.push(format!(
+            "translate({}px, {}px)",
+            num(tx.unwrap_or(0.0)),
+            num(ty.unwrap_or(0.0))
+        ));
+    }
+    if let Some(r) = t.rotate {
+        parts.push(format!("rotate({}deg)", num(clamp_f(r, -360.0, 360.0))));
+    }
+    if let Some(s) = t.scale {
+        parts.push(format!("scale({})", num(clamp_f(s, 0.0, 5.0))));
+    } else if t.scale_x.is_some() || t.scale_y.is_some() {
+        parts.push(format!(
+            "scale({}, {})",
+            num(clamp_f(t.scale_x.unwrap_or(1.0), 0.0, 5.0)),
+            num(clamp_f(t.scale_y.unwrap_or(1.0), 0.0, 5.0))
+        ));
+    }
+    let sx = t.skew_x.map(|n| clamp_f(n, -360.0, 360.0));
+    let sy = t.skew_y.map(|n| clamp_f(n, -360.0, 360.0));
+    if sx.is_some() || sy.is_some() {
+        parts.push(format!(
+            "skew({}deg, {}deg)",
+            num(sx.unwrap_or(0.0)),
+            num(sy.unwrap_or(0.0))
+        ));
+    }
+    if parts.is_empty() {
+        None
+    } else {
+        Some(parts.join(" "))
+    }
+}
+
+fn transform_origin_kw(raw: &str) -> Option<&'static str> {
+    let t = raw.trim().to_ascii_lowercase();
+    TRANSFORM_ORIGINS.iter().copied().find(|k| *k == t)
+}
+
+const TRANSITION_PAINT: &str =
+    "background-color,color,border-color,box-shadow,opacity,transform,filter,backdrop-filter";
+const TRANSITION_SPRING: &str = "cubic-bezier(0.34,1.56,0.64,1)";
+
+fn transition_easing(raw: &str) -> Option<String> {
+    let t = raw.trim().to_ascii_lowercase();
+    match t.as_str() {
+        "ease" | "ease-in" | "ease-out" | "ease-in-out" | "linear" => Some(t),
+        "spring" => Some(TRANSITION_SPRING.into()),
+        _ if t.starts_with("cubic-bezier(") && t.ends_with(')') => {
+            // Accept cubic-bezier(n,n,n,n) with x in 0–1 (loose parse).
+            let inner = &t["cubic-bezier(".len()..t.len() - 1];
+            let nums: Vec<&str> = inner.split(',').map(str::trim).collect();
+            if nums.len() != 4 {
+                return None;
+            }
+            let parsed: Vec<f64> = nums.iter().filter_map(|s| s.parse().ok()).collect();
+            if parsed.len() != 4 {
+                return None;
+            }
+            if !(0.0..=1.0).contains(&parsed[0]) || !(0.0..=1.0).contains(&parsed[2]) {
+                return None;
+            }
+            Some(format!(
+                "cubic-bezier({},{},{},{})",
+                num(parsed[0]),
+                num(parsed[1]),
+                num(parsed[2]),
+                num(parsed[3])
+            ))
+        }
+        _ => None,
+    }
+}
+
+/// B5.1: emit transition longhands when any field is set. `property` only `"paint"`.
+fn push_transition(push: &mut impl FnMut(&'static str, Option<String>), t: &TransitionValue) {
+    if t.is_unset() {
+        return;
+    }
+    let prop = t.property.as_deref().unwrap_or("paint");
+    if prop != "paint" {
+        // v1: refuse unknown property lists (never layout).
+        return;
+    }
+    push("transition-property", Some(TRANSITION_PAINT.into()));
+    if let Some(d) = t.duration_ms {
+        push(
+            "transition-duration",
+            Some(format!("{}ms", num(clamp_f(d, 0.0, 2000.0)))),
+        );
+    }
+    if let Some(e) = t.easing.as_deref().and_then(transition_easing) {
+        push("transition-timing-function", Some(e));
+    }
+    if let Some(d) = t.delay_ms {
+        push(
+            "transition-delay",
+            Some(format!("{}ms", num(clamp_f(d, 0.0, 2000.0)))),
+        );
+    }
+}
+
+/// B6.1: `filter` function list. Percentages stored as 0–300 (100 = 100%).
+fn filter_css(f: &FilterValue) -> Option<String> {
+    let mut parts: Vec<String> = Vec::new();
+    if let Some(b) = f.blur {
+        parts.push(format!("blur({}px)", num(clamp_f(b, 0.0, 40.0))));
+    }
+    if let Some(b) = f.brightness {
+        parts.push(format!("brightness({}%)", num(clamp_f(b, 0.0, 300.0))));
+    }
+    if let Some(c) = f.contrast {
+        parts.push(format!("contrast({}%)", num(clamp_f(c, 0.0, 300.0))));
+    }
+    if let Some(s) = f.saturate {
+        parts.push(format!("saturate({}%)", num(clamp_f(s, 0.0, 300.0))));
+    }
+    if let Some(g) = f.grayscale {
+        parts.push(format!("grayscale({}%)", num(clamp_f(g, 0.0, 100.0))));
+    }
+    if let Some(h) = f.hue_rotate {
+        parts.push(format!("hue-rotate({}deg)", num(clamp_f(h, 0.0, 360.0))));
+    }
+    if parts.is_empty() {
+        None
+    } else {
+        Some(parts.join(" "))
+    }
+}
+
+fn backdrop_filter_css(f: &BackdropFilterValue) -> Option<String> {
+    let mut parts: Vec<String> = Vec::new();
+    if let Some(b) = f.blur {
+        parts.push(format!("blur({}px)", num(clamp_f(b, 0.0, 40.0))));
+    }
+    if let Some(s) = f.saturate {
+        parts.push(format!("saturate({}%)", num(clamp_f(s, 0.0, 300.0))));
+    }
+    if let Some(b) = f.brightness {
+        parts.push(format!("brightness({}%)", num(clamp_f(b, 0.0, 300.0))));
+    }
+    if parts.is_empty() {
+        None
+    } else {
+        Some(parts.join(" "))
+    }
+}
+
 pub(crate) fn decls_for_test(s: &StyleProps) -> Vec<(&'static str, String)> { decls(s) }
+
+pub(crate) fn state_decls_for_test(s: &StateStyle) -> Vec<(&'static str, String)> { state_decls(s) }
+
+/// B7.2: paint-only allowlist → same CSS longhands as `decls` (defence in depth: `StateStyle` has only these keys).
+fn state_as_style(s: &StateStyle) -> StyleProps {
+    StyleProps {
+        background_color: s.background_color.clone(),
+        color: s.color.clone(),
+        border_color: s.border_color.clone(),
+        opacity: s.opacity,
+        box_shadow: s.box_shadow.clone(),
+        background_gradient: s.background_gradient.clone(),
+        text_gradient: s.text_gradient.clone(),
+        filter: s.filter.clone(),
+        backdrop_filter: s.backdrop_filter.clone(),
+        transform: s.transform.clone(),
+        ..Default::default()
+    }
+}
+
+fn state_decls(s: &StateStyle) -> Vec<(&'static str, String)> {
+    decls(&state_as_style(s))
+}
+
+/// B7.2 / §7.3: `:focus-visible` only when the compiled root is a focusable control.
+fn state_focusable(node: &Node, opts: &CompileOptions) -> bool {
+    match &node.props {
+        NodeProps::Button { href, action, .. } => {
+            let linkable = !matches!(action, Some(ButtonAction::None))
+                && href.as_deref().is_some_and(|h| !h.trim().is_empty());
+            if !linkable {
+                return false;
+            }
+            if opts.preview {
+                preview_page_marker(href.as_deref().unwrap_or(""), opts).is_some()
+            } else {
+                true
+            }
+        }
+        NodeProps::Link { .. }
+        | NodeProps::Input { .. }
+        | NodeProps::Textarea { .. }
+        | NodeProps::Select { .. }
+        | NodeProps::Checkbox { .. }
+        | NodeProps::Switch { .. } => true,
+        _ => false,
+    }
+}
 
 fn decls(s: &StyleProps) -> Vec<(&'static str, String)> {
     let mut d: Vec<(&'static str, String)> = Vec::new();
@@ -868,7 +1216,19 @@ fn decls(s: &StyleProps) -> Vec<(&'static str, String)> {
             d.push((k, v));
         }
     };
-    push("display", s.display.as_deref().map(css_safe));
+    let xform = s.transform.as_ref().and_then(transform_css);
+    // B5.1: transform has no effect on display:inline → promote to inline-block (T105).
+    let display = s.display.as_deref().and_then(|raw| {
+        let d = css_safe(raw);
+        if d.is_empty() {
+            None
+        } else if d == "inline" && xform.is_some() {
+            Some("inline-block".into())
+        } else {
+            Some(d)
+        }
+    });
+    push("display", display);
     push("width", s.width.as_ref().map(css_len));
     push("height", s.height.as_ref().map(css_len));
     push("min-height", s.min_height.as_ref().map(css_len));
@@ -876,7 +1236,25 @@ fn decls(s: &StyleProps) -> Vec<(&'static str, String)> {
     push("margin", s.margin.as_ref().map(spacing));
     push("padding", s.padding.as_ref().map(spacing));
     push("background-color", s.background_color.as_deref().map(css_safe));
-    push("color", s.color.as_deref().map(css_safe));
+    // B3.1: backgroundGradient wins over textGradient when both are set (§4.2 exclusive).
+    let bg_grad = s.background_gradient.as_ref().and_then(gradient_css);
+    let text_grad = if bg_grad.is_none() {
+        s.text_gradient.as_ref().and_then(gradient_css)
+    } else {
+        None
+    };
+    if let Some(img) = bg_grad {
+        push("background-image", Some(img));
+    } else if let Some(img) = text_grad.clone() {
+        push("background-image", Some(img));
+        push("-webkit-background-clip", Some("text".into()));
+        push("background-clip", Some("text".into()));
+    }
+    if text_grad.is_some() {
+        push("color", Some("transparent".into()));
+    } else {
+        push("color", s.color.as_deref().map(css_safe));
+    }
     push("font-family", s.font_family.as_deref().map(css_safe));
     push("font-size", s.font_size.map(px));
     push(
@@ -895,13 +1273,49 @@ fn decls(s: &StyleProps) -> Vec<(&'static str, String)> {
         }),
     );
     push("text-align", s.text_align.as_deref().map(css_safe));
+    // B4.1: uniform radius first, then set corners only.
     push("border-radius", s.border_radius.map(px));
+    if let Some(corners) = s.border_radius_corners.as_ref() {
+        push_border_radius_corners(&mut push, corners);
+    }
     push("border-width", s.border_width.map(px));
     push("border-color", s.border_color.as_deref().map(css_safe));
-    push("border-style", s.border_style.as_deref().map(css_safe));
+    // B4.1: dashed/dotted join the allowlist (hostile free-strings drop).
+    push(
+        "border-style",
+        s.border_style
+            .as_deref()
+            .and_then(border_style_kw)
+            .map(|k| k.to_string()),
+    );
+    // B4.1: per-side overrides after the uniform border.
+    if let Some(sides) = s.border_sides.as_ref() {
+        push_border_sides(&mut push, sides);
+    }
     push("opacity", s.opacity.map(num));
     push("overflow", s.overflow.as_deref().map(css_safe));
     push("box-shadow", s.box_shadow.as_ref().and_then(|layers| box_shadow_css(layers)));
+    // B5.1: transform + origin + transition longhands.
+    if let Some(tf) = xform {
+        push("transform", Some(tf));
+    }
+    if let Some(origin) = s
+        .transform
+        .as_ref()
+        .and_then(|t| t.origin.as_deref())
+        .and_then(transform_origin_kw)
+    {
+        push("transform-origin", Some(origin.into()));
+    }
+    if let Some(tr) = s.transition.as_ref() {
+        push_transition(&mut push, tr);
+    }
+    // B6.1: filter + backdrop-filter (prefixed).
+    push("filter", s.filter.as_ref().and_then(filter_css));
+    if let Some(bf) = s.backdrop_filter.as_ref().and_then(backdrop_filter_css) {
+        push("-webkit-backdrop-filter", Some(bf.clone()));
+        push("backdrop-filter", Some(bf));
+    }
     d
 }
 
@@ -1313,6 +1727,14 @@ struct Compiler<'a> {
     pending_hook: Option<(String, String)>,
     /// B0.1 item 3: set once the page root's `data-wb-page` is written.
     page_attr_done: bool,
+    /// B3.1 (§7.3): `.nN` classes that emit a text gradient — need forced-colours fallback.
+    text_grad_forced: String,
+    /// B7.2 §7.2: per-node state rules (`@media (hover:hover){.nN:hover}`, `:focus-visible`, `:active`).
+    state_css: String,
+    /// B7.2 §7.4: per-node `prefers-reduced-motion` overrides (transition/transform under states).
+    state_reduced: String,
+    /// B7.2 §7.3: per-node `forced-colors` fallbacks for state rings (focus-visible + box-shadow).
+    state_forced: String,
 }
 
 /// B0 (§9.B P1 selector contract): the attribute both outputs put on a node root that the generated CSS targets.
@@ -1499,13 +1921,34 @@ impl<'a> Compiler<'a> {
                 }
             }
         }
-        if d.is_empty() && tablet.is_empty() && phone.is_empty() && fold.is_empty() {
+        let states = node.states.as_ref().filter(|s| !s.is_empty());
+        let has_states = states.is_some();
+        let has_transition = node
+            .style
+            .transition
+            .as_ref()
+            .is_some_and(|t| !t.is_unset());
+        if d.is_empty() && tablet.is_empty() && phone.is_empty() && fold.is_empty() && !has_states {
             return None;
         }
         let class = format!("n{}", self.next_class);
         self.next_class += 1;
         if !d.is_empty() {
             self.node_css.push_str(&rule(&format!(".{class}"), &d));
+        }
+        // B3.1 §7.3: text gradient → forced-colours restore readable text (CanvasText).
+        if uses_text_gradient(&eff) {
+            self.text_grad_forced.push_str(&format!(
+                "@media (forced-colors:active){{.{class}{{color:CanvasText;background:none}}}}"
+            ));
+        }
+        // B7.2: state rules after the base `.nN` rule; order hover → focus-visible → active.
+        if let Some(st) = states {
+            self.emit_node_states(&class, node, st, &eff, has_transition);
+        } else if has_transition {
+            self.state_reduced.push_str(&format!(
+                "@media (prefers-reduced-motion:reduce){{.{class}{{transition:none}}}}"
+            ));
         }
         // B0 (§9.B P1): breakpoint rules belong to the shared generator and target the node's `data-wb-id` hook, so
         // the Vite export (base styles inline) can use the very same bytes. The generator also restates the base
@@ -1542,7 +1985,104 @@ impl<'a> Compiler<'a> {
             }
             self.pending_hook = Some((class.clone(), node.id.clone()));
         }
-        Some(class)
+        // B7.2 / §7.2: nodes with states carry `fx` (scopes legacy Preview press feedback in B8.3).
+        if has_states {
+            Some(format!("{class} fx"))
+        } else {
+            Some(class)
+        }
+    }
+
+    /// B7.2: emit hover (inside `@media (hover:hover)`), focus-visible (focusable only), active last;
+    /// reduced-motion + forced-colors fallbacks.
+    fn emit_node_states(
+        &mut self,
+        class: &str,
+        node: &Node,
+        st: &NodeStates,
+        base_eff: &StyleProps,
+        has_transition: bool,
+    ) {
+        let focusable = state_focusable(node, self.opts);
+        let mut transform_pseudos: Vec<&'static str> = Vec::new();
+
+        if let Some(hover) = st.hover.as_ref().filter(|s| !s.is_empty()) {
+            let d = state_decls(hover);
+            if !d.is_empty() {
+                let inner = rule(&format!(".{class}:hover"), &d);
+                self.state_css
+                    .push_str(&format!("@media (hover:hover){{{inner}}}"));
+                if hover.transform.as_ref().is_some_and(|t| !t.is_unset()) {
+                    transform_pseudos.push(":hover");
+                }
+                if uses_text_gradient(&state_as_style(hover)) {
+                    self.text_grad_forced.push_str(&format!(
+                        "@media (forced-colors:active){{.{class}{{color:CanvasText;background:none}}}}"
+                    ));
+                }
+            }
+        }
+
+        if focusable {
+            if let Some(fv) = st.focus_visible.as_ref().filter(|s| !s.is_empty()) {
+                let d = state_decls(fv);
+                if !d.is_empty() {
+                    self.state_css
+                        .push_str(&rule(&format!(".{class}:focus-visible"), &d));
+                    if fv.transform.as_ref().is_some_and(|t| !t.is_unset()) {
+                        transform_pseudos.push(":focus-visible");
+                    }
+                    if fv.box_shadow.as_ref().is_some_and(|layers| !layers.is_empty()) {
+                        self.state_forced.push_str(&format!(
+                            "@media (forced-colors:active){{.{class}:focus-visible{{outline:2px solid CanvasText}}}}"
+                        ));
+                    }
+                    if uses_text_gradient(&state_as_style(fv)) {
+                        self.text_grad_forced.push_str(&format!(
+                            "@media (forced-colors:active){{.{class}{{color:CanvasText;background:none}}}}"
+                        ));
+                    }
+                }
+            }
+        }
+
+        if let Some(active) = st.active.as_ref().filter(|s| !s.is_empty()) {
+            let d = state_decls(active);
+            if !d.is_empty() {
+                self.state_css
+                    .push_str(&rule(&format!(".{class}:active"), &d));
+                if active.transform.as_ref().is_some_and(|t| !t.is_unset()) {
+                    transform_pseudos.push(":active");
+                }
+                if uses_text_gradient(&state_as_style(active)) {
+                    self.text_grad_forced.push_str(&format!(
+                        "@media (forced-colors:active){{.{class}{{color:CanvasText;background:none}}}}"
+                    ));
+                }
+            }
+        }
+
+        // §7.4: nodes with transition and/or states lose transition under reduced motion; transform
+        // state changes restore the base transform (or `none`). `has_transition` is informational —
+        // states always emit `transition:none` (matches B9.1).
+        let _ = has_transition;
+        let mut reduced = format!(".{class}{{transition:none}}");
+        if !transform_pseudos.is_empty() {
+            let restore = base_eff
+                .transform
+                .as_ref()
+                .and_then(transform_css)
+                .unwrap_or_else(|| "none".into());
+            let sels: String = transform_pseudos
+                .iter()
+                .map(|p| format!(".{class}{p}"))
+                .collect::<Vec<_>>()
+                .join(",");
+            reduced.push_str(&format!("{sels}{{transform:{restore}}}"));
+        }
+        self.state_reduced.push_str(&format!(
+            "@media (prefers-reduced-motion:reduce){{{reduced}}}"
+        ));
     }
 
     fn open(&mut self, tag: &str, classes: &[&str], attrs: &[(&str, String)]) {
@@ -1567,7 +2107,10 @@ impl<'a> Compiler<'a> {
             self.body.push_str(&esc(&page_scope_id(self.doc, self.opts)));
             self.body.push('"');
         }
-        if self.pending_hook.as_ref().is_some_and(|(c, _)| classes.iter().any(|x| x == c)) {
+        // B7.2: `ncls` may be `"n3 fx"` — match the bare `nN` token.
+        if self.pending_hook.as_ref().is_some_and(|(c, _)| {
+            classes.iter().any(|x| x == c || x.split_whitespace().any(|p| p == c.as_str()))
+        }) {
             let (_, id) = self.pending_hook.take().unwrap_or_default();
             self.body.push(' ');
             self.body.push_str(HOOK_ATTR);
@@ -3002,3 +3545,27 @@ mod b0_tests;
 #[cfg(test)]
 #[path = "compiler_b1_tests.rs"]
 mod b1_tests;
+
+#[cfg(test)]
+#[path = "compiler_b3_tests.rs"]
+mod b3_tests;
+
+#[cfg(test)]
+#[path = "compiler_b4_tests.rs"]
+mod b4_tests;
+
+#[cfg(test)]
+#[path = "compiler_b5_tests.rs"]
+mod b5_tests;
+
+#[cfg(test)]
+#[path = "compiler_b6_tests.rs"]
+mod b6_tests;
+
+#[cfg(test)]
+#[path = "compiler_b7_tests.rs"]
+mod b7_tests;
+
+#[cfg(test)]
+#[path = "compiler_b9_tests.rs"]
+mod b9_tests;

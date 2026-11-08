@@ -1,13 +1,16 @@
 import type {
   Node,
   NodeId,
+  NodeStates,
   PageDocument,
   ProjectPage,
+  StatePaintKey,
+  StateStyle,
   StyleBreakpoint,
   StyleBreakpoints,
   StyleProps,
 } from "@/schema";
-import { isVersion4Kind } from "@/schema";
+import { isVersion4Kind, NODE_STATE_NAMES, STATE_PAINT_KEYS } from "@/schema";
 import { ensurePages, openPageIdOf, syncOpenIntoPages } from "@/lib/project-pages";
 import { previewPageMarkers, previewPagePaths } from "@/lib/preview-links";
 
@@ -28,6 +31,48 @@ export function cleanStyle(style: StyleProps | undefined): StyleProps | undefine
       Object.keys(value as object).length === 0
     ) {
       continue;
+    }
+    // B3.1: gradient with no stops ≡ unset.
+    if (
+      (key === "backgroundGradient" || key === "textGradient") &&
+      value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value)
+    ) {
+      const stops = (value as { stops?: unknown[] }).stops;
+      if (!Array.isArray(stops) || stops.length === 0) continue;
+    }
+    // B4.1: empty per-side / per-corner objects ≡ unset.
+    if (key === "borderSides" && value !== null && typeof value === "object") {
+      const sides = value as {
+        t?: object;
+        r?: object;
+        b?: object;
+        l?: object;
+      };
+      const sideEmpty = (s: object | undefined) =>
+        !s || Object.values(s as Record<string, unknown>).every((v) => v === undefined);
+      if (sideEmpty(sides.t) && sideEmpty(sides.r) && sideEmpty(sides.b) && sideEmpty(sides.l)) {
+        continue;
+      }
+    }
+    if (key === "borderRadiusCorners" && value !== null && typeof value === "object") {
+      const c = value as Record<string, unknown>;
+      if (c.tl === undefined && c.tr === undefined && c.br === undefined && c.bl === undefined) {
+        continue;
+      }
+    }
+    if (
+      (key === "transform" ||
+        key === "transition" ||
+        key === "filter" ||
+        key === "backdropFilter") &&
+      value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value)
+    ) {
+      const o = value as Record<string, unknown>;
+      if (Object.values(o).every((v) => v === undefined)) continue;
     }
     (out as Record<string, unknown>)[key] = value;
   }
@@ -51,6 +96,31 @@ export function hasBreakpointOverride(doc: PageDocument): boolean {
   );
 }
 
+/** B7.1: keep only paint keys; empty → undefined. */
+export function cleanStateStyle(style: StateStyle | undefined): StateStyle | undefined {
+  if (!style) return undefined;
+  const out: StateStyle = {};
+  for (const key of STATE_PAINT_KEYS) {
+    const value = style[key];
+    if (value === undefined) continue;
+    // Reuse StyleProps empty rules (gradients, shadows, empty objects).
+    const cleaned = cleanStyle({ [key]: value } as StyleProps);
+    if (!cleaned || cleaned[key] === undefined) continue;
+    (out as Record<string, unknown>)[key] = cleaned[key];
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+export function cleanStates(states: NodeStates | undefined): NodeStates | undefined {
+  if (!states) return undefined;
+  const out: NodeStates = {};
+  for (const name of NODE_STATE_NAMES) {
+    const cleaned = cleanStateStyle(states[name]);
+    if (cleaned) out[name] = cleaned;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 function cleanNodes(nodes: Record<NodeId, Node>): {
   nodes: Record<NodeId, Node>;
   anyBp: boolean;
@@ -64,22 +134,34 @@ function cleanNodes(nodes: Record<NodeId, Node>): {
   for (const [id, node] of Object.entries(nodes)) {
     if (isVersion4Kind(node.type)) v4 = true; // includes the A3 checkbox (§4.4)
     else if (node.type === "input" || node.type === "switch") field = true;
+    let next: Node = node;
     const map = cleanBreakpoints(node.styleBreakpoints);
     if (map) {
       anyBp = true;
-      out[id] = { ...node, styleBreakpoints: map };
+      next = { ...next, styleBreakpoints: map };
     } else if (node.styleBreakpoints) {
-      const { styleBreakpoints: _drop, ...rest } = node;
-      out[id] = rest;
-    } else {
-      out[id] = node;
+      const { styleBreakpoints: _drop, ...rest } = next;
+      next = rest;
     }
+    const states = cleanStates(node.states);
+    if (states) {
+      anyBp = true; // B7.1: states count as tier-2 like breakpoints (§4.4)
+      next = { ...next, states };
+    } else if (node.states) {
+      const { states: _drop, ...rest } = next;
+      next = rest;
+    }
+    out[id] = next;
   }
   return { nodes: out, anyBp, field, v4 };
 }
 
 function versionFromFlags(v4: boolean, field: boolean, anyBp: boolean): 1 | 2 | 3 | 4 {
   return v4 ? 4 : field ? 3 : anyBp ? 2 : 1;
+}
+
+export function isStatePaintKey(key: string): key is StatePaintKey {
+  return (STATE_PAINT_KEYS as readonly string[]).includes(key);
 }
 
 /**

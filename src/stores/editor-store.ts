@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import type { PageDocument } from "@/schema";
+import type { NodeStateName, PageDocument } from "@/schema";
+import type { PagePerfStats, PagePerfWarning } from "@/lib/page-perf";
 
 /** Undo/redo depth cap (snapshots share structure, so each is cheap). */
 export const HISTORY_LIMIT = 100;
@@ -76,6 +77,12 @@ type EditorState = {
   setDocumentTitle: (title: string) => void;
   toggleSidebar: () => void;
   setSelectedNodeId: (id: string | null) => void;
+  /**
+   * B7.3: Style-panel state switcher preview on the selected canvas node only
+   * (`null` = ปกติ). Cleared on selection change and when leaving Design.
+   */
+  forceDisplayState: NodeStateName | null;
+  setForceDisplayState: (name: NodeStateName | null) => void;
   setMode: (mode: EditorMode) => void;
   setPreviewStatus: (status: PreviewStatus) => void;
   setPreviewError: (error: string | null) => void;
@@ -85,6 +92,15 @@ type EditorState = {
   announcement: string;
   /** Polite cue: clear, then set on the next frame so a repeat is read again. */
   announce: (msg: string) => void;
+  /** B6.2: last per-page perf evaluation (Design + Preview toolbar). */
+  pagePerfStats: PagePerfStats | null;
+  pagePerfWarnings: PagePerfWarning[];
+  pagePerfToolbar: string | null;
+  setPagePerf: (
+    stats: PagePerfStats | null,
+    warnings: PagePerfWarning[],
+    toolbar: string | null,
+  ) => void;
   modelHistory: ModelHistoryBridge | null;
   setModelHistory: (h: ModelHistoryBridge | null) => void;
   /** Phase 10: `.sql` export published by the lazy DB chunk while `ฐานข้อมูล` is shown. */
@@ -153,13 +169,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   clearHistory: () => set({ ...EMPTY_HISTORY }),
   setDocumentTitle: (title) => set({ documentTitle: title }),
   toggleSidebar: () => set((s) => ({ isSidebarOpen: !s.isSidebarOpen })),
-  setSelectedNodeId: (id) => set({ selectedNodeId: id }),
+  forceDisplayState: null,
+  setForceDisplayState: (forceDisplayState) => set({ forceDisplayState }),
+  setSelectedNodeId: (id) =>
+    set({ selectedNodeId: id, forceDisplayState: null }),
   setMode: (mode) => {
     if (mode === "preview") {
       // Start preview pipeline; selection stays in store for return to Design.
       set({
         mode,
         editingNodeId: null,
+        forceDisplayState: null,
         previewStatus: "loading",
         previewError: null,
       });
@@ -169,11 +189,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({
       mode,
       editingNodeId: mode === "database" ? null : get().editingNodeId,
+      // Leaving Design (→ database) drops forced state; returning stays null.
+      forceDisplayState: mode === "design" ? get().forceDisplayState : null,
       previewStatus: "idle",
       previewError: null,
     });
   },
   announcement: "",
+  pagePerfStats: null,
+  pagePerfWarnings: [],
+  pagePerfToolbar: null,
+  setPagePerf: (pagePerfStats, pagePerfWarnings, pagePerfToolbar) =>
+    set({ pagePerfStats, pagePerfWarnings, pagePerfToolbar }),
   modelHistory: null,
   setModelHistory: (modelHistory) => set({ modelHistory }),
   dbExport: null,
@@ -187,11 +214,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   resetEditorChrome: () =>
     set({
       mode: "design",
+      pagePerfStats: null,
+      pagePerfWarnings: [],
+      pagePerfToolbar: null,
       previewStatus: "idle",
       previewError: null,
       documentTitle: "หน้าใหม่",
       isSidebarOpen: true,
       selectedNodeId: null,
+      forceDisplayState: null,
       focusLayerId: null,
       openPageId: null,
       pendingPageRenameId: null,

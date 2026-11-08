@@ -1,0 +1,15 @@
+{
+  "backgroundGradient": {
+    "kind": "radial",
+    "stops": [
+      {
+        "color": "#ffffff",
+        "at": 0
+      },
+      {
+        "color": "#0f172a",
+        "at": 100
+      }
+    ]
+  }
+}

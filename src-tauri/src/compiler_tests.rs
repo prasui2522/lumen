@@ -415,9 +415,10 @@ fn preview_button_has_press_feedback_export_does_not() {
     .unwrap();
     let css = style_block(&preview);
     assert!(css.contains(".t-button{cursor:pointer}"), "{css}");
-    assert!(css.contains(".t-button:active{transform:translateY(1px)}"), "{css}");
+    // B8.3: legacy press is scoped away from `.fx` (user states).
+    assert!(css.contains(".t-button:not(.fx):active{transform:translateY(1px)}"), "{css}");
     assert!(
-        css.contains("@media (prefers-reduced-motion:reduce){.t-button:active{transform:none}}"),
+        css.contains("@media (prefers-reduced-motion:reduce){.t-button:not(.fx):active{transform:none}}"),
         "{css}"
     );
     let b = body(&preview);

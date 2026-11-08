@@ -30,11 +30,22 @@ import {
   ASPECT_RATIOS,
   isVisible,
   resolvedStyle,
+  STATE_PAINT_KEYS,
   type BoxSpacing,
   type Node,
+  type NodeStateName,
+  type StatePaintKey,
   type StyleBreakpoint,
   type StyleProps,
 } from "@/schema";
+import {
+  CLEAR_THIS_STATE_LABEL,
+  STATE_LOCKS_BREAKPOINT_MSG,
+  STATE_PAINT_ONLY_HINT,
+  STATE_SWITCH_OPTIONS,
+  nodeOffersFocusState,
+} from "@/lib/node-state-ui";
+import { nodeTypeHasPresets } from "@/lib/presets-registry";
 import { cn } from "@/lib/utils";
 import { lazyNamed, useMountedOnce, whenIdle } from "@/lib/lazy";
 import { useEditorStore } from "@/stores/editor-store";
@@ -46,6 +57,7 @@ import { isPhase6bType } from "@/schema";
 import { NumberField } from "@/components/editor/style/NumberField";
 import { UnitField } from "@/components/editor/style/UnitField";
 import { useBoxSpacing } from "@/components/editor/style/BoxSpacingField";
+import { BorderExtras } from "@/components/editor/style/BorderExtras";
 import { useColorField } from "@/components/editor/style/ColorField";
 import { SegmentedField } from "@/components/editor/style/SegmentedField";
 import { SelectField } from "@/components/editor/style/SelectField";
@@ -93,14 +105,31 @@ const CalendarRenderChunk = lazyNamed(() =>
   }),
 );
 
-/** B2.2: lazy shadow editor — must NOT land in the initial JS chunk. */
+/** B2.2 / B3.2: lazy effects editors — must NOT land in the initial JS chunk. */
 const ShadowSubGroup = lazyNamed(() =>
   import("@/components/editor/effects-panels").then((m) => m.ShadowSubGroup),
+);
+const GradientSubGroup = lazyNamed(() =>
+  import("@/components/editor/effects-panels").then((m) => m.GradientSubGroup),
+);
+const TransformSubGroup = lazyNamed(() =>
+  import("@/components/editor/effects-panels").then((m) => m.TransformSubGroup),
+);
+const TransitionSubGroup = lazyNamed(() =>
+  import("@/components/editor/effects-panels").then((m) => m.TransitionSubGroup),
+);
+const FilterSubGroup = lazyNamed(() =>
+  import("@/components/editor/effects-panels").then((m) => m.FilterSubGroup),
+);
+// Phase 11 C3: preset picker (own chunk; no whenIdle preload per §5).
+const PresetPicker = lazyNamed(() =>
+  import("@/components/editor/preset-picker").then((m) => m.PresetPicker),
 );
 import {
   applyOps,
   propOp,
   styleOp,
+  writeClearNodeState,
   writeInputSuggestions,
   writeListItems,
   writeProp,
@@ -220,6 +249,28 @@ function PanelBody({
   const landscape = usePreviewDeviceStore((s) => s.landscape);
   const customW = usePreviewDeviceStore((s) => s.custom.w);
   const multi = usePreviewDeviceStore((s) => s.multi);
+  const editState = useEditorStore((s) => s.forceDisplayState);
+  const setForceDisplayState = useEditorStore((s) => s.setForceDisplayState);
+  const announce = useEditorStore((s) => s.announce);
+  const offersFocus = nodeOffersFocusState(node);
+  const stateOptions = STATE_SWITCH_OPTIONS.filter(
+    (o) => o.value !== "focusVisible" || offersFocus,
+  );
+  const onState = editState !== null;
+
+  const chooseState = (raw: string) => {
+    if (raw === "normal") {
+      setForceDisplayState(null);
+      return;
+    }
+    const name = raw as NodeStateName;
+    if (name === "focusVisible" && !offersFocus) return;
+    setForceDisplayState(name);
+    if (segment !== "desktop") {
+      onSegment("desktop");
+      announce(STATE_LOCKS_BREAKPOINT_MSG);
+    }
+  };
 
   return (
     <div className="scrollbar-thin flex-1 overflow-auto px-3 pb-4">
@@ -230,21 +281,65 @@ function PanelBody({
         </div>
       ) : null}
 
+      {nodeTypeHasPresets(node.type) ? (
+        <div className="mb-3">
+          <Suspense fallback={null}>
+            <PresetPicker node={node} locked={locked} />
+          </Suspense>
+        </div>
+      ) : null}
+
       <div className="mb-3 space-y-1">
         <SegmentedField
           id="sf-breakpoint"
           label="จุดพักสไตล์"
           fill
-          disabled={locked}
-          value={segment}
+          disabled={locked || onState}
+          value={onState ? "desktop" : segment}
           options={STYLE_SEGMENTS}
           className="h-7 p-0"
           itemClassName="h-7 px-0.5 text-[11px] leading-4"
           onChange={(v) => onSegment(v as StyleSegment)}
         />
-        <p className="text-[11px] text-muted-foreground">
-          {frameNote(preset, landscape, customW, multi)}
-        </p>
+        <SegmentedField
+          id="sf-state"
+          label="สถานะ"
+          fill
+          disabled={locked}
+          value={editState ?? "normal"}
+          options={stateOptions.map((o) => ({
+            value: o.value,
+            label: o.label,
+          }))}
+          className="h-7 p-0"
+          itemClassName="h-7 px-0.5 text-[11px] leading-4"
+          onChange={chooseState}
+        />
+        {onState ? (
+          <p className="text-[11px] text-muted-foreground" role="note">
+            {STATE_PAINT_ONLY_HINT}
+          </p>
+        ) : (
+          <p className="text-[11px] text-muted-foreground">
+            {frameNote(preset, landscape, customW, multi)}
+          </p>
+        )}
+        {onState && editState && node.states?.[editState] && !locked ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            className="h-7 px-1.5 text-[11px]"
+            onClick={() => writeClearNodeState(node.id, editState)}
+          >
+            {CLEAR_THIS_STATE_LABEL}
+          </Button>
+        ) : null}
+        {!offersFocus ? (
+          <p className="text-[11px] text-muted-foreground" role="note">
+            โฟกัสด้วยคีย์บอร์ดใช้ได้กับปุ่มที่มีลิงก์ ลิงก์ และช่องกรอกเท่านั้น
+          </p>
+        ) : null}
       </div>
 
       <section className="space-y-2 pb-3">
@@ -285,7 +380,7 @@ function PanelBody({
         ) : null}
       </section>
 
-      <NodePropsSection node={node} locked={locked} />
+      {onState ? null : <NodePropsSection node={node} locked={locked} />}
 
       {STYLE_SECTIONS.map((sec) => {
         if (sec.id === "effects") {
@@ -294,11 +389,19 @@ function PanelBody({
               key={sec.id}
               node={node}
               locked={locked}
-              segment={segment}
+              segment={onState ? "desktop" : segment}
+              editState={editState}
             />
           );
         }
-        const fields = fieldsFor(sec.id, node.type);
+        let fields = fieldsFor(sec.id, node.type);
+        if (onState) {
+          fields = fields.filter(
+            (f) =>
+              f.target === "style" &&
+              (STATE_PAINT_KEYS as readonly string[]).includes(f.key),
+          );
+        }
         if (fields.length === 0) return null; // hide section entirely (§1)
         return (
           <StyleSection
@@ -309,7 +412,8 @@ function PanelBody({
             node={node}
             eff={eff}
             locked={locked}
-            segment={segment}
+            segment={onState ? "desktop" : segment}
+            editState={editState}
           />
         );
       })}
@@ -1098,33 +1202,172 @@ type SectionProps = {
   eff: StyleProps;
   locked: boolean;
   segment: StyleSegment;
+  /** B8.1: editing `states[name]` instead of base / breakpoint. */
+  editState?: NodeStateName | null;
 };
 
 
-/** B2.2: เอฟเฟกต์ section — เงา sub-group (lazy); more sub-groups in later B slices. */
+/** B2.2 / B3.2: เอฟเฟกต์ — เงา + ไล่สี (lazy effects-panels). */
 const EffectsSection = memo(function EffectsSection({
   node,
   locked,
   segment,
+  editState = null,
 }: {
   node: Node;
   locked: boolean;
   segment: StyleSegment;
+  editState?: NodeStateName | null;
 }) {
   const collapsed = useEditorStore((s) => !!s.collapsedStyleSections["effects"]);
   const toggle = useEditorStore((s) => s.toggleStyleSection);
-  const bp = segment === "desktop" ? undefined : segment;
-  const onBreakpoint = segment !== "desktop";
-  const overridden = onBreakpoint
-    ? breakpointKeySet(node, segment, "boxShadow")
-    : node.style?.boxShadow !== undefined;
-  const layers = onBreakpoint
-    ? overridden
-      ? node.styleBreakpoints?.[segment]?.boxShadow
-      : node.style?.boxShadow
-    : node.style?.boxShadow;
+  const bp = editState || segment === "desktop" ? undefined : segment;
+  const onBreakpoint = !editState && segment !== "desktop";
+  const statePaint = editState ? node.states?.[editState] : undefined;
+
+  const shadowOverridden = editState
+    ? statePaint?.boxShadow !== undefined
+    : onBreakpoint
+      ? breakpointKeySet(node, segment, "boxShadow")
+      : node.style?.boxShadow !== undefined;
+  const bgGradOverridden = editState
+    ? statePaint?.backgroundGradient !== undefined
+    : onBreakpoint
+      ? breakpointKeySet(node, segment, "backgroundGradient")
+      : node.style?.backgroundGradient !== undefined;
+  const textGradOverridden = editState
+    ? statePaint?.textGradient !== undefined
+    : onBreakpoint
+      ? breakpointKeySet(node, segment, "textGradient")
+      : node.style?.textGradient !== undefined;
+  const gradientOverridden = bgGradOverridden || textGradOverridden;
+  const transformOverridden = editState
+    ? statePaint?.transform !== undefined
+    : onBreakpoint
+      ? breakpointKeySet(node, segment, "transform")
+      : node.style?.transform !== undefined;
+  const transitionOverridden = editState
+    ? false
+    : onBreakpoint
+      ? breakpointKeySet(node, segment, "transition")
+      : node.style?.transition !== undefined;
+  const filterOverridden = editState
+    ? statePaint?.filter !== undefined || statePaint?.backdropFilter !== undefined
+    : onBreakpoint
+      ? breakpointKeySet(node, segment, "filter") ||
+        breakpointKeySet(node, segment, "backdropFilter")
+      : node.style?.filter !== undefined || node.style?.backdropFilter !== undefined;
+  const overridden =
+    shadowOverridden ||
+    gradientOverridden ||
+    transformOverridden ||
+    transitionOverridden ||
+    filterOverridden;
+
+  const layers = editState
+    ? statePaint?.boxShadow
+    : onBreakpoint
+      ? shadowOverridden
+        ? node.styleBreakpoints?.[segment]?.boxShadow
+        : node.style?.boxShadow
+      : node.style?.boxShadow;
+
+  const backgroundGradient = editState
+    ? statePaint?.backgroundGradient
+    : onBreakpoint
+      ? bgGradOverridden
+        ? node.styleBreakpoints?.[segment]?.backgroundGradient
+        : node.style?.backgroundGradient
+      : node.style?.backgroundGradient;
+  const textGradient = editState
+    ? statePaint?.textGradient
+    : onBreakpoint
+      ? textGradOverridden
+        ? node.styleBreakpoints?.[segment]?.textGradient
+        : node.style?.textGradient
+      : node.style?.textGradient;
+  const transform = editState
+    ? statePaint?.transform
+    : onBreakpoint
+      ? transformOverridden
+        ? node.styleBreakpoints?.[segment]?.transform
+        : node.style?.transform
+      : node.style?.transform;
+  const transition = editState
+    ? undefined
+    : onBreakpoint
+      ? transitionOverridden
+        ? node.styleBreakpoints?.[segment]?.transition
+        : node.style?.transition
+      : node.style?.transition;
+  const filter = editState
+    ? statePaint?.filter
+    : onBreakpoint
+      ? breakpointKeySet(node, segment, "filter")
+        ? node.styleBreakpoints?.[segment]?.filter
+        : node.style?.filter
+      : node.style?.filter;
+  const backdropFilter = editState
+    ? statePaint?.backdropFilter
+    : onBreakpoint
+      ? breakpointKeySet(node, segment, "backdropFilter")
+        ? node.styleBreakpoints?.[segment]?.backdropFilter
+        : node.style?.backdropFilter
+      : node.style?.backdropFilter;
+  const effDisplay = resolvedStyle(node).display;
+  const inlineHint = effDisplay === "inline";
+
   const bodyId = "sf-sec-effects";
-  const resetSection = () => writeStyle(node.id, "boxShadow", undefined, bp);
+  const resetShadow = () => writeStyle(node.id, "boxShadow", undefined, bp, editState);
+  const resetGradient = () =>
+    applyOps(
+      [
+        styleOp(node.id, "backgroundGradient", undefined, bp, editState),
+        styleOp(node.id, "textGradient", undefined, bp, editState),
+      ],
+      editState
+        ? `state:${node.id}:${editState}:gradient`
+        : bp
+          ? `style:${node.id}:${bp}:gradient`
+          : `style:${node.id}:gradient`,
+    );
+  const resetTransform = () => writeStyle(node.id, "transform", undefined, bp, editState);
+  const resetTransition = () => writeStyle(node.id, "transition", undefined, bp);
+  const resetFilter = () =>
+    applyOps(
+      [
+        styleOp(node.id, "filter", undefined, bp, editState),
+        styleOp(node.id, "backdropFilter", undefined, bp, editState),
+      ],
+      editState
+        ? `state:${node.id}:${editState}:filter`
+        : bp
+          ? `style:${node.id}:${bp}:filter`
+          : `style:${node.id}:filter`,
+      { heavyStyleKeys: ["filter", "backdropFilter"] },
+    );
+  const resetSection = () => {
+    const ops = [
+      styleOp(node.id, "boxShadow", undefined, bp, editState),
+      styleOp(node.id, "backgroundGradient", undefined, bp, editState),
+      styleOp(node.id, "textGradient", undefined, bp, editState),
+      styleOp(node.id, "transform", undefined, bp, editState),
+      styleOp(node.id, "filter", undefined, bp, editState),
+      styleOp(node.id, "backdropFilter", undefined, bp, editState),
+    ];
+    if (!editState) {
+      ops.push(styleOp(node.id, "transition", undefined, bp));
+    }
+    applyOps(
+      ops,
+      editState
+        ? `state:${node.id}:${editState}:effects`
+        : bp
+          ? `style:${node.id}:${bp}:effects`
+          : `style:${node.id}:effects`,
+      { heavyStyleKeys: ["boxShadow", "filter", "backdropFilter", "transition"] },
+    );
+  };
 
   return (
     <section className="border-t border-sidebar-border py-2">
@@ -1161,8 +1404,53 @@ const EffectsSection = memo(function EffectsSection({
               layers={layers}
               locked={locked}
               bp={bp}
-              overridden={overridden}
-              onReset={resetSection}
+              state={editState}
+              overridden={shadowOverridden}
+              onReset={resetShadow}
+              resetLabel={onBreakpoint ? "ใช้ค่าหลัก" : "คืนค่าเริ่มต้น"}
+            />
+            <GradientSubGroup
+              nodeId={node.id}
+              background={backgroundGradient}
+              text={textGradient}
+              locked={locked}
+              bp={bp}
+              state={editState}
+              overridden={gradientOverridden}
+              onReset={resetGradient}
+              resetLabel={onBreakpoint ? "ใช้ค่าหลัก" : "คืนค่าเริ่มต้น"}
+            />
+            <TransformSubGroup
+              nodeId={node.id}
+              value={transform}
+              locked={locked}
+              bp={bp}
+              state={editState}
+              overridden={transformOverridden}
+              onReset={resetTransform}
+              resetLabel={onBreakpoint ? "ใช้ค่าหลัก" : "คืนค่าเริ่มต้น"}
+              inlineHint={inlineHint}
+            />
+            {editState ? null : (
+              <TransitionSubGroup
+                nodeId={node.id}
+                value={transition}
+                locked={locked}
+                bp={bp}
+                overridden={transitionOverridden}
+                onReset={resetTransition}
+                resetLabel={onBreakpoint ? "ใช้ค่าหลัก" : "คืนค่าเริ่มต้น"}
+              />
+            )}
+            <FilterSubGroup
+              nodeId={node.id}
+              filter={filter}
+              backdrop={backdropFilter}
+              locked={locked}
+              bp={bp}
+              state={editState}
+              overridden={filterOverridden}
+              onReset={resetFilter}
               resetLabel={onBreakpoint ? "ใช้ค่าหลัก" : "คืนค่าเริ่มต้น"}
             />
           </Suspense>
@@ -1180,22 +1468,29 @@ const StyleSection = memo(function StyleSection({
   eff,
   locked,
   segment,
+  editState = null,
 }: SectionProps) {
   const collapsed = useEditorStore((s) => !!s.collapsedStyleSections[id]);
   const toggle = useEditorStore((s) => s.toggleStyleSection);
-  const bp = segment === "desktop" ? undefined : segment;
-  const overridden = fields.filter((f) =>
-    bp
+  const bp = editState || segment === "desktop" ? undefined : segment;
+  const overridden = fields.filter((f) => {
+    if (editState) {
+      return (
+        f.target === "style" &&
+        node.states?.[editState]?.[f.key as StatePaintKey] !== undefined
+      );
+    }
+    return bp
       ? f.target === "style" && breakpointKeySet(node, bp, f.key as StyleKey)
-      : isFieldOverridden(f, node),
-  );
+      : isFieldOverridden(f, node);
+  });
   const bodyId = `sf-sec-${id}`;
 
   const resetSection = () =>
     applyOps(
       overridden.map((f) =>
         f.target === "style"
-          ? styleOp(node.id, f.key, undefined, bp)
+          ? styleOp(node.id, f.key, undefined, bp, editState)
           : propOp(node.id, f.key, undefined),
       ),
     );
@@ -1204,7 +1499,38 @@ const StyleSection = memo(function StyleSection({
     id === "typography" &&
     (node.type === "page" || node.type === "section" || hasLayoutProps(node.type));
   const shownBorder = shownStyleKey(node, segment, "borderStyle", eff);
-  const borderOff = id === "border" && shownBorder !== "solid";
+  const borderOn =
+    shownBorder === "solid" || shownBorder === "dashed" || shownBorder === "dotted";
+  const borderOff = id === "border" && !borderOn;
+  const sides = bp
+    ? breakpointKeySet(node, bp, "borderSides")
+      ? node.styleBreakpoints?.[bp]?.borderSides
+      : node.style?.borderSides
+    : node.style?.borderSides;
+  const corners = bp
+    ? breakpointKeySet(node, bp, "borderRadiusCorners")
+      ? node.styleBreakpoints?.[bp]?.borderRadiusCorners
+      : node.style?.borderRadiusCorners
+    : node.style?.borderRadiusCorners;
+  const extrasOverridden =
+    id === "border" &&
+    (bp
+      ? breakpointKeySet(node, bp, "borderSides") ||
+        breakpointKeySet(node, bp, "borderRadiusCorners")
+      : node.style?.borderSides !== undefined ||
+        node.style?.borderRadiusCorners !== undefined);
+
+  const resetBorderAll = () => {
+    applyOps([
+      ...overridden.map((f) =>
+        f.target === "style"
+          ? styleOp(node.id, f.key, undefined, bp)
+          : propOp(node.id, f.key, undefined),
+      ),
+      styleOp(node.id, "borderSides", undefined, bp),
+      styleOp(node.id, "borderRadiusCorners", undefined, bp),
+    ]);
+  };
 
   return (
     <section className="border-t border-sidebar-border py-2">
@@ -1219,8 +1545,13 @@ const StyleSection = memo(function StyleSection({
           {collapsed ? <ChevronRight className="size-3.5" /> : <ChevronDown className="size-3.5" />}
           {label}
         </button>
-        {overridden.length > 0 && !locked ? (
-          <Button type="button" variant="ghost" size="xs" onClick={resetSection}>
+        {(overridden.length > 0 || extrasOverridden) && !locked ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onClick={id === "border" ? resetBorderAll : resetSection}
+          >
             รีเซ็ต
           </Button>
         ) : null}
@@ -1235,6 +1566,7 @@ const StyleSection = memo(function StyleSection({
               eff={eff}
               locked={locked}
               segment={segment}
+              editState={editState}
               dependentDisabled={
                 borderOff && (f.key === "borderWidth" || f.key === "borderColor")
               }
@@ -1242,8 +1574,17 @@ const StyleSection = memo(function StyleSection({
           ))}
           {borderOff ? (
             <p className="text-[11px] text-muted-foreground">
-              เลือก "เส้นทึบ" เพื่อแสดงเส้นขอบ
+              เลือกเส้นทึบ เส้นประ หรือจุด เพื่อแสดงเส้นขอบ
             </p>
+          ) : null}
+          {id === "border" && !editState ? (
+            <BorderExtras
+              nodeId={node.id}
+              sides={sides}
+              corners={corners}
+              locked={locked}
+              bp={bp}
+            />
           ) : null}
           {inherits ? (
             <p className="text-[11px] text-muted-foreground">
@@ -1262,6 +1603,7 @@ type FieldProps = {
   eff: StyleProps;
   locked: boolean;
   segment: StyleSegment;
+  editState?: NodeStateName | null;
   dependentDisabled?: boolean;
 };
 
@@ -1271,20 +1613,33 @@ function shownStyleKey<K extends StyleKey>(
   segment: StyleSegment,
   key: K,
   eff: StyleProps,
+  editState?: NodeStateName | null,
 ): StyleProps[K] | undefined {
+  if (editState) {
+    const v = node.states?.[editState]?.[key as StatePaintKey];
+    if (v !== undefined) return v as StyleProps[K];
+    return eff[key];
+  }
   if (segment !== "desktop" && breakpointKeySet(node, segment, key)) {
     return node.styleBreakpoints?.[segment]?.[key] as StyleProps[K] | undefined;
   }
   return eff[key];
 }
 
-function write(field: FieldDef, nodeId: string, value: unknown, segment: StyleSegment) {
+function write(
+  field: FieldDef,
+  nodeId: string,
+  value: unknown,
+  segment: StyleSegment,
+  editState?: NodeStateName | null,
+) {
   if (field.target === "style") {
     writeStyle(
       nodeId,
       field.key,
       value as StyleProps[typeof field.key],
-      segment === "desktop" ? undefined : segment,
+      editState ? undefined : segment === "desktop" ? undefined : segment,
+      editState,
     );
   } else {
     writeProp(nodeId, field.key, value as string | number | undefined);
@@ -1298,20 +1653,35 @@ function FieldControl(props: FieldProps) {
   return <SimpleRow {...props} />;
 }
 
-function rowCommon({ field, node, eff, locked, dependentDisabled, segment }: FieldProps) {
+function rowCommon({
+  field,
+  node,
+  eff,
+  locked,
+  dependentDisabled,
+  segment,
+  editState,
+}: FieldProps) {
   const id = `sf-${field.id}`;
-  const onBreakpoint = field.target === "style" && segment !== "desktop";
-  const overridden = onBreakpoint
-    ? breakpointKeySet(node, segment, field.key as StyleKey)
-    : isFieldOverridden(field, node);
-  const value = onBreakpoint
+  const onState = !!editState && field.target === "style";
+  const onBreakpoint = !editState && field.target === "style" && segment !== "desktop";
+  const overridden = onState
+    ? node.states?.[editState!]?.[field.key as StatePaintKey] !== undefined
+    : onBreakpoint
+      ? breakpointKeySet(node, segment, field.key as StyleKey)
+      : isFieldOverridden(field, node);
+  const value = onState
     ? overridden
-      ? node.styleBreakpoints?.[segment]?.[field.key as StyleKey]
+      ? node.states?.[editState!]?.[field.key as StatePaintKey]
       : fieldEffective(field, node, eff)
-    : fieldEffective(field, node, eff);
+    : onBreakpoint
+      ? overridden
+        ? node.styleBreakpoints?.[segment]?.[field.key as StyleKey]
+        : fieldEffective(field, node, eff)
+      : fieldEffective(field, node, eff);
   const disabled = locked || !!dependentDisabled;
-  const onReset = () => write(field, node.id, undefined, segment);
-  const resetLabel = onBreakpoint ? "ใช้ค่าหลัก" : undefined;
+  const onReset = () => write(field, node.id, undefined, segment, editState);
+  const resetLabel = onBreakpoint ? "ใช้ค่าหลัก" : onState ? "ล้าง" : undefined;
   return { id, overridden, value, disabled, onReset, resetLabel };
 }
 
@@ -1333,7 +1703,7 @@ function SimpleRow(props: FieldProps) {
           suffix={field.suffix}
           disabled={disabled}
           muted={muted}
-          onCommit={(n) => write(field, node.id, n, props.segment)}
+          onCommit={(n) => write(field, node.id, n, props.segment, props.editState)}
         />
       );
       break;
@@ -1345,7 +1715,7 @@ function SimpleRow(props: FieldProps) {
           value={value as number | string | undefined}
           disabled={disabled}
           muted={muted}
-          onCommit={(v) => write(field, node.id, v, props.segment)}
+          onCommit={(v) => write(field, node.id, v, props.segment, props.editState)}
         />
       );
       break;
@@ -1367,13 +1737,17 @@ function SimpleRow(props: FieldProps) {
             step={field.step}
             disabled={disabled}
             muted={muted}
-            onCommit={(n) => write(field, node.id, n, props.segment)}
+            onCommit={(n) => write(field, node.id, n, props.segment, props.editState)}
           />
         );
       break;
     case "segmented": {
       const column = layoutDirection(node) === "column";
       const isBorderStyle = field.target === "style" && field.key === "borderStyle";
+      const borderStyleValue =
+        value === "solid" || value === "dashed" || value === "dotted" || value === "none"
+          ? (value as string)
+          : "none";
       control = (
         <SegmentedField
           id={id}
@@ -1381,7 +1755,7 @@ function SimpleRow(props: FieldProps) {
           options={field.options ?? []}
           value={
             isBorderStyle
-              ? value === "solid" ? "solid" : "none"
+              ? borderStyleValue
               : field.target === "style" && field.key === "overflow"
                 ? overflowSegmentValue(value) // N7: stored `scroll` selects "เลื่อน" like `auto`
                 : (value as string | undefined)
@@ -1390,18 +1764,18 @@ function SimpleRow(props: FieldProps) {
           labelledBy={fieldLabelId(id)}
           disabled={disabled}
           onChange={(v) => {
-            if (isBorderStyle && v === "solid") {
+            if (isBorderStyle && (v === "solid" || v === "dashed" || v === "dotted")) {
               // Avoid an invisible border: give it 1px if width is unset/0.
               const bp = props.segment === "desktop" ? undefined : props.segment;
               const w = shownStyleKey(node, props.segment, "borderWidth", props.eff);
               applyOps([
-                styleOp(node.id, "borderStyle", "solid", bp),
+                styleOp(node.id, "borderStyle", v, bp),
                 ...(w === undefined || w === 0
                   ? [styleOp(node.id, "borderWidth", 1, bp)]
                   : []),
               ]);
             } else {
-              write(field, node.id, v, props.segment);
+              write(field, node.id, v, props.segment, props.editState);
             }
           }}
         />
@@ -1430,7 +1804,7 @@ function SimpleRow(props: FieldProps) {
               ? [{ value: "__custom", label: "กำหนดเอง", title: own, disabled: true }]
               : []),
           ]}
-          onChange={(v) => write(field, node.id, v === "" ? undefined : v, props.segment)}
+          onChange={(v) => write(field, node.id, v === "" ? undefined : v, props.segment, props.editState)}
         />
       );
       break;
@@ -1454,7 +1828,7 @@ function SimpleRow(props: FieldProps) {
               : []),
             ...opts,
           ]}
-          onChange={(v) => v && write(field, node.id, Number(v), props.segment)}
+          onChange={(v) => v && write(field, node.id, Number(v), props.segment, props.editState)}
         />
       );
       break;
@@ -1468,7 +1842,7 @@ function SimpleRow(props: FieldProps) {
           value={value as number | undefined}
           disabled={disabled}
           muted={muted}
-          onCommit={(n) => write(field, node.id, n, props.segment)}
+          onCommit={(n) => write(field, node.id, n, props.segment, props.editState)}
         />
       );
       break;
@@ -1501,7 +1875,7 @@ function BoxRow(props: FieldProps) {
     max: field.max ?? 400,
     disabled,
     muted: !overridden,
-    onCommit: (v) => write(field, node.id, v, props.segment),
+    onCommit: (v) => write(field, node.id, v, props.segment, props.editState),
   });
   return (
     <FieldRow
@@ -1529,7 +1903,7 @@ function ColorRow(props: FieldProps) {
     allowTransparentToggle: field.target === "style" && field.key === "backgroundColor",
     disabled,
     muted: !overridden,
-    onCommit: (v) => write(field, node.id, v, props.segment),
+    onCommit: (v) => write(field, node.id, v, props.segment, props.editState),
   });
   return (
     <FieldRow

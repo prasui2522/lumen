@@ -29,6 +29,7 @@ fn empty_page_document(title: &str) -> PageDocument {
             },
             style: StyleProps::default(),
             style_breakpoints: None,
+            states: None,
         },
     );
     PageDocument {
@@ -187,6 +188,8 @@ fn migrate(conn: &Connection) -> Result<(), String> {
         );",
     )
     .map_err(|e| e.to_string())?;
+    // Phase 11 C6: user-saved presets (app-wide). Additive; project rows untouched.
+    crate::library::migrate_library(conn)?;
     Ok(())
 }
 
@@ -683,6 +686,7 @@ mod tests {
                 props: NodeProps::Page { children: Vec::new() },
                 style: StyleProps::default(),
                 style_breakpoints: None,
+                states: None,
             },
         );
         doc.pages = vec![

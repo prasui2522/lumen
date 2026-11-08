@@ -326,3 +326,32 @@ pub fn db_test_discard(test: State<'_, TestDbState>, token: String) {
         testmigrate::discard(&mut g, &token);
     }
 }
+
+/* ---------------- Phase 11 C6: library_items (user presets) ---------------- */
+
+#[tauri::command]
+pub fn library_list(
+    state: State<'_, DbState>,
+    kind: String,
+) -> Result<Vec<crate::library::LibraryItem>, String> {
+    let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
+    crate::library::library_list(&conn, &kind)
+}
+
+#[tauri::command]
+pub fn library_put(
+    state: State<'_, DbState>,
+    kind: String,
+    id: String,
+    name: String,
+    json: String,
+) -> Result<crate::library::LibraryItem, String> {
+    let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
+    crate::library::library_put(&conn, &kind, &id, &name, &json)
+}
+
+#[tauri::command]
+pub fn library_delete(state: State<'_, DbState>, id: String) -> Result<bool, String> {
+    let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
+    crate::library::library_delete(&conn, &id)
+}

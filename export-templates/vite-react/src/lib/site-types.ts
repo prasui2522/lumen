@@ -26,6 +26,68 @@ export type StyleProps = {
   overflow?: string;
   /** B1.2: layered box-shadow (same shape as builder StyleProps). */
   boxShadow?: BoxShadowLayer[];
+  /** B3.1: fill / text gradients. */
+  backgroundGradient?: GradientValue;
+  textGradient?: GradientValue;
+  /** B4.1: per-side border + per-corner radius. */
+  borderSides?: BorderSides;
+  borderRadiusCorners?: BorderRadiusCorners;
+  /** B5.1: transform + transition. */
+  transform?: TransformValue;
+  transition?: TransitionValue;
+  /** B6.1: filter + backdrop-filter. */
+  filter?: FilterValue;
+  backdropFilter?: BackdropFilterValue;
+};
+
+export type FilterValue = {
+  blur?: number;
+  brightness?: number;
+  contrast?: number;
+  saturate?: number;
+  grayscale?: number;
+  hueRotate?: number;
+};
+export type BackdropFilterValue = {
+  blur?: number;
+  saturate?: number;
+  brightness?: number;
+};
+
+export type TransformValue = {
+  translateX?: number;
+  translateY?: number;
+  scale?: number;
+  scaleX?: number;
+  scaleY?: number;
+  rotate?: number;
+  skewX?: number;
+  skewY?: number;
+  origin?: string;
+};
+export type TransitionValue = {
+  durationMs?: number;
+  delayMs?: number;
+  easing?: string;
+  property?: "paint";
+};
+
+export type BorderSide = {
+  width?: number;
+  color?: string;
+  style?: "solid" | "dashed" | "dotted" | "none";
+};
+export type BorderSides = {
+  t?: BorderSide;
+  r?: BorderSide;
+  b?: BorderSide;
+  l?: BorderSide;
+};
+export type BorderRadiusCorners = {
+  tl?: number;
+  tr?: number;
+  br?: number;
+  bl?: number;
 };
 
 export type BoxShadowLayer = {
@@ -35,6 +97,12 @@ export type BoxShadowLayer = {
   spread?: number;
   color?: string;
   inset?: boolean;
+};
+
+export type GradientValue = {
+  kind?: "linear" | "radial" | "conic";
+  angle?: number;
+  stops?: { color?: string; at?: number }[];
 };
 
 export type SiteNode = {

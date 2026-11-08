@@ -1,0 +1,4 @@
+transition-delay: 0ms;
+transition-duration: 120ms;
+transition-property: background-color,color,border-color,box-shadow,opacity,transform,filter,backdrop-filter;
+transition-timing-function: ease-out;

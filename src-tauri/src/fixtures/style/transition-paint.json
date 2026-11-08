@@ -1,0 +1,8 @@
+{
+  "transition": {
+    "durationMs": 120,
+    "delayMs": 0,
+    "easing": "ease-out",
+    "property": "paint"
+  }
+}

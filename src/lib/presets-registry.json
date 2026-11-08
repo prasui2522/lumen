@@ -1,0 +1,142 @@
+[
+  {
+    "formatVersion": 1,
+    "id": "button-3d",
+    "name": "ปุ่ม 3 มิติ",
+    "nameEn": "3D button",
+    "category": "button",
+    "appliesTo": ["button", "link"],
+    "style": {
+      "backgroundColor": "#0369a1",
+      "color": "#ffffff",
+      "borderRadius": 12,
+      "boxShadow": [
+        { "x": 0, "y": 6, "blur": 0, "spread": 0, "color": "#0c4a6e" },
+        { "x": 0, "y": 10, "blur": 12, "spread": 0, "color": "#00000033" }
+      ],
+      "transition": {
+        "durationMs": 120,
+        "delayMs": 0,
+        "easing": "ease-out",
+        "property": "paint"
+      }
+    },
+    "states": {
+      "hover": {
+        "transform": { "translateY": -1 },
+        "filter": { "brightness": 108 }
+      },
+      "active": {
+        "transform": { "translateY": 5 },
+        "boxShadow": [
+          { "x": 0, "y": 1, "blur": 0, "spread": 0, "color": "#0c4a6e" },
+          { "x": 0, "y": 2, "blur": 4, "spread": 0, "color": "#00000033" }
+        ]
+      }
+    },
+    "source": { "kind": "original" }
+  },
+  {
+    "formatVersion": 1,
+    "id": "card-glass",
+    "name": "การ์ดกระจกฝ้า",
+    "nameEn": "Glass card",
+    "category": "card",
+    "appliesTo": ["container", "card", "section"],
+    "style": {
+      "backgroundColor": "#ffffff2e",
+      "borderWidth": 1,
+      "borderStyle": "solid",
+      "borderColor": "#ffffff4d",
+      "borderRadius": 16,
+      "backdropFilter": { "blur": 16, "saturate": 140 },
+      "boxShadow": [
+        { "x": 0, "y": 8, "blur": 32, "spread": 0, "color": "#0000001f" }
+      ],
+      "color": "#0f172a"
+    },
+    "source": { "kind": "original" },
+    "note": "เอฟเฟกต์กระจกจะเห็นชัดเมื่ออยู่บนพื้นหลังที่มีสีหรือรูปภาพ"
+  },
+  {
+    "formatVersion": 1,
+    "id": "card-soft",
+    "name": "การ์ดเงานุ่ม",
+    "nameEn": "Soft card",
+    "category": "card",
+    "appliesTo": ["container", "card"],
+    "style": {
+      "backgroundColor": "#ffffff",
+      "color": "#0f172a",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "borderStyle": "solid",
+      "borderColor": "#f1f5f9",
+      "boxShadow": [
+        { "x": 0, "y": 1, "blur": 2, "spread": 0, "color": "#0000000d" },
+        { "x": 0, "y": 8, "blur": 24, "spread": 0, "color": "#0000001a" }
+      ]
+    },
+    "source": { "kind": "original" }
+  },
+  {
+    "formatVersion": 1,
+    "id": "button-gradient",
+    "name": "ปุ่มไล่สี",
+    "nameEn": "Gradient button",
+    "category": "button",
+    "appliesTo": ["button", "link"],
+    "style": {
+      "backgroundGradient": {
+        "kind": "linear",
+        "angle": 135,
+        "stops": [
+          { "color": "#0369a1", "at": 0 },
+          { "color": "#4338ca", "at": 100 }
+        ]
+      },
+      "color": "#ffffff",
+      "borderRadius": 8,
+      "transition": {
+        "durationMs": 120,
+        "delayMs": 0,
+        "easing": "ease-out",
+        "property": "paint"
+      }
+    },
+    "states": {
+      "hover": { "filter": { "brightness": 108 } },
+      "active": { "transform": { "translateY": 1 } }
+    },
+    "source": { "kind": "original" }
+  },
+  {
+    "formatVersion": 1,
+    "id": "outline-glow",
+    "name": "กรอบเรืองแสง",
+    "nameEn": "Outline glow",
+    "category": "surface",
+    "appliesTo": ["button", "link", "container", "card"],
+    "style": {
+      "backgroundColor": "transparent",
+      "borderWidth": 2,
+      "borderStyle": "solid",
+      "borderColor": "#0369a1",
+      "color": "#0369a1",
+      "borderRadius": 8
+    },
+    "states": {
+      "hover": {
+        "boxShadow": [
+          { "x": 0, "y": 0, "blur": 0, "spread": 4, "color": "#0ea5e933" }
+        ]
+      },
+      "focusVisible": {
+        "boxShadow": [
+          { "x": 0, "y": 0, "blur": 0, "spread": 4, "color": "#0ea5e933" }
+        ]
+      }
+    },
+    "source": { "kind": "original" }
+  }
+]

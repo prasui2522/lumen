@@ -133,9 +133,14 @@ export type Node = {
   style: StyleProps;
   /**
    * Sparse overrides for tablet / phone / fold-open. Omitted when empty.
-   * Keys are `StyleProps` only — not container props, icon, shadow, or hover.
+   * May hold the Phase 11 B style keys; states/motion are node-level (§4.4).
    */
   styleBreakpoints?: StyleBreakpoints;
+  /**
+   * B7.1: hover / active / focusVisible paint overrides (not per-breakpoint).
+   * Empty object omitted on save. Shape: see `NodeStates` after StyleProps.
+   */
+  states?: NodeStates;
 };
 
 export type NodeProps =
@@ -550,11 +555,27 @@ export type StyleProps = {
   borderRadius?: number;
   borderWidth?: number;
   borderColor?: string;
-  borderStyle?: "solid" | "none";
+  borderStyle?: "solid" | "none" | "dashed" | "dotted";
   opacity?: number;
   overflow?: "visible" | "hidden" | "auto" | "scroll";
   /** B1.2 (§4.2): layered box-shadow. Empty array ≡ unset. */
   boxShadow?: BoxShadowLayer[];
+  /** B3.1 (§4.2): fill gradient. Empty / <2 valid stops ≡ unset. Exclusive with textGradient. */
+  backgroundGradient?: GradientValue;
+  /** B3.1 (§4.2): text fill gradient (clip). Empty / <2 valid stops ≡ unset. */
+  textGradient?: GradientValue;
+  /** B4.1 (§4.2): per-side border overrides (after uniform border). Empty ≡ unset. */
+  borderSides?: BorderSides;
+  /** B4.1 (§4.2): per-corner radius overrides (after borderRadius). Empty ≡ unset. */
+  borderRadiusCorners?: BorderRadiusCorners;
+  /** B5.1 (§4.2): transform. Empty ≡ unset. Order: translate → rotate → scale → skew. */
+  transform?: TransformValue;
+  /** B5.1 (§4.2): transition longhands. Empty ≡ unset. `property:"paint"` only in v1. */
+  transition?: TransitionValue;
+  /** B6.1 (§4.2): CSS filter. Empty ≡ unset. */
+  filter?: FilterValue;
+  /** B6.1 (§4.2): backdrop-filter (+ -webkit-). Empty ≡ unset. blur capped 40. */
+  backdropFilter?: BackdropFilterValue;
 };
 
 /** B1.2: one `box-shadow` layer. Colour via `css_color` (hex3/4/6/8 / transparent / currentColor). */
@@ -565,6 +586,127 @@ export type BoxShadowLayer = {
   spread?: number;
   color?: string;
   inset?: boolean;
+};
+
+/** B3.1: linear / radial / conic gradient (2–8 stops; `at` 0–100; angle 0–360). */
+export type GradientKind = "linear" | "radial" | "conic";
+export type GradientStop = {
+  color?: string;
+  /** 0–100 */
+  at?: number;
+};
+export type GradientValue = {
+  kind?: GradientKind;
+  angle?: number;
+  stops?: GradientStop[];
+};
+export const GRADIENT_KINDS = ["linear", "radial", "conic"] as const satisfies readonly GradientKind[];
+export const GRADIENT_MIN_STOPS = 2;
+export const GRADIENT_MAX_STOPS = 8;
+
+/** B4.1: one side's border override. Width 0–20; style allowlist. */
+export type BorderSideStyle = "solid" | "dashed" | "dotted" | "none";
+export type BorderSide = {
+  width?: number;
+  color?: string;
+  style?: BorderSideStyle;
+};
+export type BorderSides = {
+  t?: BorderSide;
+  r?: BorderSide;
+  b?: BorderSide;
+  l?: BorderSide;
+};
+/** B4.1: per-corner radius (0–400). */
+export type BorderRadiusCorners = {
+  tl?: number;
+  tr?: number;
+  br?: number;
+  bl?: number;
+};
+export const BORDER_SIDE_STYLES = [
+  "solid",
+  "dashed",
+  "dotted",
+  "none",
+] as const satisfies readonly BorderSideStyle[];
+
+/** B5.1: transform-origin keywords (9). */
+export type TransformOrigin =
+  | "top left"
+  | "top"
+  | "top right"
+  | "left"
+  | "center"
+  | "right"
+  | "bottom left"
+  | "bottom"
+  | "bottom right";
+export type TransformValue = {
+  translateX?: number;
+  translateY?: number;
+  scale?: number;
+  scaleX?: number;
+  scaleY?: number;
+  rotate?: number;
+  skewX?: number;
+  skewY?: number;
+  origin?: TransformOrigin;
+};
+export const TRANSFORM_ORIGINS = [
+  "top left",
+  "top",
+  "top right",
+  "left",
+  "center",
+  "right",
+  "bottom left",
+  "bottom",
+  "bottom right",
+] as const satisfies readonly TransformOrigin[];
+
+/** B5.1: transition. `property: "paint"` → fixed paint list (no layout). */
+export type TransitionEasing =
+  | "ease"
+  | "ease-in"
+  | "ease-out"
+  | "ease-in-out"
+  | "linear"
+  | "spring";
+export type TransitionValue = {
+  durationMs?: number;
+  delayMs?: number;
+  easing?: TransitionEasing | string;
+  property?: "paint";
+};
+export const TRANSITION_EASINGS = [
+  "ease",
+  "ease-in",
+  "ease-out",
+  "ease-in-out",
+  "linear",
+  "spring",
+] as const satisfies readonly TransitionEasing[];
+/** Compiled `transition-property` when `property:"paint"`. */
+export const TRANSITION_PAINT_PROPS =
+  "background-color,color,border-color,box-shadow,opacity,transform,filter,backdrop-filter";
+/** spring → cubic-bezier (T108a). */
+export const TRANSITION_SPRING_BEZIER = "cubic-bezier(0.34,1.56,0.64,1)";
+
+/** B6.1: filter functions. */
+export type FilterValue = {
+  blur?: number;
+  brightness?: number;
+  contrast?: number;
+  saturate?: number;
+  grayscale?: number;
+  hueRotate?: number;
+};
+/** B6.1: backdrop-filter subset. */
+export type BackdropFilterValue = {
+  blur?: number;
+  saturate?: number;
+  brightness?: number;
 };
 
 /**
@@ -593,7 +735,45 @@ export const STYLE_KEYS = [
   "opacity",
   "overflow",
   "boxShadow",
+  "backgroundGradient",
+  "textGradient",
+  "borderSides",
+  "borderRadiusCorners",
+  "transform",
+  "transition",
+  "filter",
+  "backdropFilter",
 ] as const satisfies readonly (keyof StyleProps)[];
+
+/** B7.1: paint-only keys allowed inside `Node.states` (§4.3 / §9.B). */
+export const STATE_PAINT_KEYS = [
+  "backgroundColor",
+  "color",
+  "borderColor",
+  "opacity",
+  "boxShadow",
+  "backgroundGradient",
+  "textGradient",
+  "filter",
+  "backdropFilter",
+  "transform",
+] as const satisfies readonly (keyof StyleProps)[];
+export type StatePaintKey = (typeof STATE_PAINT_KEYS)[number];
+/** Sparse paint subset used by hover / active / focusVisible. */
+export type StateStyle = {
+  [K in StatePaintKey]?: StyleProps[K];
+};
+export type NodeStateName = "hover" | "active" | "focusVisible";
+export type NodeStates = {
+  hover?: StateStyle;
+  active?: StateStyle;
+  focusVisible?: StateStyle;
+};
+export const NODE_STATE_NAMES = [
+  "hover",
+  "active",
+  "focusVisible",
+] as const satisfies readonly NodeStateName[];
 
 export type BoxSpacing =
   | number

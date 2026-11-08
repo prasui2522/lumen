@@ -1,0 +1,29 @@
+{
+  "backgroundGradient": {
+    "kind": "linear",
+    "angle": 0,
+    "stops": [
+      {
+        "color": "#000",
+        "at": 0
+      },
+      {
+        "color": "#fff",
+        "at": 100
+      }
+    ]
+  },
+  "textGradient": {
+    "kind": "linear",
+    "stops": [
+      {
+        "color": "#f00",
+        "at": 0
+      },
+      {
+        "color": "#0f0",
+        "at": 100
+      }
+    ]
+  }
+}

@@ -20,6 +20,7 @@ import { toast } from "@/lib/toast";
 import { isOverlayOpen } from "@/lib/modal";
 import { saveShortcutAction } from "@/lib/save-shortcut";
 import { commitProjectTitle, titleBlurShouldSave } from "@/lib/project-title";
+import { evaluatePagePerf } from "@/lib/page-perf-watch";
 
 function errMessage(e: unknown): string {
   if (typeof e === "string") return e;
@@ -68,6 +69,7 @@ export function EditorPage() {
   const setSelectedNodeId = useEditorStore((s) => s.setSelectedNodeId);
   const mode = useEditorStore((s) => s.mode);
   const resetEditorChrome = useEditorStore((s) => s.resetEditorChrome);
+  const openPageId = useEditorStore((s) => s.openPageId);
 
   useEffect(() => {
     if (!projectId) return;
@@ -93,6 +95,13 @@ export function EditorPage() {
 
   const title = openName ?? "หน้าใหม่";
   const documentReady = openId === projectId;
+
+  // B6.2: one O(n) perf pass when a page opens in Design (§5.3) — not on every edit.
+  useEffect(() => {
+    if (!documentReady) return;
+    if (mode !== "design" && mode !== "preview") return;
+    evaluatePagePerf(useProjectsStore.getState().openDocument);
+  }, [documentReady, openPageId, mode]);
 
   /* ---- Leave guard: in-app navigation, window close, reload ---- */
   const [leaveIntent, setLeaveIntent] = useState<LeaveIntent | null>(null);

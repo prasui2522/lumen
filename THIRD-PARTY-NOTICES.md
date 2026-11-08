@@ -1,8 +1,40 @@
 # Third-party notices
 
-This file ships with the app (Phase 11 §2.3 / A4.4). Licence reading is not legal advice.
+This file ships with the app (Phase 11 §2.3 / A4.4 / D1) and is shown from **เกี่ยวกับ → ประกาศบุคคลที่สาม**. Licence reading is not legal advice.
 
-Further runtime dependency lines (tw-animate-css and others) are added when D10.4 audits `package.json` / `Cargo.toml`. shadcn/ui MIT text for editor chrome and adapted blocks is recorded in D1; v1 blocks are `original` until then.
+Further runtime dependency lines (tw-animate-css and others) are added when D10.4 audits `package.json` / `Cargo.toml`. v1 marketing blocks are authored `original` unless a block's `source.kind` is `mit`.
+
+---
+
+## shadcn/ui (editor chrome)
+
+The editor UI uses components adapted from [shadcn/ui](https://ui.shadcn.com) (MIT). Full licence text:
+
+```
+MIT License
+
+Copyright (c) 2023 shadcn
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+MIT-adapted UI primitives in this app (one line each): `button`, `input`, `dialog`, `alert-dialog`, `popover`, `dropdown-menu`, `select`, `switch`, `tabs`, `tooltip`, `separator`, `scroll-area`, `checkbox`, `radio-group`, `slider`, `progress`, `avatar`, `badge`, `card`, `table`, `accordion`, `collapsible`, `sheet`, `drawer`, `menubar`, `navigation-menu`, `breadcrumb`, `pagination`, `command` (cmdk wrapper), `sonner` toast host.
 
 ---
 

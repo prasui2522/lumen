@@ -7,8 +7,12 @@ import type {
   Node,
   NodeId,
   NodeProps,
+  NodeStateName,
+  NodeStates,
   NodeType,
   PageDocument,
+  StatePaintKey,
+  StateStyle,
   StyleBreakpoint,
   StyleProps,
 } from "@/schema";
@@ -21,18 +25,23 @@ import {
   DEFAULT_STYLES,
   HEADING_FONT_SIZE,
   LIST_MARKERS,
+  NODE_STATE_NAMES,
+  STATE_PAINT_KEYS,
   getChildren,
   isContainerType,
   isLocked,
   isPhase6bType,
   resolvedStyle,
 } from "@/schema";
+import { cleanStateStyle, cleanStates, cleanStyle } from "@/lib/breakpoints";
 import { MAX_SELECT_OPTIONS } from "@/lib/select-options";
 import { MAX_LIST_ITEMS } from "@/lib/list-items";
 import { capColumns, normalizeTableRows, tableModelEqual } from "@/lib/table-model";
 import { chartModelEqual, normalizeChartModel } from "@/lib/chart-model";
 import { labelHrefItemsEqual, labelTextItemsEqual, menubarMenusEqual } from "@/lib/pair-options";
 import type { LabelHrefItem, LabelTextItem, MenubarMenu } from "@/schema";
+import type { StylePreset } from "@/lib/presets-registry";
+import { STYLE_KEYS } from "@/schema";
 
 /**
  * Phase 11 A3.5: replace `input.suggestions` (sparse). Empty → key absent.
@@ -1057,6 +1066,112 @@ export function setNodeBreakpointStyle<K extends StyleKey>(
   if (Object.keys(map).length > 0) next.styleBreakpoints = map;
   else delete next.styleBreakpoints;
   return replaceNode(doc, next);
+}
+
+/**
+ * B7.1: replace the whole `states` object (or clear with `undefined`).
+ * Locked → null. Disallowed / empty paint keys are stripped. Empty → key removed.
+ */
+export function setNodeStates(
+  doc: PageDocument,
+  nodeId: NodeId,
+  states: NodeStates | undefined,
+): PageDocument | null {
+  const node = doc.nodes[nodeId];
+  if (!node || isContentLocked(doc, node)) return null;
+  const cleaned = cleanStates(states);
+  const had = node.states !== undefined;
+  if (!cleaned && !had) return null;
+  if (cleaned && had && JSON.stringify(node.states) === JSON.stringify(cleaned)) return null;
+  const next: Node = { ...node };
+  if (cleaned) next.states = cleaned;
+  else delete next.states;
+  return replaceNode(doc, next);
+}
+
+/**
+ * Phase 11 C2: merge a preset into the node's **base** style + states.
+ * Preset keys overwrite; other keys and `styleBreakpoints` are untouched.
+ * Locked / kind not in `appliesTo` → null. One call = one document snapshot for undo.
+ */
+export function applyPreset(
+  doc: PageDocument,
+  nodeId: NodeId,
+  preset: StylePreset,
+): PageDocument | null {
+  const node = doc.nodes[nodeId];
+  if (!node || isContentLocked(doc, node)) return null;
+  if (!preset.appliesTo.includes(node.type)) return null;
+
+  const mergedStyle: StyleProps = { ...node.style };
+  for (const key of STYLE_KEYS) {
+    const v = preset.style[key];
+    if (v !== undefined) (mergedStyle as Record<string, unknown>)[key] = v;
+  }
+  const style = cleanStyle(mergedStyle) ?? {};
+
+  let states: NodeStates | undefined = node.states ? { ...node.states } : undefined;
+  if (preset.states) {
+    states = states ?? {};
+    for (const name of NODE_STATE_NAMES) {
+      const patch = preset.states[name];
+      if (!patch) continue;
+      const prev = states[name] ?? {};
+      const nextState: StateStyle = { ...prev };
+      for (const key of STATE_PAINT_KEYS) {
+        const v = patch[key];
+        if (v !== undefined) (nextState as Record<string, unknown>)[key] = v;
+      }
+      const cleaned = cleanStateStyle(nextState);
+      if (cleaned) states[name] = cleaned;
+      else delete states[name];
+    }
+    states = cleanStates(states);
+  }
+
+  const next: Node = { ...node, style };
+  if (states) next.states = states;
+  else delete next.states;
+  // Breakpoints intentionally untouched.
+  if (
+    JSON.stringify(next.style) === JSON.stringify(node.style) &&
+    JSON.stringify(next.states) === JSON.stringify(node.states)
+  ) {
+    return null;
+  }
+  return replaceNode(doc, next);
+}
+
+/**
+ * B7.1: write one paint key inside `states[name]`. Non-allowlist keys refused
+ * (returns null). `undefined` clears the key; clearing the last key removes the
+ * state object (and `states` when empty).
+ */
+export function setNodeStateStyle<K extends StatePaintKey>(
+  doc: PageDocument,
+  nodeId: NodeId,
+  name: NodeStateName,
+  key: K,
+  value: StateStyle[K] | undefined,
+): PageDocument | null {
+  const node = doc.nodes[nodeId];
+  if (!node || isContentLocked(doc, node)) return null;
+  if (!(STATE_PAINT_KEYS as readonly string[]).includes(key)) return null;
+  const prevState = node.states?.[name];
+  const had = !!prevState && Object.prototype.hasOwnProperty.call(prevState, key);
+  const store = value !== undefined;
+  if (!store && !had) return null;
+  if (store && had && JSON.stringify(prevState![key]) === JSON.stringify(value)) return null;
+
+  const nextState: StateStyle = { ...(prevState ?? {}) };
+  if (store) (nextState as Record<string, unknown>)[key] = value;
+  else delete nextState[key];
+  const cleanedState = cleanStateStyle(nextState);
+
+  const states: NodeStates = { ...(node.states ?? {}) };
+  if (cleanedState) states[name] = cleanedState;
+  else delete states[name];
+  return setNodeStates(doc, nodeId, Object.keys(states).length > 0 ? states : undefined);
 }
 
 export type NodePropKey =

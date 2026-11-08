@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronRight, Download, PanelLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,14 @@ import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ModeSwitch } from "@/components/editor/ModeSwitch";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { lazyNamed } from "@/lib/lazy";
 import { useEditorStore } from "@/stores/editor-store";
 import { commitProjectTitle } from "@/lib/project-title";
 import { searchKeyAction } from "@/lib/search-trigger";
+
+const AboutMenu = lazyNamed(() =>
+  import("@/components/about-notices").then((m) => m.AboutMenu),
+);
 
 type Props = {
   title: string;
@@ -205,6 +210,9 @@ export function EditorTopBar({
           className="h-7 w-full pl-7 text-sm"
         />
       </div>
+      <Suspense fallback={null}>
+        <AboutMenu />
+      </Suspense>
       <ThemeToggle />
       <ModeSwitch disabled={modeDisabled} />
       <Tooltip>

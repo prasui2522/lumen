@@ -787,4 +787,114 @@ Status: DONE, applied to the live project. Not started: A2.5.
 - **RAM PSS** (§5.1 A: +2 MB vs same node-count of old kinds) still needs the real Tauri app / `RAM-BASELINE` method — not run in this agent session (same class as A3.5 owed item).
 - **A5 batch complete** pending that RAM measurement.
 
+## Phase 11 B3.1–B3.2 gradients (2026-11-07 Asia/Bangkok) — shipped
+
+- **B3.1 plumbing:** `backgroundGradient` + `textGradient` on `StyleProps` (STYLE_KEYS **23**); Rust `GradientValue` + `gradient_css` / exclusivity (bg wins) / forced-colors for text clip; TS `gradientToCss` + `styleToCss`; goldens `fixtures/style/grad-*`; `cleanStyle` drops empty-stop gradients.
+- **B3.2 editor:** lazy `effects-panels` `GradientSubGroup` (T80–T89): kind linear/radial/conic, angle, stops colour+position (2–8), text-fill toggle, exclusivity status T80, inline preview `div` (no canvas). Helpers `gradient-ops.ts`. StylePanel EffectsSection wires shadow + gradient with separate resets.
+- Tests: `compiler_b3_tests` (6), `b3-style.test.ts`, `b3-gradient-editor.test.ts`; a2 StyleProps count 23.
+- Next: **B4.1** (done below).
+
+## Phase 11 B4.1 borders (2026-11-07 Asia/Bangkok) — shipped
+
+- **Keys:** `borderSides` `{t,r,b,l}` + `borderRadiusCorners` `{tl,tr,br,bl}` (STYLE_KEYS **25**); `borderStyle` UI + allowlist gains dashed/dotted (T96/T97).
+- **Compile:** uniform border/radius first, then side/corner longhands; width 0–20; radius 0–400; hostile style/colour dropped. Goldens `border-side-override`, `border-corners`, `border-dashed`.
+- **Panel:** `BorderExtras` under เส้นขอบ — T90 per-side toggle, T91–T95 corner fields; StylePanel segmented border style + auto 1px width for solid/dashed/dotted.
+- Tests: `compiler_b4_tests` (4), `b4-style.test.ts`; export template `site-types` / `styleToReact` updated.
+- Next: **B5.1** (done below).
+
+## Phase 11 B5.1 transform + transition (2026-11-07 Asia/Bangkok) — shipped
+
+- **Keys:** `transform` + `transition` (STYLE_KEYS **27**). Transform order translate → rotate → scale → skew; origin 9 keywords; inline + transform → `display:inline-block` (T105). Transition `property:"paint"` longhands; spring → cubic-bezier(0.34,1.56,0.64,1); paint list excludes layout.
+- **Panel:** lazy `effects-panels` `TransformSubGroup` / `TransitionSubGroup` (T98–T108b).
+- Goldens: `transform-rotate`, `transform-full`, `transition-paint`. Tests: `compiler_b5_tests` (5), `b5-style.test.ts`.
+- Next: **B6.1** (done below).
+
+## Phase 11 B6.1 filter + backdropFilter (2026-11-07 Asia/Bangkok) — shipped
+
+- **Keys:** `filter` + `backdropFilter` (STYLE_KEYS **29**). Blur capped 40px; brightness/contrast/saturate 0–300%; grayscale 0–100%; hue 0–360. Backdrop emits both `-webkit-backdrop-filter` and `backdrop-filter`.
+- **Panel:** lazy `FilterSubGroup` (T109–T114) with memory note for backdrop blur.
+- Goldens: `filter-basic`, `backdrop-blur`. Tests: `compiler_b6_tests` (3), `b6-style.test.ts`.
+- Next: **B6.2** (done below).
+
+## Phase 11 B6.2 per-page perf warnings (2026-11-07 Asia/Bangkok) — shipped
+
+- **Counters** (`page-perf.ts`): blur effects (filter.blur / backdropFilter.blur) warn >6 (T115); shadow blur sum >1200 or layer >100 (T116); animated `motion.entrance` >30 (T117, ready for E).
+- **When:** O(n) only on heavy-key write (`writeStyle` / effects resets) or page open in Design/Preview — never per frame. Announce each kind once while over threshold (`page-perf-watch.ts`).
+- **UI:** Filter panel + shadow panel show inline status; Preview `DeviceToolbar` shows short count (`data-page-perf-toolbar`).
+- Tests: `b6-perf.test.ts` (6).
+- Next: **B7.1** (done below).
+
+## Phase 11 B7.1 Node.states data model (2026-11-07 Asia/Bangkok) — shipped
+
+- **TS:** `Node.states` `{hover?, active?, focusVisible?}` with `STATE_PAINT_KEYS` (10 paint keys). `setNodeStates` / `setNodeStateStyle` (allowlist, locked → null, clear last key drops state). `cleanStates` on save; empty → omitted. Presence → **version 2** (same tier as breakpoints).
+- **Rust:** `StateStyle` / `NodeStates` on `Node`; `normalize_page_nodes` drops empty states and sets tier-2 flag.
+- Tests: `b7-states.test.ts` (6), `defaults::b7_states_tests` (2).
+- Next: **B7.2** (done below).
+
+## Phase 11 B7.2 compiler state rules (2026-11-07 Asia/Bangkok) — shipped
+
+- **Emission:** `state_decls` (paint allowlist); order hover → focus-visible → active; hover wrapped in `@media (hover:hover)`; `:focus-visible` only for focusable output (linked button, link, input, textarea, select, checkbox, switch); class `fx` on nodes with states; reduced-motion `transition:none` + transform restore; forced-colors outline when focus ring is a shadow.
+- Lives in the shared `style_css` block (after type looks, before keyframes / breakpoints).
+- Tests: `compiler_b7_tests` (5).
+- Next: **B7.3** (done below).
+
+## Phase 11 B7.3 canvas force-display (2026-11-07 Asia/Bangkok) — shipped
+
+- **Store:** `forceDisplayState` + `setForceDisplayState`; cleared on selection change, Preview, leave Design / reset.
+- **Canvas:** `mergeForceState` paints `states.<name>` onto the selected node only; `transition:none` via over + `styleToCss` extra-last.
+- Tests: `b7-force-state.test.ts` (5).
+- Next: **B8.1** (done below).
+
+## Phase 11 B8.1 state switcher UI (2026-11-07 Asia/Bangkok) — shipped
+
+- **Panel:** `สถานะ` SegmentedField (T61–T65) under breakpoint; non-normal locks breakpoint to เดสก์ท็อป + announces T66; T67 paint-only hint; focus option only when `nodeOffersFocusState` (T68).
+- **Writes:** `writeStyle` / `styleOp` optional `state` → `setNodeStateStyle`; effects subgroups thread `state`; transition hidden while editing a state.
+- Tests: `b8-state-ui.test.ts`.
+- Next: **B8.2** (done below).
+
+## Phase 11 B8.2 per-state clear (2026-11-07 Asia/Bangkok) — shipped
+
+- **T118** `ล้างสถานะนี้` while a non-empty state is selected; `writeClearNodeState` drops that state object (empty `states` removed). One undo step. Per-field ↺ unchanged.
+- Tests: `b8-state-ui.test.ts` (clear last key).
+- Next: **B8.3** (done below).
+
+## Phase 11 B8.3 Preview press scoped to non-fx (2026-11-07 Asia/Bangkok) — shipped
+
+- `PREVIEW_BUTTON_FEEDBACK` → `.t-button:not(.fx):active` (+ reduced-motion twin). Export unchanged. Buttons with `states` keep only authored `:active`.
+- Tests: `preview_button_has_press_feedback_export_does_not`, `b83_preview_legacy_press_skips_fx_buttons`.
+- Next: **B9.1** (done below).
+
+## Phase 11 B9.1 3D press-button acceptance (2026-11-07 Asia/Bangkok) — shipped (automated)
+
+- Fixture `fixtures/b9/press-button.json` (linked button + hover/active + transition).
+- **Rust** `compiler_b9_tests`: (1) CSS shape, (7) no `<script`, (8) unlinked → `<span>` desktop-only, shared `style_css` block.
+- **TS** `b9-press-button.test.ts`: (2) serializer, sink invariant 5+1=6, (3) save/reopen, (4) clear last key, (8) spec wording.
+- **Real-app only (owed):** (5) pointer screenshots, (6) OS reduced-motion.
+- Next: **B10.1** RAM measurement (§5.2) — needs real Tauri + Xvfb; cannot fake PSS in this session.
+
+## Phase 11 C Presets (2026-11-07 Asia/Bangkok) — shipped (C1–C8 code; C8 RAM owed)
+
+- **C1–C2:** `presets-registry.json` + `validatePreset` / `applyPreset` / `writeApplyPreset`; tests `c1-presets`, `c2-presets`.
+- **C3:** lazy `preset-picker` in Style panel (T120); search, roving, Esc→trigger, announce T121, empty T135.
+- **C4–C5:** five built-ins; contrast + appliesTo coverage in `c4-c5-presets.test.ts`; glass T133 note.
+- **C6:** `library_items` table + `library_list` / `library_put` / `library_delete`; json ≤16 kB, ≤200 rows; Rust `library_tests` (7).
+- **C7:** save dialog (T122–T124), delete confirm Cancel-first (T125/T134), `capturePresetFromNode` paint-only; user presets in picker; `c7-presets.test.ts`.
+- **C8:** ≤12 thumbs; glass static tint; RAM/chunk measure owed on real app (`RAM-BASELINE` C8 section).
+- **Also owed:** B10.1 effects RAM.
+- Next: **9.D Blocks** (D1 notices + block format).
+
+## Phase 11 D1–D2 (2026-11-07 Asia/Bangkok) — shipped
+
+- **D1:** `block-format.ts` + `block-format.schema.json` + `d1-block-format.test.ts`; `THIRD-PARTY-NOTICES.md` gains shadcn MIT + adapted UI line list; bundled (`tauri.conf.json` resources + Vite `?raw`); lazy `about-notices` (T167/T168) on project list + editor top bar.
+- **D2:** `block-insert.ts` `insertBlock(doc, selection, block, position?)` — validate, UUID remap, page/inline slots, locked refusal; `d2-block-insert.test.ts`.
+- Next: **D3** migrate Phase 5B blocks + templates into registry.
+
+## Phase 11 D3 migrated registry (2026-11-07 Asia/Bangkok) — shipped
+
+- `src/lib/blocks-registry/migrated.json` — 6 elements + 5 templates as StyleBlocks (`source.original`); gen via `bun scripts/gen-blocks-registry.mjs`.
+- `blocks-registry.ts` lazy load + `builtFromRegistryBlock` / `normaliseBuiltTree`.
+- Tests: `d3-blocks-registry.test.ts` (deep-equal after id normalisation vs `buildBlock` / `buildTemplate`).
+- Old dropdowns still use `buildBlock` / `buildTemplate` until D4/D9.
+- Next: **D4** BlocksFlyout shell.
+
 

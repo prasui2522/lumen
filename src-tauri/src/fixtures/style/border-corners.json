@@ -1,0 +1,7 @@
+{
+  "borderRadius": 8,
+  "borderRadiusCorners": {
+    "tl": 16,
+    "br": 0
+  }
+}

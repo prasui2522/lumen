@@ -33,3 +33,31 @@ Median per-run deltas: DB open vs editor before DB mode **+10.6 RSS / +9.9 PSS**
 - RAM targets for a mode or feature are measured from the state **just before entering it** (here: the editor open, before `ฐานข้อมูล`), not from app startup. On that basis Phase 10 targets (b) ≤ +40 MB and (c) ≤ +20 MB pass (+9.9 / +12.3 PSS).
 - Phase 10 target (a) (startup ≤ pre-Phase-10 + 2 MB) is accepted as not verifiable: no pre-Phase-10 figure was recorded with this method and no pristine pre-Phase-10 tree exists. Indirect evidence: no DB code in the startup chunk (initial JS 112.05 kB gz) and no test-file fd at startup.
 - Raw logs: `/home/webdev/agent-tools/p10/step8-ram/`.
+
+## Phase 11 B — effects RAM (B10.1) — measurement owed
+
+**Provisional budget (§5.1 B, not yet replaced by measured numbers):** 50 nodes with 3-layer shadows + 6 backdrop blurs ≤ **+8 MB PSS** over the same 50 nodes without those effects. Method: §5.2 unchanged (release build, median of 4 runs, software-GL Xvfb).
+
+| Point | RSS | PSS | Notes |
+|---|---|---|---|
+| Control: 50 plain nodes | — | — | **Not measured** (needs real Tauri app) |
+| Heavy: 50 nodes + 3-layer shadows + 6 backdrop blurs | — | — | **Not measured** |
+| Δ (heavy − control) | — | — | Target ≤ +8 MB PSS |
+
+**Already shipping without waiting on B10.1:** B6.2 per-page caps/warnings (blur >6 → T115; shadow blur sum >1200 or layer >100 → T116). Soft-GL deltas only compare with vs control; compositing cost of `backdrop-filter` / large shadows on a **real GPU** remains unverified (PHASE-11-SPEC §5.2).
+
+Raw logs (when measured): `agent-tools/p11/b10-ram/`.
+
+## Phase 11 C — presets picker RAM (C8) — measurement owed
+
+**Provisional budget (§5.1 C / C8):** opening the preset picker adds ≤ **+1 MB PSS** vs control; ≤ 12 live DOM thumbnails; no images/canvas/network. Chunk budgets: presets data ≤ 6 kB gz, picker ≤ 3 kB gz.
+
+| Point | RSS | PSS | Notes |
+|---|---|---|---|
+| Control: Style panel, picker closed | — | — | **Not measured** (needs real Tauri app) |
+| Picker open (built-ins + thumbs) | — | — | **Not measured** |
+| Δ (open − control) | — | — | Target ≤ +1 MB PSS |
+
+**Already shipping without waiting on C8 measure:** thumb cap 12 in `preset-picker`; glass thumb uses static tint (no `backdrop-filter`); registry/picker are lazy chunks (no entry-graph / no `whenIdle` preload).
+
+Raw logs (when measured): `agent-tools/p11/c8-ram/`.

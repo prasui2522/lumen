@@ -3,6 +3,7 @@ mod commands;
 mod compiler;
 mod db;
 mod dbmodel;
+mod library;
 mod sqlexport;
 mod testdb;
 mod testmigrate;
@@ -60,6 +61,9 @@ pub fn run() {
             commands::export_project,
             commands::import_image,
             commands::asset_file_path,
+            commands::library_list,
+            commands::library_put,
+            commands::library_delete,
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")

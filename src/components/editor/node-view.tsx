@@ -13,7 +13,7 @@ import {
   type ReactNode,
 } from "react";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import type { Node, PageDocument, StyleProps } from "@/schema";
+import type { Node, NodeStateName, PageDocument, StyleProps } from "@/schema";
 import { useProjectsStore } from "@/stores/projects-store";
 import {
   DEFAULT_CONTAINER_PROPS,
@@ -26,6 +26,10 @@ import {
 import { cn } from "@/lib/utils";
 import { setDragPayload } from "@/lib/drag-session";
 import { isContentLocked, nodeText, textPropKey } from "@/lib/document-ops";
+import {
+  mergeForceState,
+  shouldForceDisplayState,
+} from "@/lib/force-state";
 import { Phase6bView } from "@/components/editor/phase6b-view";
 import { A2LeafView } from "@/components/editor/a2-view";
 import { CheckboxView, SwitchView } from "@/components/editor/a3-view";
@@ -53,6 +57,11 @@ export type NodeViewContext = {
   dropIndicator?: { parentId: string; index: number } | null;
   /** Hide the root's empty-drop hint (Design shows its own seed overlay). */
   suppressRootEmptyHint?: boolean;
+  /**
+   * B7.3: force-display this state on the selected node only (Style panel switcher).
+   * `null` / omitted = ปกติ. Canvas never reacts to real hover.
+   */
+  forceDisplayState?: NodeStateName | null;
   onSelect?: (nodeId: string) => void;
   onDragStart?: (nodeId: string, e: DragEvent) => void;
   onDragEnd?: () => void;
@@ -64,6 +73,19 @@ export type NodeViewContext = {
   /** `refocus`: Esc/Enter commit → return focus to the canvas. */
   onCommitEdit?: (nodeId: string, text: string, refocus: boolean) => void;
 };
+
+/** styleToCss + B7.3 `transition:none` when this node is force-displaying a state. */
+function canvasStyleToCss(
+  ctx: NodeViewContext,
+  node: Node,
+  style: StyleProps,
+  extra?: CSSProperties,
+): CSSProperties {
+  if (shouldForceDisplayState(ctx.selectedNodeId, node.id, ctx.forceDisplayState)) {
+    return styleToCss(style, { transition: "none", ...extra });
+  }
+  return styleToCss(style, extra);
+}
 
 const DRAG_MIME = "application/x-webapp-node-id";
 
@@ -234,11 +256,16 @@ export const NodeView = memo(function NodeView({ ctx, nodeId, slot }: NodeViewPr
   const node = ctx.document.nodes[nodeId];
   if (!node || !isVisible(node)) return null;
 
-  const style = resolvedStyle(node);
+  let style = resolvedStyle(node);
   // A spacer's height is `props.size`, not a style key, so it counts as an own height: inside an aspectRatio it keeps its
   // size like the export does (A2.5 F3); its width still fills.
   const ownH = node.style.height !== undefined || node.props.type === "spacer";
-  const over = slotStyle(slot, style.borderRadius ?? 0, node.style.width !== undefined, ownH);
+  let over = slotStyle(slot, style.borderRadius ?? 0, node.style.width !== undefined, ownH);
+  // B7.3: selected node only — merge `states.<name>` paint keys; `transition:none` via over (covers leaf views too).
+  if (shouldForceDisplayState(ctx.selectedNodeId, node.id, ctx.forceDisplayState)) {
+    style = mergeForceState(style, node.states, ctx.forceDisplayState);
+    over = mergeOver(over ?? {}, { transition: "none" });
+  }
   return withOver(renderNode(ctx, node, style, over), over);
 });
 
@@ -248,7 +275,7 @@ function renderNode(ctx: NodeViewContext, node: Node, style: StyleProps, over: C
     return (
       <InlineEditor
         node={node}
-        style={styleToCss(style, {
+        style={canvasStyleToCss(ctx, node, style, {
           cursor: "text",
           whiteSpace: "pre-wrap",
           minWidth: "1ch",
@@ -271,7 +298,7 @@ function renderNode(ctx: NodeViewContext, node: Node, style: StyleProps, over: C
           {...handlers}
           data-node-type={node.type}
           className={cn(chrome, "relative min-h-[1rem]")}
-          style={styleToCss(style)}
+          style={canvasStyleToCss(ctx, node, style)}
         >
           {renderChildren(ctx, node)}
           {isContainerType(node.type) && showEmptyHint(ctx, node) ? (
@@ -303,7 +330,7 @@ function renderNode(ctx: NodeViewContext, node: Node, style: StyleProps, over: C
           {...handlers}
           data-node-type="container"
           className={cn(chrome, "relative min-h-[1rem]")}
-          style={styleToCss(style, {
+          style={canvasStyleToCss(ctx, node, style, {
             display: "flex",
             flexDirection: direction === "row" ? "row" : "column",
             gap: `${gap}px`,
@@ -324,7 +351,7 @@ function renderNode(ctx: NodeViewContext, node: Node, style: StyleProps, over: C
           {...handlers}
           data-node-type="heading"
           className={chrome}
-          style={styleToCss(style)}
+          style={canvasStyleToCss(ctx, node, style)}
         >
           {node.props.content}
         </Tag>
@@ -336,7 +363,7 @@ function renderNode(ctx: NodeViewContext, node: Node, style: StyleProps, over: C
           {...handlers}
           data-node-type="text"
           className={chrome}
-          style={styleToCss(style)}
+          style={canvasStyleToCss(ctx, node, style)}
         >
           {node.props.content}
         </p>
@@ -357,7 +384,7 @@ function renderNode(ctx: NodeViewContext, node: Node, style: StyleProps, over: C
           {...handlers}
           data-node-type="button"
           className={chrome}
-          style={styleToCss(style, {
+          style={canvasStyleToCss(ctx, node, style, {
             cursor: ctx.editable ? "grab" : "default",
           })}
         >
@@ -370,7 +397,7 @@ function renderNode(ctx: NodeViewContext, node: Node, style: StyleProps, over: C
           {...handlers}
           data-node-type="link"
           className={chrome}
-          style={styleToCss(style, {
+          style={canvasStyleToCss(ctx, node, style, {
             textDecoration: "underline",
             cursor: ctx.editable ? "grab" : "default",
           })}
@@ -384,7 +411,7 @@ function renderNode(ctx: NodeViewContext, node: Node, style: StyleProps, over: C
           {...handlers}
           data-node-type="spacer"
           className={cn(chrome, ctx.editable && "bg-muted/50")}
-          style={styleToCss(style, {
+          style={canvasStyleToCss(ctx, node, style, {
             height: `${node.props.size}px`,
             width: "100%",
           })}
@@ -395,7 +422,7 @@ function renderNode(ctx: NodeViewContext, node: Node, style: StyleProps, over: C
       // A2.5 (F5). Without a label the export has a BARE `<input>` (it is the flex item of a buttonGroup row, 100 % wide
       // before it shrinks); with a label the `<label>` is the item and shrinks to fit. The canvas wraps both in a div, so
       // a label-less wrapper must take the input's own width and the input then fills it, or a group row differs.
-      const css = styleToCss(style);
+      const css = canvasStyleToCss(ctx, node, style);
       const bare = !node.props.label;
       return (
         <div {...handlers} data-node-type="input" className={chrome} style={bare ? { width: css.width } : undefined}>
@@ -428,7 +455,7 @@ function renderNode(ctx: NodeViewContext, node: Node, style: StyleProps, over: C
           {...handlers}
           data-node-type="field"
           className={cn("t-field", chrome, "relative", kids.length === 0 && "min-h-[1rem]")}
-          style={styleToCss(style, layout)}
+          style={canvasStyleToCss(ctx, node, style, layout)}
         >
           {p.label.trim() ? <span className="t-field-label">{p.label}</span> : null}
           {renderChildren(ctx, node, vertical)}
@@ -454,7 +481,7 @@ function renderNode(ctx: NodeViewContext, node: Node, style: StyleProps, over: C
             ? layout
             : layout;
       // scrollArea: two longhands, never the shorthand (fix 1: React drops longhands that conflict with `overflow`).
-      const containerCss: CSSProperties = styleToCss(style, extra);
+      const containerCss: CSSProperties = canvasStyleToCss(ctx, node, style, extra);
       if (p.type === "scrollArea") {
         delete containerCss.overflow;
         Object.assign(containerCss, canvasScrollOverflow(p.orientation, style.overflow));
