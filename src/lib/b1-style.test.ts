@@ -37,7 +37,7 @@ function cssFromStyle(style: StyleProps): string {
 
 describe("B1 STYLE_KEYS parity (§4.5.1)", () => {
   test("STYLE_KEYS matches schema StyleProps and defaults.rs struct/is_empty/overlay_style", () => {
-    expect(STYLE_KEYS.length).toBe(29);
+    expect(STYLE_KEYS.length).toBe(31);
     expect(STYLE_KEYS).toContain("boxShadow");
     expect(STYLE_KEYS).toContain("backgroundGradient");
     expect(STYLE_KEYS).toContain("textGradient");

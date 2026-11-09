@@ -86,6 +86,21 @@ export function setListItems(
   return replaceNode(doc, { ...node, props: { ...p, items: next } });
 }
 
+/** Design-only command / context menu items. Capped at 12. Empty lines are dropped. */
+export function setStaticItems(
+  doc: PageDocument,
+  nodeId: NodeId,
+  items: string[],
+): PageDocument | null {
+  const node = doc.nodes[nodeId];
+  if (!node || isContentLocked(doc, node)) return null;
+  if (node.props.type !== "command" && node.props.type !== "contextMenu") return null;
+  const p = node.props;
+  const next = items.map((s) => s.trim()).filter((s) => s !== "").slice(0, 12);
+  if (next.length === p.items.length && next.every((s, i) => s === p.items[i])) return null;
+  return replaceNode(doc, { ...node, props: { ...p, items: next } });
+}
+
 /**
  * Phase 11 A4.2: replace table columns + rows. Capped at {@link MAX_TABLE_COLS} /
  * {@link MAX_TABLE_ROWS}; rows are padded/truncated to the column width.
@@ -265,6 +280,10 @@ export const NODE_TYPE_LABEL: Record<NodeType, string> = {
   carousel: "Carousel",
   chart: "Chart",
   calendar: "Calendar",
+  command: "คำสั่งค้น",
+  contextMenu: "เมนูคลิกขวา",
+  resizable: "แบ่งขนาด",
+  toast: "ข้อความแจ้ง",
 };
 
 
@@ -583,6 +602,10 @@ export const PALETTE_TYPES = [
   "chart",
   // Phase 11 A5.5
   "calendar",
+  "command",
+  "contextMenu",
+  "resizable",
+  "toast",
 ] as const satisfies readonly NodeType[];
 
 export type PaletteType = (typeof PALETTE_TYPES)[number];
@@ -725,6 +748,31 @@ export function createNode(type: PaletteType): Node {
           month: 11,
           weekStart: 0,
           era: "be",
+        },
+      };
+    case "command":
+      return {
+        ...base,
+        props: {
+          type: "command",
+          placeholder: "ค้นหาคำสั่ง",
+          items: ["หน้าแรก", "ตั้งค่า", "ออกจากระบบ"],
+        },
+      };
+    case "contextMenu":
+      return {
+        ...base,
+        props: { type: "contextMenu", items: ["แก้ไข", "ทำซ้ำ", "ลบ"] },
+      };
+    case "resizable":
+      return { ...base, props: { type: "resizable", split: 50, children: [] } };
+    case "toast":
+      return {
+        ...base,
+        props: {
+          type: "toast",
+          title: "บันทึกแล้ว",
+          message: "แบบจัดวาง ไม่เด้งเอง",
         },
       };
     case "textarea":
@@ -1251,7 +1299,11 @@ export type NodePropKey =
   | "month"
   | "selectedDay"
   | "weekStart"
-  | "era";
+  | "era"
+  /** Design-only toast title / message and resizable first-pane percent */
+  | "title"
+  | "message"
+  | "split";
 
 /** Plain-text prop edited inline on the canvas, or null for non-text nodes. */
 export function textPropKey(node: Node): "content" | "label" | null {
@@ -1355,6 +1407,21 @@ export function setNodeProp(
   if (p.type === "input" && key === "placeholder") {
     if (typeof value !== "string" || value === p.placeholder) return null;
     return replaceNode(doc, { ...node, props: { ...p, placeholder: value } });
+  }
+  if (p.type === "command" && key === "placeholder") {
+    if (typeof value !== "string" || value === p.placeholder) return null;
+    return replaceNode(doc, { ...node, props: { ...p, placeholder: value } });
+  }
+  if (p.type === "toast" && (key === "title" || key === "message")) {
+    if (typeof value !== "string") return null;
+    if ((key === "title" ? p.title : p.message) === value) return null;
+    return replaceNode(doc, { ...node, props: { ...p, [key]: value } });
+  }
+  if (p.type === "resizable" && key === "split") {
+    if (typeof value !== "number" || !Number.isFinite(value)) return null;
+    const split = Math.min(80, Math.max(20, Math.round(value)));
+    if (split === p.split) return null;
+    return replaceNode(doc, { ...node, props: { ...p, split } });
   }
   if ((p.type === "switch" || p.type === "checkbox") && key === "checked") {
     if (typeof value !== "boolean" || value === p.checked) return null;

@@ -389,6 +389,71 @@ fn s5_dark_off_leaves_index_and_css_without_toggle() {
 }
 
 #[test]
+fn r2_sync_writes_vite_tree_once_then_refreshes_site_json() {
+    let dir = std::env::temp_dir().join(format!("wb-r2-{}", uuid::Uuid::new_v4().simple()));
+    let doc = rich();
+    let (opts, files) = plain();
+    sync_project_site(&dir, &doc, &opts, &files).unwrap();
+    assert!(dir.join("package.json").is_file());
+    assert!(dir.join("src/pages/SitePage.tsx").is_file());
+    let marker = dir.join("src/pages/SitePage.tsx");
+    std::fs::write(&marker, b"kept").unwrap();
+    sync_project_site(&dir, &doc, &opts, &files).unwrap();
+    assert_eq!(std::fs::read(&marker).unwrap(), b"kept");
+    let text = std::fs::read_to_string(dir.join("src/data/site.json")).unwrap();
+    let parsed = document_from_site_json(&text).unwrap();
+    assert_eq!(parsed.meta.title, doc.meta.title);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn r5_flagged_site_css_is_not_overwritten() {
+    let dir = std::env::temp_dir().join(format!("wb-r5-{}", uuid::Uuid::new_v4().simple()));
+    let doc = rich();
+    let (opts, files) = plain();
+    sync_project_site(&dir, &doc, &opts, &files).unwrap();
+    std::fs::write(dir.join("src/styles/site.css"), b"hand").unwrap();
+    flag_override(&dir, SITE_CSS_REL).unwrap();
+    sync_project_site(&dir, &doc, &opts, &files).unwrap();
+    assert_eq!(std::fs::read(dir.join(SITE_CSS_REL)).unwrap(), b"hand");
+    assert!(override_contains(&dir, SITE_CSS_REL));
+    clear_override(&dir, SITE_CSS_REL).unwrap();
+    sync_project_site(&dir, &doc, &opts, &files).unwrap();
+    assert_ne!(std::fs::read(dir.join(SITE_CSS_REL)).unwrap(), b"hand");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn r6_import_rejects_bad_json_and_foreign_folder() {
+    let dir = std::env::temp_dir().join(format!("wb-r6-{}", uuid::Uuid::new_v4().simple()));
+    std::fs::create_dir_all(dir.join("src/data")).unwrap();
+    std::fs::write(dir.join("package.json"), br#"{"name":"exported-site"}"#).unwrap();
+    std::fs::write(dir.join("src/data/site.json"), b"{").unwrap();
+    let err = load_import_document(&dir).unwrap_err();
+    assert!(err.starts_with("JSON ไม่ถูกต้อง"), "{err}");
+    std::fs::write(dir.join("package.json"), br#"{"name":"other"}"#).unwrap();
+    let err = load_import_document(&dir).unwrap_err();
+    assert!(err.contains("ไม่ใช่โปรเจกต์"), "{err}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn r3_list_site_tree_skips_node_modules() {
+    let dir = std::env::temp_dir().join(format!("wb-r3-{}", uuid::Uuid::new_v4().simple()));
+    std::fs::create_dir_all(dir.join("src/data")).unwrap();
+    std::fs::create_dir_all(dir.join("node_modules/vite")).unwrap();
+    std::fs::write(dir.join("package.json"), b"{}").unwrap();
+    std::fs::write(dir.join("src/data/site.json"), b"{\"ok\":true}").unwrap();
+    std::fs::write(dir.join("node_modules/vite/index.js"), b"skip").unwrap();
+    let list = list_site_tree(&dir).unwrap();
+    let paths: Vec<_> = list.iter().map(|e| e.path.as_str()).collect();
+    assert!(paths.contains(&"package.json"));
+    assert!(paths.contains(&"src/data/site.json"));
+    assert!(paths.iter().all(|p| !p.contains("node_modules")));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn r1_site_json_strips_renderer_keys_and_rejects_bad_json() {
     let ok = r#"{"version":1,"meta":{"title":"T"},"root":"p","nodes":{"p":{"id":"p","type":"page","props":{"type":"page","children":[]}}},"baseDefaults":{"page":{}},"headingFontSizes":[32],"assetFiles":{"a":"a.png"}}"#;
     let doc = document_from_site_json(ok).unwrap();

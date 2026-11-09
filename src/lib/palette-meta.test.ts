@@ -10,13 +10,13 @@ import {
 } from "@/lib/palette-meta";
 
 describe("palette meta (A1.1)", () => {
-  test("every palette type has exactly one group and appears exactly once (58 tiles with A5.5 calendar, none lost)", () => {
-    expect(PALETTE_TYPES.length).toBe(58);
+  test("every palette type has exactly one group and appears exactly once (62 tiles, none lost)", () => {
+    expect(PALETTE_TYPES.length).toBe(62);
     const flat = paletteGroups().flatMap((g) => g.types);
     expect([...flat].sort()).toEqual([...PALETTE_TYPES].sort());
-    expect(new Set(flat).size).toBe(58);
+    expect(new Set(flat).size).toBe(62);
     for (const t of PALETTE_TYPES) expect(PALETTE_GROUPS).toContain(PALETTE_META[t].group);
-    expect(Object.keys(PALETTE_META).length).toBe(58);
+    expect(Object.keys(PALETTE_META).length).toBe(62);
   });
 
   test("group headings are the spec's eight, in order, none empty", () => {
@@ -40,8 +40,8 @@ describe("palette meta (A1.1)", () => {
   });
 
   test("blank query matches all; nonsense matches none", () => {
-    expect(countPaletteMatches("")).toBe(58);
-    expect(countPaletteMatches("   ")).toBe(58);
+    expect(countPaletteMatches("")).toBe(62);
+    expect(countPaletteMatches("   ")).toBe(62);
     expect(countPaletteMatches("zzzzqq")).toBe(0);
   });
 
@@ -67,7 +67,7 @@ describe("palette meta (A1.1)", () => {
 
   test("A1.5: exactly one of the 41 original tile labels changed (A2.5 adds nine more) (switch: Checkbox -> Switch); new switch default label is 'Switch' (A3.2)", () => {
     const labels = PALETTE_TYPES.map((t) => NODE_TYPE_LABEL[t]);
-    expect(labels.length).toBe(58);
+    expect(labels.length).toBe(62);
     // A3.1: "Checkbox" is now the real checkbox kind's tile, never the switch's
     expect(labels.filter((l) => l === "Checkbox").length).toBe(1);
     expect(NODE_TYPE_LABEL.checkbox).toBe("Checkbox");

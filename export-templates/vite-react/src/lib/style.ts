@@ -6,6 +6,27 @@ function sizeCss(v: CssSize | undefined): string | undefined {
   return typeof v === "number" ? `${v}px` : v;
 }
 
+const CURSORS = new Set([
+  "auto",
+  "default",
+  "pointer",
+  "text",
+  "move",
+  "grab",
+  "grabbing",
+  "crosshair",
+  "not-allowed",
+  "zoom-in",
+  "zoom-out",
+  "wait",
+  "help",
+  "progress",
+]);
+
+export function cursorCss(value: string | undefined): string | undefined {
+  return value && CURSORS.has(value) ? value : undefined;
+}
+
 function boxCss(prefix: "margin" | "padding", box: BoxSpacing | undefined, out: CSSProperties) {
   if (box === undefined) return;
   if (typeof box === "number") {
@@ -148,6 +169,8 @@ export function styleToReact(style: StyleProps | undefined): CSSProperties {
   }
   if (style.opacity !== undefined) out.opacity = style.opacity;
   if (style.overflow) out.overflow = style.overflow as CSSProperties["overflow"];
+  const cursor = cursorCss(style.cursor);
+  if (cursor) out.cursor = cursor;
   const shadow = boxShadowToCss(style.boxShadow);
   if (shadow) out.boxShadow = shadow;
   const tf = style.transform;

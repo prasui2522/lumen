@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { HOOK_ATTR, overriddenFamilies, styleToReact, withoutFamilies } from "@/lib/style";
+import { HOOK_ATTR, overriddenFamilies, styleToReact, withoutFamilies, cursorCss } from "@/lib/style";
 import type { SiteNode, StyleProps } from "@/lib/site-types";
 import { ICON_PATHS, iconInnerSvg } from "@/lib/icon-paths";
 import { renderChartSvg, type ChartKind, type ChartSeries } from "@/lib/chart-render";
@@ -69,9 +69,21 @@ function inPreview(): boolean {
   return (globalThis as Record<string, unknown>)[PREVIEW_FLAG] === true;
 }
 
-function kids(node: SiteNode, ctx: Ctx): ReactNode {
+function kids(node: SiteNode, ctx: Ctx, inRow = false): ReactNode {
   const children = (node.props.children as string[] | undefined) ?? [];
-  return children.map((id) => <RenderNode key={id} id={id} ctx={ctx} />);
+  return children.map((id) => <RenderNode key={id} id={id} ctx={ctx} inRow={inRow} />);
+}
+
+/**
+ * A row child that only has the kind default `width: 100%` (`.t-container` and the same
+ * inline default) takes the whole row and crushes its siblings, so Thai text wraps on top
+ * of the links. An explicit width is left alone.
+ */
+function relaxRowWidth(style: StyleProps | undefined, node: SiteNode, inRow?: boolean): StyleProps | undefined {
+  if (!inRow || node.props.type !== "container" || !style || node.style?.width !== undefined || style.width === undefined) {
+    return style;
+  }
+  return { ...style, width: "auto" };
 }
 
 function isInternalPath(href: string): boolean {
@@ -125,8 +137,21 @@ function layoutStyle(p: Record<string, unknown>, base: CSSProperties): CSSProper
  * hook the generated `src/styles/site.css` targets (same bytes as the static export). The overridden keys (whole
  * shorthand family) leave the inline style, so the generated rules win by normal cascade, without `!important`.
  */
-export function RenderNode({ id, ctx }: { id: string; ctx: Ctx }) {
-  const el = renderNodeInner(id, ctx);
+function previewCursorCss(id: string, node: SiteNode): string {
+  if (!inPreview() || id.includes('"') || id.includes("\\")) return "";
+  const sel = `[data-node-id="${id}"]`;
+  const parts: string[] = [];
+  const hover = cursorCss(node.states?.hover?.cursor);
+  const active = cursorCss(node.states?.active?.cursor);
+  const focus = cursorCss(node.states?.focusVisible?.cursor);
+  if (hover) parts.push(`${sel}:hover{cursor:${hover}}`);
+  if (active) parts.push(`${sel}:active{cursor:${active}}`);
+  if (focus) parts.push(`${sel}:focus-visible{cursor:${focus}}`);
+  return parts.join("");
+}
+
+export function RenderNode({ id, ctx, inRow }: { id: string; ctx: Ctx; inRow?: boolean }) {
+  const el = renderNodeInner(id, ctx, inRow);
   const node = ctx.nodes[id];
   // Dialog: the root is the Radix provider (no element); its case puts class + hook on the dialog box itself.
   if (!node || !isValidElement(el) || node.props.type === "dialog") return el;
@@ -143,14 +168,22 @@ export function RenderNode({ id, ctx }: { id: string; ctx: Ctx }) {
     extra[HOOK_ATTR] = id;
     extra.style = withoutFamilies(props.style, fams);
   }
-  return cloneElement(el as ReactElement<Record<string, unknown>>, extra);
+  const painted = cloneElement(el as ReactElement<Record<string, unknown>>, extra);
+  const cursorRules = previewCursorCss(id, node);
+  if (!cursorRules) return painted;
+  return (
+    <>
+      <style>{cursorRules}</style>
+      {painted}
+    </>
+  );
 }
 
-function renderNodeInner(id: string, ctx: Ctx): ReactNode {
+function renderNodeInner(id: string, ctx: Ctx, inRow?: boolean): ReactNode {
   const node = ctx.nodes[id];
   if (!node || node.visible === false) return null;
   const p = node.props;
-  const style = styleToReact(baseStyle(node, ctx));
+  const style = styleToReact(relaxRowWidth(baseStyle(node, ctx), node, inRow));
   const t = p.type;
 
   switch (t) {
@@ -161,12 +194,14 @@ function renderNodeInner(id: string, ctx: Ctx): ReactNode {
     case "alert":
     case "buttonGroup":
     case "aspectRatio":
-    case "field":
+    case "field": {
+      const row = (p.direction ?? (t === "buttonGroup" ? "row" : "column")) === "row";
       return (
         <div className={`n-${t}`} style={layoutStyle(p, style)}>
-          {kids(node, ctx)}
+          {kids(node, ctx, row)}
         </div>
       );
+    }
     case "scrollArea": {
       // F2.1 a / B0: display flex, width 100% and overflow auto come from the shared base defaults (defaults.rs via
       // site.json `baseDefaults`); the axis rule (compiler.rs scroll_axis_decls): vertical clips x, horizontal clips
@@ -499,6 +534,52 @@ function renderNodeInner(id: string, ctx: Ctx): ReactNode {
       return (
         <div className="t-calendarwrap" style={{ display: "block", width: "100%", ...style }}>
           <span dangerouslySetInnerHTML={{ __html: html }} />
+        </div>
+      );
+    }
+    case "command":
+    case "contextMenu": {
+      const items = (Array.isArray(p.items) ? p.items : [])
+        .map((item) => String(item).trim())
+        .filter(Boolean)
+        .slice(0, 12);
+      const shown = items.length > 0 ? items : ["รายการ"];
+      const label = t === "command" ? "คำสั่งค้น แบบจัดวาง" : "เมนูคลิกขวา แบบจัดวาง";
+      return (
+        <div className={`t-${t}`} role={t === "command" ? "search" : "menu"} aria-label={label} style={style}>
+          {t === "command" ? <p>{String(p.placeholder ?? "")}</p> : null}
+          <ul>
+            {shown.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+    case "toast":
+      return (
+        <div className="t-toast" role="status" aria-label="ข้อความแจ้ง แบบจัดวาง" style={style}>
+          <strong>{String(p.title ?? "")}</strong>
+          <p>{String(p.message ?? "")}</p>
+        </div>
+      );
+    case "resizable": {
+      const pct = Math.min(80, Math.max(20, Math.round(Number(p.split) || 50)));
+      const ids = Array.isArray(p.children) ? p.children.map(String) : [];
+      return (
+        <div className="t-resizable" aria-label="แบ่งขนาด แบบจัดวาง" style={{ display: "flex", ...style }}>
+          {ids.length === 0 ? (
+            <>
+              <div style={{ flex: `0 0 ${pct}%`, minWidth: 0 }} />
+              <div style={{ flex: "1 1 auto", minWidth: 0 }} />
+            </>
+          ) : (
+            ids.map((cid, i) => (
+              <div key={cid} style={i === 0 ? { flex: `0 0 ${pct}%`, minWidth: 0 } : { flex: "1 1 auto", minWidth: 0 }}>
+                <RenderNode id={cid} ctx={ctx} inRow />
+              </div>
+            ))
+          )}
         </div>
       );
     }

@@ -67,6 +67,25 @@ document.addEventListener("click", (e) => {
   const n = t.closest("[data-node-id]");
   post({ type: "wb:select", id: n ? n.getAttribute("data-node-id") : null });
 });
+function boxes() {
+  const list = [];
+  document.querySelectorAll("[data-node-id]").forEach((el) => {
+    const r = el.getBoundingClientRect();
+    list.push({ id: el.getAttribute("data-node-id"), x: r.x, y: r.y, w: r.width, h: r.height });
+  });
+  post({ type: "wb:boxes", boxes: list });
+}
+window.addEventListener("scroll", boxes, true);
+window.addEventListener("resize", boxes);
+setInterval(boxes, 400);
+document.addEventListener("dblclick", (e) => {
+  const t = e.target;
+  if (!(t instanceof Element)) return;
+  const n = t.closest("[data-node-id]");
+  if (!n) return;
+  e.preventDefault();
+  post({ type: "wb:edit", id: n.getAttribute("data-node-id") });
+});
 "##;
 
 const RUN_VITE: &str = r#"
@@ -304,6 +323,7 @@ struct Inner {
     health_misses: u8,
     last_health: Instant,
     restart_at: Option<Instant>,
+    preview_ws: Option<PathBuf>,
 }
 
 impl Inner {
@@ -323,6 +343,7 @@ impl Inner {
             health_misses: 0,
             last_health: Instant::now(),
             restart_at: None,
+            preview_ws: None,
         }
     }
 }
@@ -380,8 +401,15 @@ impl Sidecar {
     }
 
     pub fn stop(&self) {
-        let mut g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        self.stop_locked(&mut g);
+        let ws = {
+            let mut g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+            let ws = g.preview_ws.clone();
+            self.stop_locked(&mut g);
+            ws
+        };
+        if let Some(ws) = ws {
+            crate::export::restore_index_after_preview(&ws);
+        }
     }
 
     pub fn reset_restarts(&self) {
@@ -511,13 +539,15 @@ fn sidecar_loop(s: Arc<Sidecar>) {
     loop {
         std::thread::sleep(Duration::from_secs(1));
         reap_if_dead(&s);
-        let spec = {
+        let (spec, restore_ws) = {
             let mut g = match s.inner.lock() {
                 Ok(g) => g,
                 Err(_) => continue,
             };
+            let mut restore_ws = None;
             if g.phase == SidecarPhase::Running || g.phase == SidecarPhase::Starting {
                 if should_idle_stop(g.visible, g.last_activity.elapsed(), Duration::from_millis(IDLE_MS)) {
+                    restore_ws = g.preview_ws.clone();
                     s.stop_locked(&mut g);
                 }
             }
@@ -526,7 +556,7 @@ fn sidecar_loop(s: Arc<Sidecar>) {
                     g.restarts = 0;
                 }
             }
-            if let Some(at) = g.restart_at {
+            let spec = if let Some(at) = g.restart_at {
                 if Instant::now() >= at {
                     g.restart_at = None;
                     s.spec.lock().unwrap_or_else(|e| e.into_inner()).clone()
@@ -535,8 +565,12 @@ fn sidecar_loop(s: Arc<Sidecar>) {
                 }
             } else {
                 None
-            }
+            };
+            (spec, restore_ws)
         };
+        if let Some(ws) = restore_ws {
+            crate::export::restore_index_after_preview(&ws);
+        }
         if let Some(spec) = spec {
             let _ = start_vite(&s, &spec.ws, &spec.deps, &spec.bun_version);
         }
@@ -776,6 +810,7 @@ pub fn start_vite(
         let mut g = s.inner.lock().unwrap_or_else(|e| e.into_inner());
         g.phase = SidecarPhase::Starting;
         g.port = Some(port);
+        g.preview_ws = Some(ws.to_path_buf());
         g.error = None;
         g.error_code = None;
         g.restart_at = None;

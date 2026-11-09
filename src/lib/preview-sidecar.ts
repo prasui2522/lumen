@@ -221,7 +221,7 @@ export function markHmrWritten(at = Date.now()) {
  * idle timer and (while running) rewrite site.json. Project close stops vite.
  */
 export function useSidecarSession(mode: string, openId: string | null) {
-  const previewish = mode === "preview" || mode === "split";
+  const previewish = mode === "preview" || mode === "split" || mode === "design";
 
   useEffect(() => {
     return () => {

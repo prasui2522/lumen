@@ -14,7 +14,7 @@ mod chart_render;
 mod calendar_render;
 mod sidecar;
 
-use db::{databases_dir, db_path, open_db, DbState};
+use db::{databases_dir, db_path, open_db, sites_dir, DbState};
 use assets::assets_dir;
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
@@ -78,6 +78,7 @@ pub fn run() {
                 conn: Mutex::new(conn),
                 assets_dir: assets_dir(&app_data),
                 databases_dir: databases_dir(&app_data),
+                sites_dir: sites_dir(&app_data),
             });
             // Phase 10 step 6: empty slot only; no test file is touched here.
             app.manage(testdb::TestDbState::default());
@@ -111,6 +112,13 @@ pub fn run() {
             commands::preview_bundle,
             commands::export_project,
             commands::list_export_files,
+            commands::list_project_files,
+            commands::open_project_folder,
+            commands::write_project_file,
+            commands::list_project_overrides,
+            commands::regenerate_site_css,
+            commands::import_project_folder,
+            commands::import_project_zip,
             commands::parse_site_json,
             commands::open_export_folder,
             commands::import_image,

@@ -3,6 +3,7 @@ import {
   setChartEditorCommit,
   setInputSuggestions,
   setListItems,
+  setStaticItems,
   setTableEditorCommit,
   setTableModel,
   applyPreset,
@@ -25,6 +26,7 @@ import type {
   StyleProps,
 } from "@/schema";
 import { STATE_PAINT_KEYS } from "@/schema";
+import { glassStyle, type GlassLevel } from "@/lib/glass-material";
 import { evaluatePagePerfIfHeavy } from "@/lib/page-perf-watch";
 import { useProjectsStore } from "@/stores/projects-store";
 
@@ -108,6 +110,21 @@ export function writeStyle<K extends StyleKey>(
   });
 }
 
+/** Set glass thickness as one undo step, or clear only the frost. */
+export function writeGlassThickness(nodeId: string, level: GlassLevel | ""): void {
+  if (!level) {
+    writeStyle(nodeId, "backdropFilter", undefined);
+    return;
+  }
+  const patch = glassStyle(level);
+  const keys = Object.keys(patch) as (keyof StyleProps)[];
+  applyOps(
+    keys.map((key) => (doc) => setNodeStyle(doc, nodeId, key, patch[key])),
+    `glass:${nodeId}`,
+    { heavyStyleKeys: ["backdropFilter"] },
+  );
+}
+
 /** B8.2 T118: drop one named state object (empty `states` removed). One undo step. */
 export function writeClearNodeState(nodeId: string, name: NodeStateName): void {
   applyOps(
@@ -154,6 +171,11 @@ export function writeInputSuggestions(nodeId: string, suggestions: string[]): vo
 /** Phase 11 A4.1: T24 list items (one undo step). */
 export function writeListItems(nodeId: string, items: string[]): void {
   applyOps([(doc) => setListItems(doc, nodeId, items)], `prop:${nodeId}:items`);
+}
+
+/** Design-only command / context menu items (one undo step). */
+export function writeStaticItems(nodeId: string, items: string[]): void {
+  applyOps([(doc) => setStaticItems(doc, nodeId, items)], `prop:${nodeId}:staticItems`);
 }
 
 /** Phase 11 A4.2: table columns + rows (one undo step). */

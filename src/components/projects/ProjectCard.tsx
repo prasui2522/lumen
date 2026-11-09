@@ -27,7 +27,7 @@ export function ProjectCard({ project, onRequestDelete }: Props) {
   const open = () => navigate(`/editor/${project.id}`);
 
   return (
-    <Card className="group relative min-w-0 gap-0 py-0 transition-colors hover:bg-accent/40">
+    <Card className="interactive-card group relative min-w-0 gap-0 py-0 transition-colors hover:bg-accent/40">
       <button
         type="button"
         className="flex w-full cursor-pointer flex-col rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring"

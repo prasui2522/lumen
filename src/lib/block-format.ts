@@ -23,7 +23,10 @@ export type BlockCategory =
   | "contact"
   | "logoCloud"
   | "stats"
-  | "elements";
+  | "elements"
+  | "dashboard"
+  | "sidebar"
+  | "login";
 
 export type BlockSource =
   | { kind: "original" }
@@ -79,6 +82,9 @@ const CATEGORIES = new Set<string>([
   "logoCloud",
   "stats",
   "elements",
+  "dashboard",
+  "sidebar",
+  "login",
 ]);
 
 const KNOWN_TYPES = new Set<string>(Object.keys(NODE_TYPE_LABEL));

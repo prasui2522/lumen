@@ -29,6 +29,7 @@ type Props = {
   /** Back to the project list (EditorPage guards unsaved changes). */
   onBack: () => void;
   onExport: () => void;
+  onOpenSite?: () => void;
   exporting?: boolean;
   exportDisabled?: boolean;
   /**
@@ -65,6 +66,7 @@ export function EditorTopBar({
   onSave,
   onBack,
   onExport,
+  onOpenSite,
   exporting,
   exportDisabled,
   previewTools,
@@ -111,7 +113,7 @@ export function EditorTopBar({
 
   return (
     <header ref={headerRef} className="flex h-11 shrink-0 items-center gap-1.5 overflow-hidden border-b border-border bg-background px-2">
-      <div className="flex min-w-0 flex-1 items-center gap-1">
+      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -133,6 +135,7 @@ export function EditorTopBar({
           <EditorMenubar
             onSave={onSave}
             onExport={onExport}
+            onOpenSite={onOpenSite}
             onBack={onBack}
             saveDisabled={!dirty || !!saving}
             exportDisabled={exporting || exportDisabled}

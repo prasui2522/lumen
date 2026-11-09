@@ -126,6 +126,22 @@ export const PALETTE_META: Record<PaletteType, Meta> = {
     group: "Data",
     keywords: ["calendar", "month", "date", "ปฏิทิน", "เดือน", "วันที่"],
   },
+  command: {
+    group: "Data",
+    keywords: ["command", "search", "คำสั่งค้น", "ค้นหา", "แบบจัดวาง"],
+  },
+  contextMenu: {
+    group: "Navigation",
+    keywords: ["context menu", "right click", "เมนูคลิกขวา", "แบบจัดวาง"],
+  },
+  resizable: {
+    group: "Layout",
+    keywords: ["resizable", "split", "แบ่งขนาด", "แบบจัดวาง"],
+  },
+  toast: {
+    group: "Feedback",
+    keywords: ["toast", "sonner", "ข้อความแจ้ง", "แบบจัดวาง"],
+  },
   alert: { group: "Feedback", keywords: ["alert", "notice", "banner", "callout", "message", "แจ้งเตือน", "การแจ้งเตือน", "ประกาศ"] },
   progress: { group: "Feedback", keywords: ["progress", "bar", "loading", "percent", "ความคืบหน้า", "โหลด"] },
   empty: { group: "Feedback", keywords: ["empty", "empty state", "no results", "placeholder", "ว่างเปล่า", "ไม่มีข้อมูล"] },

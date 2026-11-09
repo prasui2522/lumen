@@ -13,6 +13,8 @@ export type ViteFrameProps = {
   onRoute?: (path: string) => void;
   onExternal?: (href: string) => void;
   onSelect?: (id: string | null) => void;
+  onBoxes?: (boxes: { id: string; x: number; y: number; w: number; h: number }[]) => void;
+  onEdit?: (id: string | null) => void;
 };
 
 /**
@@ -32,11 +34,13 @@ export function ViteFrame({
   onRoute,
   onExternal,
   onSelect,
+  onBoxes,
+  onEdit,
 }: ViteFrameProps) {
   const ref = useRef<HTMLIFrameElement | null>(null);
   const origin = viteFrameOrigin(url, port);
-  const latest = useRef({ onHeight, onRoute, onExternal, onSelect });
-  latest.current = { onHeight, onRoute, onExternal, onSelect };
+  const latest = useRef({ onHeight, onRoute, onExternal, onSelect, onBoxes, onEdit });
+  latest.current = { onHeight, onRoute, onExternal, onSelect, onBoxes, onEdit };
 
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
@@ -54,6 +58,12 @@ export function ViteFrame({
           break;
         case "wb:select":
           latest.current.onSelect?.(m.id);
+          break;
+        case "wb:boxes":
+          latest.current.onBoxes?.(m.boxes);
+          break;
+        case "wb:edit":
+          latest.current.onEdit?.(m.id);
           break;
       }
     };

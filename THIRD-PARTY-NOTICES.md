@@ -36,6 +36,8 @@ SOFTWARE.
 
 MIT-adapted UI primitives in this app (one line each): `button`, `input`, `dialog`, `alert-dialog`, `popover`, `dropdown-menu`, `select`, `switch`, `tabs`, `tooltip`, `separator`, `scroll-area`, `checkbox`, `radio-group`, `slider`, `progress`, `avatar`, `badge`, `card`, `table`, `accordion`, `collapsible`, `sheet`, `drawer`, `menubar`, `navigation-menu`, `breadcrumb`, `pagination`, `command` (cmdk wrapper), `sonner` toast host.
 
+MIT-adapted app-shell blocks (structure only, re-authored as static node trees, retrieved 2026-11-10 from ui.shadcn.com/blocks): `dashboard-sidebar`, `sidebar-icons`, `sidebar-submenus`, `login-split`, `login-muted`, `signup-muted`.
+
 ---
 
 ## Lucide Icons (curated path data in the `icon-paths` chunk)

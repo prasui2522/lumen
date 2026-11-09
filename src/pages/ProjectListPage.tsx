@@ -1,5 +1,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 import { AlertCircle, LayoutTemplate, Plus, Search } from "lucide-react";
 import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -41,6 +43,29 @@ export function ProjectListPage() {
     null,
   );
   const [filter, setFilter] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const importFrom = async (kind: "folder" | "zip") => {
+    setImportError(null);
+    const picked = await open({
+      directory: kind === "folder",
+      multiple: false,
+      title: kind === "folder" ? "เปิดโฟลเดอร์โปรเจกต์" : "เปิดไฟล์ zip",
+      filters: kind === "zip" ? [{ name: "Zip", extensions: ["zip"] }] : undefined,
+    });
+    if (typeof picked !== "string") return;
+    const leaf = picked.split(/[/\\]/).filter(Boolean).pop()?.replace(/\.zip$/i, "") || "นำเข้า";
+    try {
+      const created = await invoke<{ id: string }>(
+        kind === "folder" ? "import_project_folder" : "import_project_zip",
+        kind === "folder" ? { name: leaf, folder: picked } : { name: leaf, zipPath: picked },
+      );
+      await refreshProjects();
+      navigate(`/editor/${created.id}`);
+    } catch (e: unknown) {
+      setImportError(e instanceof Error ? e.message : String(e));
+    }
+  };
   const query = filter.trim().toLowerCase();
   const shown = useMemo(
     () => (query ? projects.filter((p) => p.name.toLowerCase().includes(query)) : projects),
@@ -102,6 +127,12 @@ export function ProjectListPage() {
           </Suspense>
           <ThemeToggle />
           {/* data-focus-fallback: dialogs return focus here if their trigger is gone (e.g. a deleted card). */}
+          <Button type="button" variant="outline" className="shrink-0" onClick={() => void importFrom("folder")}>
+            เปิดโฟลเดอร์
+          </Button>
+          <Button type="button" variant="outline" className="shrink-0" onClick={() => void importFrom("zip")}>
+            เปิด zip
+          </Button>
           <Button type="button" className="shrink-0" data-focus-fallback onClick={() => setNewOpen(true)}>
             <Plus />
             สร้างโปรเจกต์
@@ -110,6 +141,18 @@ export function ProjectListPage() {
       </header>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-auto scrollbar-thin px-6 py-6">
+        {importError ? (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle />
+            <AlertDescription>{importError}</AlertDescription>
+            <AlertAction>
+              <Button type="button" variant="ghost" size="xs" onClick={() => setImportError(null)}>
+                ปิด
+              </Button>
+            </AlertAction>
+          </Alert>
+        ) : null}
+
         {error ? (
           <Alert variant="destructive" className="mb-4">
             <AlertCircle />

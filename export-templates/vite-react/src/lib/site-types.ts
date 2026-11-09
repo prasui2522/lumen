@@ -38,6 +38,8 @@ export type StyleProps = {
   /** B6.1: filter + backdrop-filter. */
   filter?: FilterValue;
   backdropFilter?: BackdropFilterValue;
+  /** Pointer shape. Same allowlist as the builder. */
+  cursor?: string;
 };
 
 export type FilterValue = {
@@ -114,6 +116,11 @@ export type SiteNode = {
   props: Record<string, unknown> & { type: string };
   style?: StyleProps;
   styleBreakpoints?: Record<string, StyleProps>;
+  states?: {
+    hover?: StyleProps;
+    active?: StyleProps;
+    focusVisible?: StyleProps;
+  };
 };
 
 export type SitePage = {

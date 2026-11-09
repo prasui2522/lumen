@@ -20,6 +20,7 @@ import { useEditorStore, type EditorMode } from "@/stores/editor-store";
 export type EditorMenubarProps = {
   onSave: () => void;
   onExport: () => void;
+  onOpenSite?: () => void;
   onBack: () => void;
   /** Disable save when clean / busy — caller decides. */
   saveDisabled?: boolean;
@@ -44,6 +45,7 @@ function Shortcut({ children }: { children: ReactNode }) {
 export function EditorMenubar({
   onSave,
   onExport,
+  onOpenSite,
   onBack,
   saveDisabled,
   exportDisabled,
@@ -79,6 +81,9 @@ export function EditorMenubar({
           </MenubarItem>
           <MenubarItem disabled={exportDisabled} onSelect={() => onExport()}>
             ส่งออก
+          </MenubarItem>
+          <MenubarItem disabled={!onOpenSite} onSelect={() => onOpenSite?.()}>
+            เปิดโฟลเดอร์โปรเจกต์
           </MenubarItem>
           <MenubarSeparator />
           <MenubarItem onSelect={() => onBack()}>กลับไปรายการโปรเจกต์</MenubarItem>

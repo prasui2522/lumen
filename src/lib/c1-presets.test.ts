@@ -56,7 +56,7 @@ describe("C1 validatePreset", () => {
 });
 
 describe("C1 built-in registry", () => {
-  test("all five built-ins validate and load", async () => {
+  test("built-ins validate and load", async () => {
     resetBuiltInPresetCache();
     const list = await loadBuiltInPresets();
     expect(list.map((p) => p.id)).toEqual([
@@ -65,6 +65,10 @@ describe("C1 built-in registry", () => {
       "card-soft",
       "button-gradient",
       "outline-glow",
+      "surface-metal",
+      "surface-paper",
+      "surface-stone",
+      "surface-neon",
     ]);
     expect(list.every((p) => p.formatVersion === 1)).toBe(true);
   });

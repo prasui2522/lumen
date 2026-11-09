@@ -115,7 +115,7 @@ fn chart_is_version4_kind_and_in_all_types() {
     assert!(is_a5_kind(NodeType::Chart));
     assert!(is_version4_kind(NodeType::Chart));
     assert!(ALL_TYPES.contains(&NodeType::Chart));
-    assert_eq!(ALL_TYPES.len(), 59);
+    assert_eq!(ALL_TYPES.len(), 63);
     assert_eq!(type_name(NodeType::Chart), "chart");
     let l = kind_looks();
     assert!(l.a5_kinds.contains_key("chart"));

@@ -31,8 +31,8 @@ function cssFromStyle(style: StyleProps): string {
 }
 
 describe("B6 STYLE_KEYS", () => {
-  test("includes filter + backdropFilter (29 keys)", () => {
-    expect(STYLE_KEYS.length).toBe(29);
+  test("includes filter + backdropFilter (31 keys)", () => {
+    expect(STYLE_KEYS.length).toBe(31);
     expect(STYLE_KEYS).toContain("filter");
     expect(STYLE_KEYS).toContain("backdropFilter");
   });

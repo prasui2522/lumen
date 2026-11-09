@@ -18,7 +18,7 @@ describe("D10 blocks review (automated)", () => {
   test("every registry block: original/mit source, root colours, no network, ≤60 nodes soft", async () => {
     resetBlocksRegistryCache();
     const list = await loadBlocksRegistry();
-    expect(list.length).toBe(33);
+    expect(list.length).toBe(39);
     for (const b of list) {
       expect(validateBlock(b).errors).toEqual([]);
       expect(b.source.kind === "original" || b.source.kind === "mit").toBe(true);

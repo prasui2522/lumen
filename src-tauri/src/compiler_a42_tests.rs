@@ -86,7 +86,7 @@ fn table_is_version4_kind_and_in_all_types() {
     assert!(is_a4_kind(NodeType::Table));
     assert!(is_version4_kind(NodeType::Table));
     assert!(ALL_TYPES.contains(&NodeType::Table));
-    assert_eq!(ALL_TYPES.len(), 59);
+    assert_eq!(ALL_TYPES.len(), 63);
     assert_eq!(ALL_TYPES.iter().filter(|t| is_a4_kind(**t)).count(), 3);
     assert_eq!(type_name(NodeType::Table), "table");
     let l = kind_looks();

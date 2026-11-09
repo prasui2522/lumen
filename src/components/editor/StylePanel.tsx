@@ -29,6 +29,7 @@ import {
 } from "@/lib/style-fields";
 import {
   ASPECT_RATIOS,
+  CURSOR_KEYWORDS,
   isVisible,
   resolvedStyle,
   STATE_PAINT_KEYS,
@@ -47,6 +48,7 @@ import {
   nodeOffersFocusState,
 } from "@/lib/node-state-ui";
 import { nodeTypeHasPresets } from "@/lib/presets-registry";
+import { GLASS_LEVELS, GLASS_LEVEL_LABEL, glassLevelOf } from "@/lib/glass-material";
 import { evaluatePagePerf } from "@/lib/page-perf-watch";
 import { cn } from "@/lib/utils";
 import { lazyNamed, useMountedOnce, whenIdle } from "@/lib/lazy";
@@ -137,8 +139,10 @@ import {
   writeClearNodeState,
   writeInputSuggestions,
   writeListItems,
+  writeStaticItems,
   writeProp,
   writeStyle,
+  writeGlassThickness,
 } from "@/components/editor/style/write";
 
 /**
@@ -420,6 +424,71 @@ function PanelBody({
         ) : null}
       </section>
 
+      <section className="mb-3 space-y-2">
+        <p className="text-[11px] font-medium text-muted-foreground">เหตุการณ์</p>
+        <label className="flex items-center gap-2 text-xs">
+          <span className="w-24 shrink-0">เคอร์เซอร์</span>
+          <select
+            className="h-7 min-w-0 flex-1 rounded-lg border border-input bg-transparent px-2"
+            disabled={locked}
+            value={(editState ? node.states?.[editState]?.cursor : node.style.cursor) ?? ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              const next = value
+                ? writeStyle(node.id, "cursor", value as StyleProps["cursor"], undefined, editState)
+                : writeStyle(node.id, "cursor", undefined, undefined, editState);
+              void next;
+            }}
+          >
+            <option value="">ตามปกติ</option>
+            {CURSOR_KEYWORDS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </label>
+        {editState ? null : (
+          <label className="flex items-center gap-2 text-xs">
+            <span className="w-24 shrink-0">ขอบไฟวิ่ง</span>
+            <select
+              className="h-7 min-w-0 flex-1 rounded-lg border border-input bg-transparent px-2"
+              disabled={locked}
+              value={node.style.borderEffect ?? ""}
+              onChange={(e) => {
+                const value = e.target.value === "led" ? "led" : undefined;
+                writeStyle(node.id, "borderEffect", value, undefined, null);
+              }}
+            >
+              <option value="">ไม่มี</option>
+              <option value="led">ไฟวิ่งรอบขอบ</option>
+            </select>
+          </label>
+        )}
+        <p className="text-[11px] text-muted-foreground">
+          ชี้เมาส์คือตอนเมาส์อยู่บนชิ้น กดค้างคือตอนกดปุ่มเมาส์ โฟกัสคือตอนเลื่อนด้วยคีย์บอร์ด
+        </p>
+      </section>
+
+      {!onState && (node.type === "container" || node.type === "card" || node.type === "section") ? (
+        <label className="mb-3 flex items-center gap-2 text-xs">
+          <span className="w-24 shrink-0">ความหนากระจก</span>
+          <select
+            className="h-7 min-w-0 flex-1 rounded-lg border border-input bg-transparent px-2"
+            disabled={locked}
+            value={glassLevelOf(node.style)}
+            onChange={(e) => writeGlassThickness(node.id, e.target.value as "" | "ultra" | "thin" | "regular" | "thick")}
+          >
+            <option value="">ไม่ใช้กระจก</option>
+            {GLASS_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {GLASS_LEVEL_LABEL[level]}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+
       {onState ? null : <NodePropsSection node={node} locked={locked} />}
 
       {STYLE_SECTIONS.map((sec) => {
@@ -607,6 +676,66 @@ function NodePropsSection({ node, locked }: { node: Node; locked: boolean }) {
         era={p.era}
         locked={locked}
       />
+    );
+  }
+  if (p.type === "command" || p.type === "contextMenu") {
+    return (
+      <section className="space-y-2 border-t border-sidebar-border py-2">
+        <h3 className="text-xs font-medium text-muted-foreground">คุณสมบัติ</h3>
+        <StaticItemsEditor
+          nodeId={node.id}
+          placeholder={p.type === "command" ? p.placeholder : undefined}
+          items={p.items}
+          note={p.type === "command" ? "แบบจัดวาง ไม่กรองขณะพิมพ์" : "แบบจัดวาง ไม่ผูกกับคลิกขวา"}
+          locked={locked}
+        />
+      </section>
+    );
+  }
+  if (p.type === "toast") {
+    return (
+      <section className="space-y-2 border-t border-sidebar-border py-2">
+        <h3 className="text-xs font-medium text-muted-foreground">คุณสมบัติ</h3>
+        <FieldRow id="pf-toast-title" label="หัวข้อ" overridden={false} locked={locked}>
+          <TextPropField
+            id="pf-toast-title"
+            value={p.title}
+            placeholder="—"
+            disabled={locked}
+            onCommit={(v) => writeProp(node.id, "title", v)}
+          />
+        </FieldRow>
+        <FieldRow id="pf-toast-message" label="ข้อความ" overridden={false} locked={locked}>
+          <TextPropField
+            id="pf-toast-message"
+            value={p.message}
+            placeholder="—"
+            disabled={locked}
+            onCommit={(v) => writeProp(node.id, "message", v)}
+          />
+        </FieldRow>
+        <p className="px-1 text-[11px] text-muted-foreground">แบบจัดวาง ไม่เด้งเอง</p>
+      </section>
+    );
+  }
+  if (p.type === "resizable") {
+    return (
+      <section className="space-y-2 border-t border-sidebar-border py-2">
+        <h3 className="text-xs font-medium text-muted-foreground">คุณสมบัติ</h3>
+        <FieldRow id="pf-split" label="ความกว้างช่องแรก" overridden={false} locked={locked}>
+          <TextPropField
+            id="pf-split"
+            value={String(p.split)}
+            placeholder="50"
+            disabled={locked}
+            onCommit={(v) => {
+              const n = Math.round(Number(v));
+              if (Number.isFinite(n)) writeProp(node.id, "split", Math.min(80, Math.max(20, n)));
+            }}
+          />
+        </FieldRow>
+        <p className="px-1 text-[11px] text-muted-foreground">แบบจัดวาง เส้นแบ่งไม่ลากได้</p>
+      </section>
     );
   }
   if (
@@ -816,6 +945,55 @@ const LIST_MARKER_OPTS = [
 
 const listLinesCls =
   "min-h-[4.5rem] w-full min-w-0 resize-y rounded-md border bg-transparent px-2 py-1.5 text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring disabled:opacity-50";
+
+/** รายการที่เห็นค้างของคำสั่งค้นและเมนูคลิกขวา (แบบจัดวาง ไม่มีสคริปต์) */
+function StaticItemsEditor({
+  nodeId,
+  placeholder,
+  items,
+  note,
+  locked,
+}: {
+  nodeId: string;
+  placeholder?: string;
+  items: readonly string[];
+  note: string;
+  locked: boolean;
+}) {
+  const value = formatListItems(items);
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = () => {
+    if (draft !== null) writeStaticItems(nodeId, parseListItems(draft));
+    setDraft(null);
+  };
+  return (
+    <>
+      {placeholder !== undefined ? (
+        <FieldRow id="pf-static-ph" label="ข้อความในช่อง" overridden={false} locked={locked}>
+          <TextPropField
+            id="pf-static-ph"
+            value={placeholder}
+            placeholder="—"
+            disabled={locked}
+            onCommit={(v) => writeProp(nodeId, "placeholder", v)}
+          />
+        </FieldRow>
+      ) : null}
+      <FieldRow id="pf-static-items" label="รายการ (หนึ่งบรรทัดต่อหนึ่งข้อ)" overridden={false} locked={locked} stacked>
+        <textarea
+          id="pf-static-items"
+          value={draft ?? value}
+          disabled={locked}
+          spellCheck={false}
+          className={listLinesCls}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+        />
+      </FieldRow>
+      <p className="px-1 text-[11px] text-muted-foreground">{note}</p>
+    </>
+  );
+}
 
 /** Phase 11 A4.1: T24 items + T25 ordered + T26–T28 marker. */
 function ListPropsEditor({

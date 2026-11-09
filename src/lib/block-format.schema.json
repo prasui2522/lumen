@@ -33,7 +33,10 @@
         "contact",
         "logoCloud",
         "stats",
-        "elements"
+        "elements",
+        "dashboard",
+        "sidebar",
+        "login"
       ]
     },
     "scope": { "type": "string", "enum": ["page", "inline"] },

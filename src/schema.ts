@@ -119,7 +119,12 @@ export type NodeType =
   // Phase 11 A5.3
   | "chart"
   // Phase 11 A5.5
-  | "calendar";
+  | "calendar"
+  // Design-only shadcn looks (no script in the export).
+  | "command"
+  | "contextMenu"
+  | "resizable"
+  | "toast";
 
 /** Base node — no children here; children live only on container-like props. */
 export type Node = {
@@ -209,7 +214,11 @@ export type NodeProps =
   | IconProps
   | CarouselProps
   | ChartProps
-  | CalendarProps;
+  | CalendarProps
+  | CommandProps
+  | ContextMenuProps
+  | ResizableProps
+  | ToastProps;
 
 export type PageProps = {
   type: "page";
@@ -461,6 +470,33 @@ export type CalendarProps = {
 };
 export const CALENDAR_ERAS = ["be", "ce"] as const satisfies readonly CalendarEra[];
 
+/** Design-only command list. Items stay visible; nothing filters as the visitor types. */
+export type CommandProps = {
+  type: "command";
+  placeholder: string;
+  items: string[];
+};
+
+/** Design-only menu that is always visible. It is not bound to a right-click. */
+export type ContextMenuProps = {
+  type: "contextMenu";
+  items: string[];
+};
+
+/** Design-only split. `split` is the first pane's width in percent (20–80). The divider does not drag. */
+export type ResizableProps = {
+  type: "resizable";
+  children: NodeId[];
+  split: number;
+} & LayoutProps;
+
+/** Design-only notice placed in the page. It does not pop up. */
+export type ToastProps = {
+  type: "toast";
+  title: string;
+  message: string;
+};
+
 export const PHASE6B_TYPES = [
   "textarea",
   "kbd",
@@ -543,6 +579,24 @@ export function isVersion4Kind(type: string): boolean {
   return isPhase6bType(type) || isA2Type(type) || isA3Type(type) || isA4Type(type) || isA5Type(type);
 }
 
+export const CURSOR_KEYWORDS = [
+  "auto",
+  "default",
+  "pointer",
+  "text",
+  "move",
+  "grab",
+  "grabbing",
+  "crosshair",
+  "not-allowed",
+  "zoom-in",
+  "zoom-out",
+  "wait",
+  "help",
+  "progress",
+] as const;
+export type CursorKeyword = (typeof CURSOR_KEYWORDS)[number];
+
 /** Sparse style overrides. Unitless numbers = px. */
 export type StyleProps = {
   display?: "block" | "flex" | "inline" | "inline-block" | "inline-flex" | "none";
@@ -583,6 +637,10 @@ export type StyleProps = {
   filter?: FilterValue;
   /** B6.1 (§4.2): backdrop-filter (+ -webkit-). Empty ≡ unset. blur capped 40. */
   backdropFilter?: BackdropFilterValue;
+  /** Pointer shape (CSS cursor). Also allowed on hover / active / focus. */
+  cursor?: CursorKeyword;
+  /** Running border light. Not a hover paint key. */
+  borderEffect?: "led";
 };
 
 /** B1.2: one `box-shadow` layer. Colour via `css_color` (hex3/4/6/8 / transparent / currentColor). */
@@ -750,6 +808,8 @@ export const STYLE_KEYS = [
   "transition",
   "filter",
   "backdropFilter",
+  "cursor",
+  "borderEffect",
 ] as const satisfies readonly (keyof StyleProps)[];
 
 /** B7.1: paint-only keys allowed inside `Node.states` (§4.3 / §9.B). */
@@ -764,6 +824,7 @@ export const STATE_PAINT_KEYS = [
   "filter",
   "backdropFilter",
   "transform",
+  "cursor",
 ] as const satisfies readonly (keyof StyleProps)[];
 export type StatePaintKey = (typeof STATE_PAINT_KEYS)[number];
 /** Sparse paint subset used by hover / active / focusVisible. */
@@ -1342,6 +1403,50 @@ export const DEFAULT_STYLES: Record<NodeType, StyleProps> = {
     color: "#0f172a",
     fontSize: 14,
   },
+  command: {
+    display: "block",
+    width: "100%",
+    margin: 0,
+    padding: 8,
+    color: "#0f172a",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "#e2e8f0",
+    borderRadius: 8,
+    fontSize: 14,
+  },
+  contextMenu: {
+    display: "block",
+    width: "100%",
+    margin: 0,
+    padding: 4,
+    color: "#0f172a",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "#e2e8f0",
+    borderRadius: 8,
+    fontSize: 14,
+  },
+  resizable: {
+    display: "flex",
+    width: "100%",
+    minHeight: 80,
+  },
+  toast: {
+    display: "block",
+    width: "100%",
+    margin: 0,
+    padding: 12,
+    color: "#0f172a",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "#e2e8f0",
+    borderRadius: 8,
+    fontSize: 14,
+  },
 };
 
 /** Types that may carry children in props. */
@@ -1360,6 +1465,7 @@ export const CONTAINER_NODE_TYPES: readonly NodeType[] = [
   "field",
   // Phase 11 A5.1
   "carousel",
+  "resizable",
 ] as const;
 
 /**
@@ -1430,6 +1536,7 @@ export function getChildren(node: Node): NodeId[] {
     case "buttonGroup":
     case "field":
     case "carousel":
+    case "resizable":
       return props.children;
     default:
       return [];

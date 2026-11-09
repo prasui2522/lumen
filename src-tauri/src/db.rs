@@ -54,6 +54,8 @@ pub struct DbState {
     /// `app_data_dir/databases` (Phase 10 per-project test files). Only a path:
     /// nothing under it is opened or listed at startup.
     pub databases_dir: PathBuf,
+    /// R2: `$APPDATA/sites` — one Vite folder per project. Phase 10 DBs stay in `databases_dir`.
+    pub sites_dir: PathBuf,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -121,6 +123,10 @@ pub fn db_path(app_data_dir: &Path) -> PathBuf {
 /// Phase 10 test-data folder (PHASE-10-SPEC §4). Not created here.
 pub fn databases_dir(app_data_dir: &Path) -> PathBuf {
     app_data_dir.join("databases")
+}
+
+pub fn sites_dir(app_data_dir: &Path) -> PathBuf {
+    app_data_dir.join("sites")
 }
 
 /// `<id>.sqlite`, its `-journal`, and a leftover rebuild `.sqlite.tmp`.

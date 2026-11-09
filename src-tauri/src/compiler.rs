@@ -149,8 +149,9 @@ fn build(doc: &PageDocument, opts: &CompileOptions) -> Result<(String, String), 
         state_forced: String::new(),
         motion_keyframes: String::new(),
         motion_presets_emitted: HashSet::new(),
+        relax_row_width: false,
     };
-    c.render(&doc.root, 0);
+    c.render(&doc.root, 0, false);
 
     let mut css = String::from(PREFLIGHT);
     for t in ALL_TYPES {
@@ -211,8 +212,9 @@ pub fn style_css(doc: &PageDocument, opts: &CompileOptions) -> Result<String, St
         state_forced: String::new(),
         motion_keyframes: String::new(),
         motion_presets_emitted: HashSet::new(),
+        relax_row_width: false,
     };
-    c.render(&doc.root, 0);
+    c.render(&doc.root, 0, false);
     Ok(c.style_block())
 }
 
@@ -252,8 +254,9 @@ pub fn markup_kind_types(doc: &PageDocument, opts: &CompileOptions) -> Result<BT
         state_forced: String::new(),
         motion_keyframes: String::new(),
         motion_presets_emitted: HashSet::new(),
+        relax_row_width: false,
     };
-    c.render(&doc.root, 0);
+    c.render(&doc.root, 0, false);
     Ok(MARKUP_KINDS.iter().map(|t| *t as u8).filter(|t| c.used_types.contains(t)).collect())
 }
 
@@ -393,7 +396,7 @@ const INPUT_FOCUS_RULE: &str = ".t-input:focus-visible{outline:2px solid #0077c2
 const PREVIEW_BUTTON_FEEDBACK: &str = ".t-button{cursor:pointer}.t-button:not(.fx):active{transform:translateY(1px)}\
 @media (prefers-reduced-motion:reduce){.t-button:not(.fx):active{transform:none}}";
 
-  const ALL_TYPES: [NodeType; 59] = [
+  const ALL_TYPES: [NodeType; 63] = [
     NodeType::Page,
     NodeType::Section,
     NodeType::Container,
@@ -453,6 +456,10 @@ const PREVIEW_BUTTON_FEEDBACK: &str = ".t-button{cursor:pointer}.t-button:not(.f
     NodeType::Carousel,
     NodeType::Chart,
     NodeType::Calendar,
+    NodeType::Command,
+    NodeType::ContextMenu,
+    NodeType::Resizable,
+    NodeType::Toast,
 ];
 
 pub(crate) fn type_name(t: NodeType) -> &'static str {
@@ -516,6 +523,10 @@ pub(crate) fn type_name(t: NodeType) -> &'static str {
         NodeType::Carousel => "carousel",
         NodeType::Chart => "chart",
         NodeType::Calendar => "calendar",
+        NodeType::Command => "command",
+        NodeType::ContextMenu => "contextMenu",
+        NodeType::Resizable => "resizable",
+        NodeType::Toast => "toast",
     }
 }
 
@@ -935,7 +946,45 @@ fn uses_text_gradient(s: &StyleProps) -> bool {
     s.text_gradient.as_ref().and_then(gradient_css).is_some()
 }
 
+/// Solid fill when the user asks for less transparency.
+fn opaque_hex(raw: Option<&str>) -> String {
+    let Some(hex) = raw.map(str::trim).filter(|s| s.starts_with('#')) else {
+        return "#f8fafc".into();
+    };
+    let h = &hex[1..];
+    let full = match h.len() {
+        3 | 4 => h.chars().take(3).flat_map(|c| [c, c]).collect::<String>(),
+        6 | 8 => h.chars().take(6).collect::<String>(),
+        _ => return "#f8fafc".into(),
+    };
+    if full.len() == 6 && full.chars().all(|c| c.is_ascii_hexdigit()) {
+        format!("#{full}")
+    } else {
+        "#f8fafc".into()
+    }
+}
+
 /// B4.1: allowlisted border style keyword (uniform + per-side).
+fn cursor_kw(raw: &str) -> Option<&'static str> {
+    Some(match raw {
+        "auto" => "auto",
+        "default" => "default",
+        "pointer" => "pointer",
+        "text" => "text",
+        "move" => "move",
+        "grab" => "grab",
+        "grabbing" => "grabbing",
+        "crosshair" => "crosshair",
+        "not-allowed" => "not-allowed",
+        "zoom-in" => "zoom-in",
+        "zoom-out" => "zoom-out",
+        "wait" => "wait",
+        "help" => "help",
+        "progress" => "progress",
+        _ => return None,
+    })
+}
+
 fn border_style_kw(raw: &str) -> Option<&'static str> {
     match raw.trim().to_ascii_lowercase().as_str() {
         "solid" => Some("solid"),
@@ -1232,6 +1281,7 @@ fn state_as_style(s: &StateStyle) -> StyleProps {
         filter: s.filter.clone(),
         backdrop_filter: s.backdrop_filter.clone(),
         transform: s.transform.clone(),
+        cursor: s.cursor.clone(),
         ..Default::default()
     }
 }
@@ -1348,6 +1398,7 @@ fn decls(s: &StyleProps) -> Vec<(&'static str, String)> {
     if let Some(sides) = s.border_sides.as_ref() {
         push_border_sides(&mut push, sides);
     }
+    push("cursor", s.cursor.as_deref().and_then(cursor_kw).map(|k| k.to_string()));
     push("opacity", s.opacity.map(num));
     push("overflow", s.overflow.as_deref().map(css_safe));
     push("box-shadow", s.box_shadow.as_ref().and_then(|layers| box_shadow_css(layers)));
@@ -1744,7 +1795,8 @@ fn a2_layout_props(p: &NodeProps) -> Option<(Option<Direction>, Option<u32>, Opt
         | NodeProps::AspectRatio { direction, gap, align, justify, .. }
         | NodeProps::ScrollArea { direction, gap, align, justify, .. }
         | NodeProps::ButtonGroup { direction, gap, align, justify, .. }
-        | NodeProps::Carousel { direction, gap, align, justify, .. } => Some((*direction, *gap, *align, *justify)),
+        | NodeProps::Carousel { direction, gap, align, justify, .. }
+        | NodeProps::Resizable { direction, gap, align, justify, .. } => Some((*direction, *gap, *align, *justify)),
         _ => None,
     }
 }
@@ -1795,6 +1847,9 @@ struct Compiler<'a> {
     motion_keyframes: String,
     /// E2: presets already emitted into `motion_keyframes`.
     motion_presets_emitted: HashSet<String>,
+    /// Child of a horizontal flex parent. A kind-default width of 100% is
+    /// relaxed to `auto` so it does not crush the siblings.
+    relax_row_width: bool,
 }
 
 /// B0 (§9.B P1 selector contract): the attribute both outputs put on a node root that the generated CSS targets.
@@ -1892,8 +1947,33 @@ fn breakpoint_decls(style: Option<&StyleProps>) -> Vec<(&'static str, String)> {
     }
 }
 
+/// True when this node's own children are laid out in a horizontal flex row.
+/// Carousel is excluded: its children sit inside slide wrappers, not in the row.
+fn children_in_row(node: &Node) -> bool {
+    let explicit = match &node.props {
+        NodeProps::Container { direction, .. }
+        | NodeProps::Card { direction, .. }
+        | NodeProps::Alert { direction, .. }
+        | NodeProps::AspectRatio { direction, .. }
+        | NodeProps::ScrollArea { direction, .. }
+        | NodeProps::ButtonGroup { direction, .. }
+        | NodeProps::Field { direction, .. }
+        | NodeProps::Resizable { direction, .. } => *direction,
+        _ => return false,
+    };
+    let fallback = if node.node_type == NodeType::Container {
+        Direction::Column
+    } else {
+        a2_layout_defaults(node.node_type)
+            .or_else(|| a3_layout_defaults(node.node_type))
+            .map(|(d, _, _, _)| d)
+            .unwrap_or(Direction::Column)
+    };
+    matches!(explicit.unwrap_or(fallback), Direction::Row)
+}
+
 impl<'a> Compiler<'a> {
-    fn render(&mut self, id: &str, depth: usize) {
+    fn render(&mut self, id: &str, depth: usize, in_row: bool) {
         if depth > 256 || self.visiting.contains(id) {
             return;
         }
@@ -1902,13 +1982,17 @@ impl<'a> Compiler<'a> {
             return;
         }
         self.visiting.insert(id.to_string());
+        let prev = self.relax_row_width;
+        self.relax_row_width = in_row;
         self.render_node(node, depth);
+        self.relax_row_width = prev;
         self.visiting.remove(id);
     }
 
     fn render_children(&mut self, node: &Node, depth: usize) {
+        let row = children_in_row(node);
         for child in node.children() {
-            self.render(child, depth + 1);
+            self.render(child, depth + 1, row);
         }
     }
 
@@ -1995,12 +2079,22 @@ impl<'a> Compiler<'a> {
             .and_then(|m| m.entrance.as_ref())
             .filter(|e| motion_preset_ok(&e.preset) && (e.trigger == "load" || e.trigger == "view"));
         let has_motion = entrance.is_some();
+        // Kind default `width:100%` on a row sibling takes the whole row and
+        // crushes the others (a copyright line wraps over the links). An
+        // explicit width still wins. `.nN` follows `.t-x`, so `auto` overrides.
+        if self.relax_row_width
+            && node.node_type == NodeType::Container
+            && node.style.width.is_none()
+        {
+            merge(&mut d, vec![("width", "auto".to_string())]);
+        }
         if d.is_empty()
             && tablet.is_empty()
             && phone.is_empty()
             && fold.is_empty()
             && !has_states
             && !has_motion
+            && eff.border_effect.as_deref() != Some("led")
         {
             return None;
         }
@@ -2008,6 +2102,25 @@ impl<'a> Compiler<'a> {
         self.next_class += 1;
         if !d.is_empty() {
             self.node_css.push_str(&rule(&format!(".{class}"), &d));
+        }
+        if eff.border_effect.as_deref() == Some("led") {
+            if self.motion_presets_emitted.insert("led".into()) {
+                self.motion_keyframes.push_str(
+                    "@property --wb-angle{syntax:\"<angle>\";inherits:false;initial-value:0deg}@keyframes wb-led{to{--wb-angle:360deg}}",
+                );
+            }
+            self.node_css.push_str(&format!(
+                ".{class}{{position:relative}}.{class}::after{{content:\"\";position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;background:conic-gradient(from var(--wb-angle),transparent 0 62%,currentColor 82%,transparent 100%);mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;animation:wb-led 2.8s linear infinite}}"
+            ));
+            self.state_reduced.push_str(&format!(
+                "@media (prefers-reduced-motion:reduce){{.{class}::after{{animation:none}}}}"
+            ));
+        }
+        if eff.backdrop_filter.as_ref().is_some_and(|f| !f.is_unset()) {
+            let solid = opaque_hex(eff.background_color.as_deref());
+            self.node_css.push_str(&format!(
+                "@media (prefers-reduced-transparency:reduce){{.{class}{{-webkit-backdrop-filter:none;backdrop-filter:none;background-color:{solid}}}}}"
+            ));
         }
         // B3.1 §7.3: text gradient → forced-colours restore readable text (CanvasText).
         if uses_text_gradient(&eff) {
@@ -2293,6 +2406,44 @@ impl<'a> Compiler<'a> {
         self.close("div");
     }
 
+    fn static_menu(
+        &mut self,
+        node: &Node,
+        tcls: &str,
+        role: &str,
+        aria: &str,
+        placeholder: Option<&str>,
+        items: &[String],
+    ) {
+        let ncls = self.node_class(node, vec![]).unwrap_or_default();
+        self.open(
+            "div",
+            &[tcls, ncls.as_str()],
+            &[("role", role.into()), ("aria-label", aria.into())],
+        );
+        if let Some(ph) = placeholder {
+            self.text_tag("p", ph);
+        }
+        self.open("ul", &[], &[]);
+        let mut shown = 0usize;
+        for item in items {
+            let text = item.trim();
+            if text.is_empty() {
+                continue;
+            }
+            self.text_tag("li", text);
+            shown += 1;
+            if shown == 12 {
+                break;
+            }
+        }
+        if shown == 0 {
+            self.text_tag("li", "รายการ");
+        }
+        self.close("ul");
+        self.close("div");
+    }
+
     fn render_node(&mut self, node: &Node, depth: usize) {
         // Phase 11 A2.3: every A2 kind has a render arm (badge and scrollArea: part 2).
         self.used_types.insert(node.node_type as u8);
@@ -2460,6 +2611,48 @@ impl<'a> Compiler<'a> {
             | NodeProps::Popover { .. }
             | NodeProps::Tooltip { .. }
             | NodeProps::HoverCard { .. } => self.render_v4(node),
+            NodeProps::Command { placeholder, items } => {
+                self.static_menu(node, &tcls, "search", "คำสั่งค้น แบบจัดวาง", Some(placeholder), items);
+            }
+            NodeProps::ContextMenu { items } => {
+                self.static_menu(node, &tcls, "menu", "เมนูคลิกขวา แบบจัดวาง", None, items);
+            }
+            NodeProps::Toast { title, message } => {
+                let ncls = self.node_class(node, vec![]).unwrap_or_default();
+                self.open(
+                    "div",
+                    &[tcls.as_str(), ncls.as_str()],
+                    &[("role", "status".into()), ("aria-label", "ข้อความแจ้ง แบบจัดวาง".into())],
+                );
+                self.text_tag("strong", title);
+                self.text_tag("p", message);
+                self.close("div");
+            }
+            NodeProps::Resizable { split, .. } => {
+                let pct = (*split).clamp(20, 80);
+                let ncls = self.node_class(node, vec![]).unwrap_or_default();
+                let class = if ncls.is_empty() {
+                    let c = format!("n{}", self.next_class);
+                    self.next_class += 1;
+                    c
+                } else {
+                    ncls
+                };
+                self.node_css.push_str(&format!(
+                    ".{class}>:first-child{{flex:0 0 {pct}%;min-width:0}}"
+                ));
+                self.open(
+                    "div",
+                    &[tcls.as_str(), class.as_str()],
+                    &[("aria-label", "แบ่งขนาด แบบจัดวาง".into())],
+                );
+                if node.children().is_empty() {
+                    self.body.push_str("<div></div><div></div>");
+                } else {
+                    self.render_children(node, depth);
+                }
+                self.close("div");
+            }
             NodeProps::Carousel { slides_per_view, gap, direction: _, .. } => {
                 // Phase 11 A5.1: `<div class="t-carousel" role="region" aria-roledescription="carousel" tabindex="0">`
                 // with flex row, overflow-x:auto, scroll-snap-type:x mandatory.
@@ -2507,7 +2700,8 @@ impl<'a> Compiler<'a> {
                             basis
                         );
                         self.body.push_str(&format!("<div class=\"t-carousel__slide\" style=\"{}\">", slide_style));
-                        self.render(child_id, depth + 1);
+                        // The slide wrapper is the flex item; the child still fills that slide.
+                        self.render(child_id, depth + 1, false);
                         self.body.push_str("</div>");
                     }
                 }

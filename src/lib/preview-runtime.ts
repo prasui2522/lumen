@@ -43,9 +43,19 @@ export type FrameToApp =
   | { type: "wb:height"; height: number }
   | { type: "wb:route"; path: string }
   | { type: "wb:external"; href: string }
-  | { type: "wb:select"; id: string | null };
+  | { type: "wb:select"; id: string | null }
+  | { type: "wb:boxes"; boxes: { id: string; x: number; y: number; w: number; h: number }[] }
+  | { type: "wb:edit"; id: string | null };
 
-const FRAME_TYPES = new Set(["wb:ready", "wb:height", "wb:route", "wb:external", "wb:select"]);
+const FRAME_TYPES = new Set([
+  "wb:ready",
+  "wb:height",
+  "wb:route",
+  "wb:external",
+  "wb:select",
+  "wb:boxes",
+  "wb:edit",
+]);
 
 /**
  * Accept a message only from the given frame's own window. Tier 1 uses an

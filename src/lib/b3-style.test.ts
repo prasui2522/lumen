@@ -40,7 +40,7 @@ function cssFromStyle(style: StyleProps): string {
 
 describe("B3 STYLE_KEYS parity", () => {
   test("STYLE_KEYS has 27 entries including transform + transition", () => {
-    expect(STYLE_KEYS.length).toBe(29);
+    expect(STYLE_KEYS.length).toBe(31);
     expect(STYLE_KEYS).toContain("backgroundGradient");
     expect(STYLE_KEYS).toContain("textGradient");
     const struct = DEFAULTS_RS.slice(

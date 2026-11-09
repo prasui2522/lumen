@@ -45,10 +45,10 @@ describe("D8 batch 3 authored blocks", () => {
     resetBlocksRegistryCache();
     const list = await loadBlocksRegistry();
     for (const id of IDS) expect(list.some((b) => b.id === id), id).toBe(true);
-    // 11 migrated + 8 D6 + 6 D7 + 8 D8 = 33
-    expect(list.length).toBe(33);
+    // 11 migrated + 8 D6 + 6 D7 + 8 D8 + 6 D11 = 39
+    expect(list.length).toBe(39);
     const marketing = list.filter((b) => b.category !== "elements");
-    // 5 migrated templates + 22 authored = 27 marketing-ish (elements has 6)
-    expect(marketing.length).toBe(27);
+    // 5 migrated templates + 22 authored + 6 app-shell = 33
+    expect(marketing.length).toBe(33);
   });
 });

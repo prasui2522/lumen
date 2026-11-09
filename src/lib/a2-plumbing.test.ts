@@ -72,9 +72,9 @@ describe("A2.1 key parity: schema.ts vs defaults.rs / compiler.rs", () => {
   const wire = rustWire();
   const ts = tsNodeTypes();
 
-  test("TS NodeType has 59 kinds (A5.5 adds calendar), the Rust enum has the same wire names", () => {
-    expect(ts.length).toBe(59); // A5.5 calendar
-    expect(new Set(ts).size).toBe(59);
+  test("TS NodeType has 63 kinds (design-only command, contextMenu, resizable, toast), the Rust enum has the same wire names", () => {
+    expect(ts.length).toBe(63);
+    expect(new Set(ts).size).toBe(63);
     expect([...wire.values()].sort()).toEqual([...ts].sort());
     for (const n of A2_NAMES) expect(ts).toContain(n);
   });
@@ -95,7 +95,7 @@ describe("A2.1 key parity: schema.ts vs defaults.rs / compiler.rs", () => {
   });
 
   test("ALL_TYPES (compiler.rs) lists every kind once, in NodeType order", () => {
-    const list = between(COMPILER_RS, "const ALL_TYPES: [NodeType; 59] = [", /\];/);
+    const list = between(COMPILER_RS, "const ALL_TYPES: [NodeType; 63] = [", /\];/);
     const names = variantsIn(list).map((v) => wire.get(v)!);
     expect(names).toEqual(ts);
   });
@@ -103,11 +103,11 @@ describe("A2.1 key parity: schema.ts vs defaults.rs / compiler.rs", () => {
   test("type_name (compiler.rs) returns the wire name for every kind", () => {
     const body = between(COMPILER_RS, "fn type_name(t: NodeType) -> &'static str {", /\n}/);
     const pairs = [...body.matchAll(/NodeType::([A-Za-z0-9]+) => "(\w+)"/g)];
-    expect(pairs.length).toBe(59);
+    expect(pairs.length).toBe(63);
     for (const m of pairs) expect(wire.get(m[1]!)).toBe(m[2]!);
   });
 
-  test("default_styles has an arm for every kind; TS DEFAULT_STYLES and labels list the same 59", () => {
+  test("default_styles has an arm for every kind; TS DEFAULT_STYLES and labels list the same 63", () => {
     const body = between(DEFAULTS_RS, "pub fn default_styles(node_type: NodeType) -> StyleProps {", /\npub fn resolved_style|\n\/\/\/ Merge type defaults/);
     const arms = [...body.matchAll(/^        NodeType::([A-Za-z0-9]+) =>/gm)].map((m) => wire.get(m[1]!)!);
     expect([...arms].sort()).toEqual([...ts].sort());
@@ -131,7 +131,7 @@ describe("A2.1 key parity: schema.ts vs defaults.rs / compiler.rs", () => {
   test("schema.ts StyleProps key count (B6.1: 29 with filter/backdropFilter)", () => {
     const body = between(SCHEMA, "export type StyleProps = {", /\n};/);
     const keys = [...body.matchAll(/^  (\w+)\??:/gm)].map((m) => m[1]!);
-    expect(keys.length).toBe(29);
+    expect(keys.length).toBe(31);
     expect(keys).toContain("boxShadow");
     expect(keys).toContain("backgroundGradient");
     expect(keys).toContain("textGradient");

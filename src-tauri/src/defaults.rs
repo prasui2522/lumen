@@ -202,6 +202,12 @@ pub enum NodeType {
     Chart,
     // Phase 11 A5.5, appended so existing discriminants never move.
     Calendar,
+    // Design-only looks, appended so existing discriminants never move.
+    Command,
+    #[serde(rename = "contextMenu")]
+    ContextMenu,
+    Resizable,
+    Toast,
 }
 
 /// B7.1: paint-only style subset for `Node.states` (same keys as TS `STATE_PAINT_KEYS`).
@@ -228,6 +234,8 @@ pub struct StateStyle {
     pub backdrop_filter: Option<BackdropFilterValue>,
     #[serde(default, skip_serializing_if = "skip_empty_transform")]
     pub transform: Option<TransformValue>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
 }
 
 impl StateStyle {
@@ -242,6 +250,7 @@ impl StateStyle {
             && self.filter.as_ref().map_or(true, FilterValue::is_unset)
             && self.backdrop_filter.as_ref().map_or(true, BackdropFilterValue::is_unset)
             && self.transform.as_ref().map_or(true, TransformValue::is_unset)
+            && self.cursor.is_none()
     }
 }
 
@@ -744,6 +753,33 @@ pub enum NodeProps {
         week_start: CalendarWeekStart,
         era: CalendarEra,
     },
+    /// Design-only command list. Items stay visible; typing does not filter.
+    Command {
+        placeholder: String,
+        items: Vec<String>,
+    },
+    /// Design-only menu, always visible. Not bound to a right-click.
+    ContextMenu {
+        items: Vec<String>,
+    },
+    /// Design-only split. `split` is the first pane width in percent.
+    Resizable {
+        children: Vec<NodeId>,
+        split: u32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        direction: Option<Direction>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        gap: Option<u32>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        align: Option<Align>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        justify: Option<Justify>,
+    },
+    /// Design-only notice placed in the page. It does not pop up.
+    Toast {
+        title: String,
+        message: String,
+    },
 }
 
 /// Phase 11 A5.3 chart geometry kind.
@@ -1211,6 +1247,10 @@ pub struct StyleProps {
     /// B6.1: backdrop-filter. Empty ≡ unset.
     #[serde(default, skip_serializing_if = "skip_empty_backdrop_filter")]
     pub backdrop_filter: Option<BackdropFilterValue>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub border_effect: Option<String>,
 }
 
 impl StyleProps {
@@ -1245,6 +1285,8 @@ impl StyleProps {
             && self.transition.as_ref().map_or(true, TransitionValue::is_unset)
             && self.filter.as_ref().map_or(true, FilterValue::is_unset)
             && self.backdrop_filter.as_ref().map_or(true, BackdropFilterValue::is_unset)
+            && self.cursor.is_none()
+            && self.border_effect.is_none()
     }
 }
 
@@ -1463,6 +1505,7 @@ pub fn a2_layout_defaults(t: NodeType) -> Option<(Direction, u32, Align, Justify
         NodeType::Alert => Some((Direction::Column, 8, Align::Stretch, Justify::Start)),
         NodeType::AspectRatio | NodeType::ScrollArea => Some((Direction::Column, 0, Align::Stretch, Justify::Start)),
         NodeType::ButtonGroup => Some((Direction::Row, 0, Align::Stretch, Justify::Start)),
+        NodeType::Resizable => Some((Direction::Row, 0, Align::Stretch, Justify::Start)),
         _ => None,
     }
 }
@@ -2078,6 +2121,54 @@ pub fn default_styles(node_type: NodeType) -> StyleProps {
             font_size: Some(14.0),
             ..StyleProps::default()
         },
+        NodeType::Command => StyleProps {
+            display: Some("block".into()),
+            width: Some(CssSize::Raw("100%".into())),
+            margin: Some(BoxSpacing::All(0.0)),
+            padding: Some(BoxSpacing::All(8.0)),
+            color: Some("#0f172a".into()),
+            background_color: Some("#ffffff".into()),
+            border_width: Some(1.0),
+            border_style: Some("solid".into()),
+            border_color: Some("#e2e8f0".into()),
+            border_radius: Some(8.0),
+            font_size: Some(14.0),
+            ..StyleProps::default()
+        },
+        NodeType::ContextMenu => StyleProps {
+            display: Some("block".into()),
+            width: Some(CssSize::Raw("100%".into())),
+            margin: Some(BoxSpacing::All(0.0)),
+            padding: Some(BoxSpacing::All(4.0)),
+            color: Some("#0f172a".into()),
+            background_color: Some("#ffffff".into()),
+            border_width: Some(1.0),
+            border_style: Some("solid".into()),
+            border_color: Some("#e2e8f0".into()),
+            border_radius: Some(8.0),
+            font_size: Some(14.0),
+            ..StyleProps::default()
+        },
+        NodeType::Toast => StyleProps {
+            display: Some("block".into()),
+            width: Some(CssSize::Raw("100%".into())),
+            margin: Some(BoxSpacing::All(0.0)),
+            padding: Some(BoxSpacing::All(12.0)),
+            color: Some("#0f172a".into()),
+            background_color: Some("#ffffff".into()),
+            border_width: Some(1.0),
+            border_style: Some("solid".into()),
+            border_color: Some("#e2e8f0".into()),
+            border_radius: Some(8.0),
+            font_size: Some(14.0),
+            ..StyleProps::default()
+        },
+        NodeType::Resizable => StyleProps {
+            display: Some("flex".into()),
+            width: Some(CssSize::Raw("100%".into())),
+            min_height: Some(CssSize::Px(80.0)),
+            ..StyleProps::default()
+        },
     }
 }
 
@@ -2182,6 +2273,12 @@ fn overlay_style(base: &mut StyleProps, over: &StyleProps) {
     if over.backdrop_filter.is_some() {
         base.backdrop_filter = over.backdrop_filter.clone();
     }
+    if over.cursor.is_some() {
+        base.cursor = over.cursor.clone();
+    }
+    if over.border_effect.is_some() {
+        base.border_effect = over.border_effect.clone();
+    }
 }
 
 impl Node {
@@ -2205,7 +2302,8 @@ impl Node {
             | NodeProps::ScrollArea { children, .. }
             | NodeProps::ButtonGroup { children, .. }
             | NodeProps::Field { children, .. }
-            | NodeProps::Carousel { children, .. } => children.as_slice(),
+            | NodeProps::Carousel { children, .. }
+            | NodeProps::Resizable { children, .. } => children.as_slice(),
             _ => &[],
         }
     }

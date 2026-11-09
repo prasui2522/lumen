@@ -18,6 +18,7 @@ const REGISTRY_CHUNKS = [
   () => import("@/lib/blocks-registry/d6-batch1.json"),
   () => import("@/lib/blocks-registry/d7-batch2.json"),
   () => import("@/lib/blocks-registry/d8-batch3.json"),
+  () => import("@/lib/blocks-registry/d11-app.json"),
 ] as const;
 
 export async function loadBlocksRegistry(): Promise<StyleBlock[]> {

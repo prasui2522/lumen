@@ -32,7 +32,7 @@ function cssFromStyle(style: StyleProps): string {
 
 describe("B4 STYLE_KEYS", () => {
   test("includes borderSides + transform + transition (27 keys)", () => {
-    expect(STYLE_KEYS.length).toBe(29);
+    expect(STYLE_KEYS.length).toBe(31);
     expect(STYLE_KEYS).toContain("borderSides");
     expect(STYLE_KEYS).toContain("borderRadiusCorners");
     expect(STYLE_KEYS).toContain("transform");

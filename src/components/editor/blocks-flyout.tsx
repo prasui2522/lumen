@@ -3,6 +3,7 @@
  * D10 RAM: card meta only in React state; virtualised grid; clear on close.
  */
 import {
+  Fragment,
   useCallback,
   useEffect,
   useId,
@@ -91,21 +92,30 @@ export function toBlockCard(b: StyleBlock): StyleBlockCard {
   };
 }
 
-export const BLOCK_CATEGORIES: { id: "all" | BlockCategory; label: string }[] = [
+export const BLOCK_CATEGORIES: {
+  id: "all" | BlockCategory;
+  label: string;
+  group?: "front" | "back";
+}[] = [
   { id: "all", label: "ทั้งหมด" },
-  { id: "header", label: "แถบหัวเว็บ" },
-  { id: "hero", label: "ส่วนแนะนำ" },
-  { id: "features", label: "จุดเด่น" },
-  { id: "pricing", label: "ราคา" },
-  { id: "testimonials", label: "เสียงจากลูกค้า" },
-  { id: "faq", label: "คำถามที่พบบ่อย" },
-  { id: "cta", label: "ชวนทำ" },
-  { id: "footer", label: "ท้ายหน้า" },
-  { id: "contact", label: "ติดต่อ" },
-  { id: "logoCloud", label: "โลโก้พันธมิตร" },
-  { id: "stats", label: "ตัวเลขเด่น" },
-  { id: "elements", label: "องค์ประกอบ" },
+  { id: "header", label: "แถบหัวเว็บ", group: "front" },
+  { id: "hero", label: "ส่วนแนะนำ", group: "front" },
+  { id: "features", label: "จุดเด่น", group: "front" },
+  { id: "pricing", label: "ราคา", group: "front" },
+  { id: "testimonials", label: "เสียงจากลูกค้า", group: "front" },
+  { id: "faq", label: "คำถามที่พบบ่อย", group: "front" },
+  { id: "cta", label: "ชวนทำ", group: "front" },
+  { id: "footer", label: "ท้ายหน้า", group: "front" },
+  { id: "contact", label: "ติดต่อ", group: "front" },
+  { id: "logoCloud", label: "โลโก้พันธมิตร", group: "front" },
+  { id: "stats", label: "ตัวเลขเด่น", group: "front" },
+  { id: "elements", label: "องค์ประกอบ", group: "front" },
+  { id: "dashboard", label: "แผงสรุป", group: "back" },
+  { id: "sidebar", label: "แถบข้าง", group: "back" },
+  { id: "login", label: "เข้าสู่ระบบ", group: "back" },
 ];
+
+const BLOCK_GROUP_LABEL = { front: "หน้าบ้าน", back: "หลังบ้าน" } as const;
 
 const TONE: Record<BlockThumbRect["tone"], string> = {
   ink: "#0f172a",
@@ -354,19 +364,29 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
           aria-label="หมวดบล็อก"
           className="scrollbar-thin w-[7.5rem] shrink-0 overflow-auto border-r border-border py-1"
         >
-          {BLOCK_CATEGORIES.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              className={cn(
-                "flex w-full px-2 py-1.5 text-left text-[11px] hover:bg-muted",
-                category === c.id && "bg-muted font-medium",
-              )}
-              onClick={() => setCategory(c.id)}
-            >
-              {c.label}
-            </button>
-          ))}
+          {BLOCK_CATEGORIES.map((c, i) => {
+            const prev = BLOCK_CATEGORIES[i - 1];
+            const heading = c.group && c.group !== prev?.group ? BLOCK_GROUP_LABEL[c.group] : null;
+            return (
+              <Fragment key={c.id}>
+                {heading ? (
+                  <p className="px-2 pt-2 pb-0.5 text-[10px] font-medium text-muted-foreground">
+                    {heading}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  className={cn(
+                    "flex w-full px-2 py-1.5 text-left text-[11px] hover:bg-muted",
+                    category === c.id && "bg-muted font-medium",
+                  )}
+                  onClick={() => setCategory(c.id)}
+                >
+                  {c.label}
+                </button>
+              </Fragment>
+            );
+          })}
         </nav>
         <div
           ref={listRef}

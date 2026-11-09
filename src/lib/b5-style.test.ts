@@ -35,7 +35,7 @@ function cssFromStyle(style: StyleProps): string {
 
 describe("B5 STYLE_KEYS", () => {
   test("includes transform + transition (27 keys)", () => {
-    expect(STYLE_KEYS.length).toBe(29);
+    expect(STYLE_KEYS.length).toBe(31);
     expect(STYLE_KEYS).toContain("transform");
     expect(STYLE_KEYS).toContain("transition");
   });

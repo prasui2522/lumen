@@ -12,6 +12,7 @@ import type {
   TransformValue,
   TransitionValue,
 } from "@/schema";
+import { opaqueFill } from "@/lib/glass-material";
 import {
   BORDER_SIDE_STYLES,
   TRANSFORM_ORIGINS,
@@ -328,6 +329,7 @@ export function styleToCss(
     borderColor: style.borderColor ?? "currentColor",
     borderStyle: borderStyleKw(style.borderStyle) as CSSProperties["borderStyle"],
     opacity: style.opacity,
+    cursor: style.cursor,
     overflow: style.overflow,
     boxShadow: boxShadowToCss(style.boxShadow),
   };
@@ -346,6 +348,9 @@ export function styleToCss(
   if (bfilt) {
     out.WebkitBackdropFilter = bfilt;
     out.backdropFilter = bfilt;
+    (out as CSSProperties & { "--wb-glass-solid"?: string })["--wb-glass-solid"] = opaqueFill(
+      style.backgroundColor,
+    );
   }
   const img = bgGrad ?? textGrad;
   if (img) {

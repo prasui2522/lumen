@@ -353,7 +353,7 @@ function Item({ children, ...props }: ComponentProps<typeof Command.Item>) {
   return (
     <Command.Item
       {...props}
-      className="flex cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none data-[disabled=true]:opacity-40 data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground"
+      className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none data-[disabled=true]:opacity-40 data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground"
     >
       {children}
     </Command.Item>

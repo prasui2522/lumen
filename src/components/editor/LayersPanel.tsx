@@ -56,6 +56,7 @@ import {
   SquareCheck,
   Type,
   UnfoldVertical,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -153,6 +154,10 @@ const ICONS: Record<NodeType, typeof File> = {
   carousel: GalleryHorizontal,
   chart: BarChart3,
   calendar: CalendarDays,
+  command: Search,
+  contextMenu: Menu,
+  resizable: Columns2,
+  toast: MessageSquare,
 };
 
 const INDENT = 12;

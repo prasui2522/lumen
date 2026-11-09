@@ -704,6 +704,186 @@ pub fn write_export_tree(
     Ok(())
 }
 
+/// R2: durable Vite folder. The template is written once. Later saves refresh
+/// generated JSON/CSS/assets and leave `src/pages` and `src/lib` alone.
+pub fn sync_project_site(
+    dir: &Path,
+    doc: &PageDocument,
+    opts: &CompileOptions,
+    files: &[(String, Vec<u8>)],
+) -> Result<(), String> {
+    if !dir.join("package.json").is_file() {
+        return write_export_tree(dir, doc, opts, files);
+    }
+    let site = build_site_json(doc, &opts.asset_exts)?;
+    write_site_json_atomic(dir, &site)?;
+    if !override_contains(dir, SITE_CSS_REL) {
+        write_rel(dir, SITE_CSS_REL, build_site_css(doc, opts)?.as_bytes())?;
+    }
+    write_rel(dir, KINDS_CSS_REL, build_kinds_css(doc, opts)?.as_bytes())?;
+    for (name, bytes) in files {
+        let leaf = name.strip_prefix("assets/").unwrap_or(name.as_str());
+        if leaf.is_empty() || leaf.contains("..") || leaf.contains('/') {
+            return Err("ชื่อไฟล์รูปในโฟลเดอร์โปรเจกต์ไม่ถูกต้อง".into());
+        }
+        write_rel(dir, &format!("public/assets/{leaf}"), bytes)?;
+    }
+    Ok(())
+}
+
+const SITE_LIST_SKIP: &[&str] = &["node_modules", ".git", "dist", "target"];
+pub const SITE_CSS_REL: &str = "src/styles/site.css";
+pub const KINDS_CSS_REL: &str = "src/styles/kinds.css";
+const OVERRIDES_FILE: &str = ".wb-overrides.json";
+
+pub fn read_overrides(dir: &Path) -> Vec<String> {
+    let Ok(text) = std::fs::read_to_string(dir.join(OVERRIDES_FILE)) else {
+        return Vec::new();
+    };
+    serde_json::from_str::<serde_json::Value>(&text)
+        .ok()
+        .and_then(|v| v.get("files").cloned())
+        .and_then(|v| serde_json::from_value::<Vec<String>>(v).ok())
+        .unwrap_or_default()
+}
+
+pub fn override_contains(dir: &Path, rel: &str) -> bool {
+    read_overrides(dir).iter().any(|p| p == rel)
+}
+
+pub fn flag_override(dir: &Path, rel: &str) -> Result<(), String> {
+    if rel.contains("..") || rel.starts_with('/') {
+        return Err("ชื่อไฟล์ในโปรเจกต์ไม่ถูกต้อง".into());
+    }
+    let mut files = read_overrides(dir);
+    if !files.iter().any(|p| p == rel) {
+        files.push(rel.to_string());
+    }
+    let body = serde_json::json!({ "files": files });
+    write_rel(dir, OVERRIDES_FILE, body.to_string().as_bytes())
+}
+
+pub fn clear_override(dir: &Path, rel: &str) -> Result<(), String> {
+    let files: Vec<String> = read_overrides(dir).into_iter().filter(|p| p != rel).collect();
+    let body = serde_json::json!({ "files": files });
+    write_rel(dir, OVERRIDES_FILE, body.to_string().as_bytes())
+}
+
+/// R6: a folder is ours only when package name and site.json both match the export.
+pub fn load_import_document(dir: &Path) -> Result<PageDocument, String> {
+    let pkg = std::fs::read_to_string(dir.join("package.json"))
+        .map_err(|_| "โฟลเดอร์นี้ไม่ใช่โปรเจกต์ที่ส่งออกจากแอป".to_string())?;
+    let meta: serde_json::Value = serde_json::from_str(&pkg)
+        .map_err(|_| "โฟลเดอร์นี้ไม่ใช่โปรเจกต์ที่ส่งออกจากแอป".to_string())?;
+    if meta.get("name").and_then(|n| n.as_str()) != Some("exported-site") {
+        return Err("โฟลเดอร์นี้ไม่ใช่โปรเจกต์ที่ส่งออกจากแอป".into());
+    }
+    let text = std::fs::read_to_string(dir.join("src/data/site.json"))
+        .map_err(|_| "ไม่พบ src/data/site.json".to_string())?;
+    document_from_site_json(&text)
+}
+
+pub fn copy_project_tree(src: &Path, dest: &Path) -> Result<(), String> {
+    fn walk(src_root: &Path, dir: &Path, dest: &Path) -> Result<(), String> {
+        for ent in std::fs::read_dir(dir).map_err(|e| format!("คัดลอกโปรเจกต์ไม่สำเร็จ: {e}"))? {
+            let ent = ent.map_err(|e| format!("คัดลอกโปรเจกต์ไม่สำเร็จ: {e}"))?;
+            let name = ent.file_name().to_string_lossy().to_string();
+            if SITE_LIST_SKIP.contains(&name.as_str()) {
+                continue;
+            }
+            let path = ent.path();
+            let rel = path
+                .strip_prefix(src_root)
+                .map_err(|_| "ชื่อไฟล์ในโปรเจกต์ไม่ถูกต้อง".to_string())?
+                .to_string_lossy()
+                .replace('\\', "/");
+            if rel.contains("..") {
+                continue;
+            }
+            if path.is_dir() {
+                walk(src_root, &path, dest)?;
+                continue;
+            }
+            let bytes = std::fs::read(&path).map_err(|e| format!("คัดลอกโปรเจกต์ไม่สำเร็จ: {e}"))?;
+            write_rel(dest, &rel, &bytes)?;
+            if let Some((_, original)) = template_files().into_iter().find(|(p, _)| *p == rel) {
+                if original != bytes.as_slice() {
+                    flag_override(dest, &rel)?;
+                }
+            }
+        }
+        Ok(())
+    }
+    walk(src, src, dest)
+}
+
+pub fn safe_rel(rel: &str) -> Result<(), String> {
+    if rel.is_empty()
+        || rel.contains("..")
+        || rel.starts_with('/')
+        || rel.split('/').any(|p| p.is_empty() || SITE_LIST_SKIP.contains(&p))
+    {
+        return Err("ชื่อไฟล์ในโปรเจกต์ไม่ถูกต้อง".into());
+    }
+    Ok(())
+}
+
+/// R3: relative files under a project folder. Skips dependency and build dirs.
+pub fn list_site_tree(dir: &Path) -> Result<Vec<ExportListEntry>, String> {
+    if !dir.is_dir() {
+        return Err("ยังไม่มีโฟลเดอร์โปรเจกต์".into());
+    }
+    let mut out = Vec::new();
+    fn walk(root: &Path, dir: &Path, out: &mut Vec<ExportListEntry>) -> Result<(), String> {
+        let mut entries: Vec<_> = std::fs::read_dir(dir)
+            .map_err(|e| format!("อ่านโฟลเดอร์โปรเจกต์ไม่สำเร็จ: {e}"))?
+            .filter_map(|e| e.ok())
+            .collect();
+        entries.sort_by_key(|e| e.file_name());
+        for ent in entries {
+            let name = ent.file_name().to_string_lossy().to_string();
+            if name.starts_with('.') && name != ".keep" {
+                continue;
+            }
+            if SITE_LIST_SKIP.contains(&name.as_str()) {
+                continue;
+            }
+            let path = ent.path();
+            if path.is_dir() {
+                walk(root, &path, out)?;
+                continue;
+            }
+            let rel = path
+                .strip_prefix(root)
+                .map_err(|_| "ชื่อไฟล์ในโปรเจกต์ไม่ถูกต้อง".to_string())?
+                .to_string_lossy()
+                .replace('\\', "/");
+            if rel.contains("..") {
+                continue;
+            }
+            let bytes = std::fs::read(&path).map_err(|e| format!("อ่านไฟล์โปรเจกต์ไม่สำเร็จ: {e}"))?;
+            out.push(utf8_entry(&rel, &bytes));
+        }
+        Ok(())
+    }
+    walk(dir, dir, &mut out)?;
+    Ok(out)
+}
+
+/// After Vite preview, put `index.html` back on `src/main.tsx`.
+pub fn restore_index_after_preview(dir: &Path) {
+    let path = dir.join("index.html");
+    let Ok(text) = std::fs::read_to_string(&path) else {
+        return;
+    };
+    if !text.contains("preview-entry") {
+        return;
+    }
+    if let Some((_, bytes)) = template_files().into_iter().find(|(n, _)| *n == "index.html") {
+        let _ = std::fs::write(path, bytes);
+    }
+}
+
 /// Atomic `site.json` rewrite for HMR (S8): tmp + fsync + rename; skip if unchanged.
 pub fn write_site_json_atomic(dir: &Path, json: &str) -> Result<bool, String> {
     let dest = dir.join("src/data/site.json");

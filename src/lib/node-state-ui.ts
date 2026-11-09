@@ -21,7 +21,7 @@ export const STATE_LOCKS_BREAKPOINT_MSG =
 
 /** T67 — hint under the switcher while editing a state. */
 export const STATE_PAINT_ONLY_HINT =
-  "สถานะนี้เปลี่ยนได้เฉพาะสี เงา ความทึบ ฟิลเตอร์ และการเคลื่อนย้าย";
+  "สถานะนี้เปลี่ยนได้เฉพาะสี เงา ความทึบ ฟิลเตอร์ การเคลื่อนย้าย และรูปร่างเคอร์เซอร์";
 
 /** T118 — clear the entire current state object (not an empty `{}`). */
 export const CLEAR_THIS_STATE_LABEL = "ล้างสถานะนี้";

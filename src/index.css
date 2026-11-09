@@ -185,4 +185,78 @@
   html {
     @apply font-sans;
     }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+@property --wb-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes wb-border-spin {
+  to {
+    --wb-angle: 360deg;
+  }
+}
+
+/* Clickable cards: border picks up the ring, then a thin light runs the edge. */
+.interactive-card {
+  transition: box-shadow 160ms ease;
+}
+.interactive-card:hover,
+.interactive-card:focus-within {
+  box-shadow: 0 0 0 1px var(--ring);
+}
+.interactive-card:hover::after,
+.interactive-card:focus-within::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(from var(--wb-angle), transparent 0 62%, var(--ring) 82%, transparent 100%);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: wb-border-spin 2.8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .interactive-card:hover::after,
+  .interactive-card:focus-within::after {
+    animation: none;
+    background: var(--ring);
+  }
+}
+
+.wb-led {
+  position: relative;
+}
+.wb-led::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(from var(--wb-angle), transparent 0 62%, currentColor 82%, transparent 100%);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: wb-border-spin 2.8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wb-led::after {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .wb-glass {
+    background-color: var(--wb-glass-solid, #f8fafc) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
 }

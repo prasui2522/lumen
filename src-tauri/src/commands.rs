@@ -26,7 +26,16 @@ pub fn create_project(
     name: String,
 ) -> Result<ProjectWithDocument, String> {
     let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
-    db_create(&conn, name)
+    let created = db_create(&conn, name)?;
+    let (opts, files) = crate::assets::export_parts(&conn, &state.assets_dir, &created.id, &created.document)?;
+    drop(conn);
+    crate::export::sync_project_site(
+        &state.sites_dir.join(&created.id),
+        &created.document,
+        &opts,
+        &files,
+    )?;
+    Ok(created)
 }
 
 #[tauri::command]
@@ -35,7 +44,20 @@ pub fn open_project(
     id: String,
 ) -> Result<ProjectWithDocument, String> {
     let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
-    db_open(&conn, &id)
+    let mut opened = db_open(&conn, &id)?;
+    let (opts, files) = crate::assets::export_parts(&conn, &state.assets_dir, &id, &opened.document)?;
+    drop(conn);
+    let dir = state.sites_dir.join(&id);
+    let site_path = dir.join("src/data/site.json");
+    if !site_path.is_file() {
+        crate::export::sync_project_site(&dir, &opened.document, &opts, &files)?;
+    } else if let Ok(text) = std::fs::read_to_string(&site_path) {
+        if let Ok(mut doc) = crate::export::document_from_site_json(&text) {
+            doc.version = opened.document.version;
+            opened.document = doc;
+        }
+    }
+    Ok(opened)
 }
 
 #[tauri::command]
@@ -52,6 +74,9 @@ pub fn save_project(
     // Next successful save drops files no remaining node AssetRef references.
     // A delete failure leaves the row so a later save can retry. Undo does not call this.
     crate::assets::gc_unreferenced(&conn, &state.assets_dir, &id, &document)?;
+    let (opts, files) = crate::assets::export_parts(&conn, &state.assets_dir, &id, &document)?;
+    drop(conn);
+    crate::export::sync_project_site(&state.sites_dir.join(&id), &document, &opts, &files)?;
     Ok(())
 }
 
@@ -141,6 +166,136 @@ pub async fn preview_bundle(
         crate::assets::preview_bundle_parts(&conn, &state.assets_dir, &project_id, &doc)?
     };
     crate::export::build_preview_bundle(&doc, &opts, urls)
+}
+
+/// R3: files on disk for the project folder (not `node_modules`).
+#[tauri::command]
+pub fn list_project_files(
+    state: State<'_, DbState>,
+    project_id: String,
+) -> Result<Vec<crate::export::ExportListEntry>, String> {
+    let dir = state.sites_dir.join(&project_id);
+    crate::export::list_site_tree(&dir)
+}
+
+/// R3: reveal the Vite project folder in the file manager.
+#[tauri::command]
+pub fn open_project_folder(app: tauri::AppHandle, state: State<'_, DbState>, project_id: String) -> Result<(), String> {
+    let dir = state.sites_dir.join(&project_id);
+    if !dir.join("package.json").is_file() {
+        return Err("ยังไม่มีโฟลเดอร์โปรเจกต์ — บันทึกก่อน".into());
+    }
+    let canon = std::fs::canonicalize(&dir).map_err(|_| "เปิดโฟลเดอร์โปรเจกต์ไม่สำเร็จ".to_string())?;
+    let root = std::fs::canonicalize(&state.sites_dir).unwrap_or(state.sites_dir.clone());
+    if !canon.starts_with(&root) {
+        return Err("เปิดโฟลเดอร์โปรเจกต์ไม่สำเร็จ".into());
+    }
+    app.opener()
+        .open_path(canon.to_string_lossy().as_ref(), None::<&str>)
+        .map_err(|e| format!("เปิดโฟลเดอร์โปรเจกต์ไม่สำเร็จ: {e}"))
+}
+
+/// R5: write a project file other than generated `kinds.css` / `site.json` and flag the override.
+#[tauri::command]
+pub fn write_project_file(
+    state: State<'_, DbState>,
+    project_id: String,
+    path: String,
+    text: String,
+) -> Result<(), String> {
+    crate::export::safe_rel(&path)?;
+    if path == crate::export::KINDS_CSS_REL || path == "src/data/site.json" {
+        return Err("ไฟล์นี้สร้างจากข้อมูลหน้า — แก้ที่ผืนผ้าหรือ site.json".into());
+    }
+    let dir = state.sites_dir.join(&project_id);
+    if !dir.join("package.json").is_file() {
+        return Err("ยังไม่มีโฟลเดอร์โปรเจกต์ — บันทึกก่อน".into());
+    }
+    crate::export::write_rel(&dir, &path, text.as_bytes())?;
+    crate::export::flag_override(&dir, &path)
+}
+
+#[tauri::command]
+pub fn list_project_overrides(state: State<'_, DbState>, project_id: String) -> Result<Vec<String>, String> {
+    Ok(crate::export::read_overrides(&state.sites_dir.join(project_id)))
+}
+
+/// R5: drop the hand-edit flag and write `site.css` from the document again.
+#[tauri::command]
+pub fn regenerate_site_css(
+    state: State<'_, DbState>,
+    project_id: String,
+    document: PageDocument,
+) -> Result<(), String> {
+    let dir = state.sites_dir.join(&project_id);
+    let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
+    let (opts, _) = crate::assets::export_parts(&conn, &state.assets_dir, &project_id, &document)?;
+    drop(conn);
+    crate::export::clear_override(&dir, crate::export::SITE_CSS_REL)?;
+    let css = crate::export::build_site_css(&document, &opts)?;
+    crate::export::write_rel(&dir, crate::export::SITE_CSS_REL, css.as_bytes())
+}
+
+fn adopt_import(state: &DbState, name: String, src: &Path) -> Result<ProjectWithDocument, String> {
+    let doc = crate::export::load_import_document(src)?;
+    let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
+    let mut created = db_create(&conn, name)?;
+    created.document = doc.clone();
+    db_save(&conn, &created.id, None, &doc, None)?;
+    drop(conn);
+    let dest = state.sites_dir.join(&created.id);
+    if let Err(e) = crate::export::copy_project_tree(src, &dest) {
+        if let Ok(conn) = state.conn.lock() {
+            let _ = db_delete(&conn, &created.id);
+        }
+        let _ = std::fs::remove_dir_all(&dest);
+        return Err(e);
+    }
+    Ok(created)
+}
+
+/// R6: open a Vite folder that this app exported.
+#[tauri::command]
+pub fn import_project_folder(
+    state: State<'_, DbState>,
+    name: String,
+    folder: String,
+) -> Result<ProjectWithDocument, String> {
+    let src = PathBuf::from(&folder);
+    let canon = std::fs::canonicalize(&src).map_err(|_| "เปิดโฟลเดอร์ไม่สำเร็จ".to_string())?;
+    adopt_import(&state, name, &canon)
+}
+
+/// R6: unzip, then the same path as opening a folder. Bad JSON does not create a project.
+#[tauri::command]
+pub fn import_project_zip(
+    state: State<'_, DbState>,
+    name: String,
+    zip_path: String,
+) -> Result<ProjectWithDocument, String> {
+    let zip_file = std::fs::File::open(&zip_path).map_err(|_| "เปิดไฟล์ zip ไม่สำเร็จ".to_string())?;
+    let mut archive = zip::ZipArchive::new(zip_file).map_err(|_| "ไฟล์ zip ใช้ไม่ได้".to_string())?;
+    let tmp = std::env::temp_dir().join(format!("wb-import-{}", uuid::Uuid::new_v4().simple()));
+    std::fs::create_dir_all(&tmp).map_err(|e| e.to_string())?;
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
+        let Some(rel) = file.enclosed_name().map(|p| p.to_path_buf()) else {
+            continue;
+        };
+        let out = tmp.join(&rel);
+        if file.is_dir() {
+            std::fs::create_dir_all(&out).map_err(|e| e.to_string())?;
+            continue;
+        }
+        if let Some(parent) = out.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        let mut dest = std::fs::File::create(&out).map_err(|e| e.to_string())?;
+        std::io::copy(&mut file, &mut dest).map_err(|e| e.to_string())?;
+    }
+    let result = adopt_import(&state, name, &tmp);
+    let _ = std::fs::remove_dir_all(&tmp);
+    result
 }
 
 /// R1: validate Code-view `site.json` after stripping renderer-only keys.
@@ -465,8 +620,17 @@ pub async fn preview_sidecar_start(
         let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
         crate::assets::export_parts(&conn, &state.assets_dir, &project_id, &doc)?
     };
-    let ws = sc.cache_dir.join("preview").join("ws").join(&project_id);
-    crate::export::write_export_tree(&ws, &doc, &opts, &files)?;
+    let site = state.sites_dir.join(&project_id);
+    let ws = if site.join("package.json").is_file() {
+        site.clone()
+    } else {
+        sc.cache_dir.join("preview").join("ws").join(&project_id)
+    };
+    if ws == site {
+        crate::export::sync_project_site(&ws, &doc, &opts, &files)?;
+    } else {
+        crate::export::write_export_tree(&ws, &doc, &opts, &files)?;
+    }
     let bun_ver = if sc.bun.is_file() {
         std::process::Command::new(&sc.bun)
             .arg("--version")

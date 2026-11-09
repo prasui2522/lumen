@@ -138,5 +138,117 @@
       }
     },
     "source": { "kind": "original" }
+  },
+  {
+    "formatVersion": 1,
+    "id": "surface-metal",
+    "name": "ผิวโลหะ",
+    "nameEn": "Metal",
+    "category": "surface",
+    "appliesTo": ["button", "link", "container", "card", "section"],
+    "style": {
+      "backgroundColor": "#e2e8f0",
+      "color": "#0f172a",
+      "backgroundGradient": {
+        "kind": "linear",
+        "angle": 180,
+        "stops": [
+          { "color": "#f8fafc", "at": 0 },
+          { "color": "#94a3b8", "at": 100 }
+        ]
+      },
+      "borderWidth": 1,
+      "borderStyle": "solid",
+      "borderColor": "#64748b",
+      "borderRadius": 10,
+      "boxShadow": [
+        { "x": 0, "y": 1, "blur": 0, "spread": 0, "color": "#ffffff", "inset": true },
+        { "x": 0, "y": 2, "blur": 4, "spread": 0, "color": "#00000026" }
+      ]
+    },
+    "source": { "kind": "original" }
+  },
+  {
+    "formatVersion": 1,
+    "id": "surface-paper",
+    "name": "ผิวกระดาษ",
+    "nameEn": "Paper",
+    "category": "surface",
+    "appliesTo": ["container", "card", "section"],
+    "style": {
+      "backgroundColor": "#faf6ef",
+      "color": "#1c1917",
+      "borderWidth": 1,
+      "borderStyle": "solid",
+      "borderColor": "#e7e0d4",
+      "borderRadius": 4,
+      "boxShadow": [
+        { "x": 0, "y": 1, "blur": 0, "spread": 0, "color": "#ffffffcc", "inset": true },
+        { "x": 1, "y": 2, "blur": 0, "spread": 0, "color": "#d6d3d1" }
+      ]
+    },
+    "source": { "kind": "original" }
+  },
+  {
+    "formatVersion": 1,
+    "id": "surface-stone",
+    "name": "ผิวหิน",
+    "nameEn": "Stone",
+    "category": "surface",
+    "appliesTo": ["container", "card", "section", "button"],
+    "style": {
+      "backgroundColor": "#44403c",
+      "color": "#fafaf9",
+      "backgroundGradient": {
+        "kind": "linear",
+        "angle": 160,
+        "stops": [
+          { "color": "#57534e", "at": 0 },
+          { "color": "#292524", "at": 100 }
+        ]
+      },
+      "borderWidth": 1,
+      "borderStyle": "solid",
+      "borderColor": "#1c1917",
+      "borderRadius": 8,
+      "boxShadow": [
+        { "x": 0, "y": 2, "blur": 0, "spread": 0, "color": "#00000066", "inset": true }
+      ]
+    },
+    "source": { "kind": "original" }
+  },
+  {
+    "formatVersion": 1,
+    "id": "surface-neon",
+    "name": "ผิวนีออน",
+    "nameEn": "Neon",
+    "category": "surface",
+    "appliesTo": ["button", "link", "container", "card"],
+    "style": {
+      "backgroundColor": "#0f172a",
+      "color": "#e0f2fe",
+      "borderWidth": 1,
+      "borderStyle": "solid",
+      "borderColor": "#22d3ee",
+      "borderRadius": 12,
+      "boxShadow": [
+        { "x": 0, "y": 0, "blur": 16, "spread": 0, "color": "#22d3ee99" }
+      ],
+      "transition": {
+        "durationMs": 160,
+        "delayMs": 0,
+        "easing": "ease-out",
+        "property": "paint"
+      }
+    },
+    "states": {
+      "hover": {
+        "boxShadow": [
+          { "x": 0, "y": 0, "blur": 24, "spread": 1, "color": "#22d3eecc" }
+        ]
+      }
+    },
+    "source": { "kind": "original" },
+    "note": "แสงนีออนอยู่ที่ขอบและเงา สีตัวอักษรยังอ่านบนพื้นเข้ม"
   }
 ]

@@ -105,7 +105,7 @@ const A2C_TALL = ["card", "alert", "scrollArea", "buttonGroup"] as const satisfi
 const A3C = ["field"] as const satisfies readonly NodeType[];
 /** Phase 11 A5.1: carousel is a layout container (row / gap 16). */
 const A5C = ["carousel"] as const satisfies readonly NodeType[];
-const LAYOUT_KINDS: readonly NodeType[] = ["container", ...A2C, ...A3C, ...A5C];
+const LAYOUT_KINDS: readonly NodeType[] = ["container", "resizable", ...A2C, ...A3C, ...A5C];
 
 /** True for container, the five A2 container-like kinds, and field (A3.3). */
 export function hasLayoutProps(type: string): boolean {

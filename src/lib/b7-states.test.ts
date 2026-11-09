@@ -39,7 +39,7 @@ function baseDoc(overrides?: Partial<Node>): PageDocument {
 }
 
 describe("B7.1 STATE_PAINT_KEYS + Rust parity", () => {
-  test("10 paint keys; Rust has NodeStates + StateStyle", () => {
+  test("paint keys; Rust has NodeStates + StateStyle", () => {
     expect(STATE_PAINT_KEYS).toEqual([
       "backgroundColor",
       "color",
@@ -51,6 +51,7 @@ describe("B7.1 STATE_PAINT_KEYS + Rust parity", () => {
       "filter",
       "backdropFilter",
       "transform",
+      "cursor",
     ]);
     expect(DEFAULTS_RS).toContain("pub struct NodeStates");
     expect(DEFAULTS_RS).toContain("pub struct StateStyle");

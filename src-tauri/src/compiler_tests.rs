@@ -209,6 +209,24 @@ fn image_placeholder_and_resolved_asset() {
 }
 
 #[test]
+fn row_container_without_own_width_shrinks_to_content() {
+    let json = doc_with(&[(
+        "row",
+        r##""row":{"id":"row","type":"container","props":{"type":"container","direction":"row","justify":"between","align":"center","children":["copy","nav"]},"style":{}},"copy":{"id":"copy","type":"text","props":{"type":"text","content":"© 2026 ชื่อเว็บ"},"style":{}},"nav":{"id":"nav","type":"container","props":{"type":"container","direction":"row","children":["a"]},"style":{}},"a":{"id":"a","type":"link","props":{"type":"link","label":"นโยบาย","href":"#"},"style":{}}"##,
+    )]);
+    let html = compile_json(&json, &export()).unwrap();
+    let css = style_block(&html);
+    assert!(
+        css.contains("width:auto"),
+        "nav container must not keep the 100% kind default inside a row: {css}"
+    );
+    assert!(
+        html.contains("<p class=\"t-text\">© 2026 ชื่อเว็บ</p>"),
+        "the copyright line stays content-sized: {html}"
+    );
+}
+
+#[test]
 fn malformed_docs_error_or_terminate() {
     assert!(compile_json("{}", &export()).is_err());
     let bad_root = r#"{"version":1,"meta":{"title":"T"},"root":"x","nodes":{}}"#;
@@ -317,9 +335,11 @@ color:#ffffff;border-radius:16px;border-width:2px;border-color:#0ea5e9;border-st
     ));
     assert!(css.contains(".n7{padding:12px;background-color:#e11d48}"));
     assert!(css.contains(".n8{font-size:18px}"));
-    assert!(css.contains(".n9{width:240px;border-radius:8px;object-fit:contain}"));
-    assert!(css.contains(".n10{height:40px}"));
-    assert!(!css.contains(".n11"), "unstyled nodes get no per-node class");
+    // Nested container in the row has no authored width, so the 100% kind default is dropped.
+    assert!(css.contains(".n9{width:auto}"));
+    assert!(css.contains(".n10{width:240px;border-radius:8px;object-fit:contain}"));
+    assert!(css.contains(".n11{height:40px}"));
+    assert!(!css.contains(".n12"), "unstyled nodes get no per-node class");
 
     let body = &html[html.find("<body>").unwrap()..];
     assert_eq!(
@@ -329,9 +349,9 @@ color:#ffffff;border-radius:16px;border-width:2px;border-color:#0ea5e9;border-st
 <h6 class=\"t-heading t-h6 n4\">เล็ก</h6><p class=\"t-text n5\">เปิดทุกวัน</p>\
 <div class=\"t-container n6\"><a class=\"t-button n7\" href=\"https://shop.example/order\">สั่งเลย</a>\
 <a class=\"t-link n8\" href=\"https://example.com/menu\" target=\"_blank\" rel=\"noopener noreferrer\">เมนู</a>\
-<div class=\"t-container\"><img class=\"t-image n9\" src=\"assets/beans.jpg\" alt=\"เมล็ดกาแฟ\">\
+<div class=\"t-container n9\"><img class=\"t-image n10\" src=\"assets/beans.jpg\" alt=\"เมล็ดกาแฟ\">\
 <div class=\"t-image ph\" role=\"img\" aria-label=\"รูปภาพ\">รูปภาพ</div>\
-<div class=\"t-spacer n10\" aria-hidden=\"true\"></div><a class=\"t-link\" href=\"/map\">ที่ตั้ง</a>\
+<div class=\"t-spacer n11\" aria-hidden=\"true\"></div><a class=\"t-link\" href=\"/map\">ที่ตั้ง</a>\
 </div></div></section></div></body></html>\n"
     );
     assert!(html.contains("<meta name=\"description\" content=\"หน้าแรก\">"));
@@ -833,4 +853,19 @@ fn export_ignores_preview_markers() {
     .unwrap();
     assert_eq!(with, plain);
     assert!(!plain.0.contains("#wb-page"), "{}", plain.0); // B0.1: `data-wb-page` (page scope) is not a marker
+}
+
+#[test]
+fn design_only_kinds_export_without_script() {
+    let json = doc_with(&[(
+        "box",
+        r##""box":{"id":"box","type":"container","props":{"type":"container","children":["cmd","menu","note","split"]},"style":{}},"cmd":{"id":"cmd","type":"command","props":{"type":"command","placeholder":"ค้นหาคำสั่ง","items":["หน้าแรก","ตั้งค่า"]},"style":{}},"menu":{"id":"menu","type":"contextMenu","props":{"type":"contextMenu","items":["แก้ไข"]},"style":{}},"note":{"id":"note","type":"toast","props":{"type":"toast","title":"บันทึกแล้ว","message":"แบบจัดวาง"},"style":{}},"split":{"id":"split","type":"resizable","props":{"type":"resizable","split":40,"children":[]},"style":{}}"##,
+    )]);
+    let html = compile_json(&json, &export()).unwrap();
+    assert!(html.contains("ค้นหาคำสั่ง"), "{html}");
+    assert!(html.contains("หน้าแรก"), "{html}");
+    assert!(html.contains("แก้ไข"), "{html}");
+    assert!(html.contains("บันทึกแล้ว"), "{html}");
+    assert!(html.contains("flex:0 0 40%"), "{html}");
+    assert!(!html.contains("<script"), "{html}");
 }

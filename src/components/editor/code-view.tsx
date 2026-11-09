@@ -9,10 +9,22 @@ import { EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, drawSelection } from "@codemirror/view";
 import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { defaultKeymap } from "@codemirror/commands";
+import { autocompletion } from "@codemirror/autocomplete";
+import {
+  closeSearchPanel,
+  findNext,
+  findPrevious,
+  search,
+  searchKeymap,
+  SearchQuery,
+  setSearchQuery,
+} from "@codemirror/search";
+import type { EditorView as EditorViewType } from "@codemirror/view";
+import type { Panel } from "@codemirror/view";
 import { json } from "@codemirror/lang-json";
 import { javascript } from "@codemirror/lang-javascript";
 import { css } from "@codemirror/lang-css";
-import { X } from "lucide-react";
+import { FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
@@ -24,6 +36,7 @@ import {
   SITE_JSON_PATH,
   viewFromParsedSite,
 } from "@/lib/site-json-edit";
+import { siteJsonComplete } from "@/lib/site-json-hint";
 import { useProjectsStore } from "@/stores/projects-store";
 import { useEditorStore } from "@/stores/editor-store";
 
@@ -35,6 +48,50 @@ export type ExportListEntry = {
 };
 
 const DEFAULT_FILE = SITE_JSON_PATH;
+const KINDS_CSS = "src/styles/kinds.css";
+const SITE_CSS = "src/styles/site.css";
+
+function thaiSearchPanel(view: EditorViewType): Panel {
+  const wrap = document.createElement("div");
+  wrap.className = "flex items-center gap-1 border-b border-border bg-muted/40 px-2 py-1";
+  const input = document.createElement("input");
+  input.placeholder = "ค้นหา";
+  input.setAttribute("aria-label", "ค้นหาในโค้ด");
+  input.className = "h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs";
+  const btn = (label: string, run: () => void) => {
+    const el = document.createElement("button");
+    el.type = "button";
+    el.textContent = label;
+    el.className = "h-6 rounded-md px-2 text-xs hover:bg-accent";
+    el.onclick = run;
+    return el;
+  };
+  const apply = () => {
+    view.dispatch({ effects: setSearchQuery.of(new SearchQuery({ search: input.value })) });
+  };
+  input.addEventListener("input", apply);
+  input.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      apply();
+      if (ev.shiftKey) findPrevious(view);
+      else findNext(view);
+    } else if (ev.key === "Escape") closeSearchPanel(view);
+  });
+  wrap.append(
+    input,
+    btn("ก่อนหน้า", () => {
+      apply();
+      findPrevious(view);
+    }),
+    btn("ถัดไป", () => {
+      apply();
+      findNext(view);
+    }),
+    btn("ปิด", () => closeSearchPanel(view)),
+  );
+  return { dom: wrap, top: true };
+}
 
 function langFor(path: string) {
   if (path.endsWith(".json")) return json();
@@ -74,6 +131,7 @@ export function CodeView() {
   const [wrap, setWrap] = useState(false);
   const [copied, setCopied] = useState(false);
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [overrides, setOverrides] = useState<string[]>([]);
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const copiedTimer = useRef<number>(0);
@@ -87,12 +145,16 @@ export function CodeView() {
     let dead = false;
     setError(null);
     setFiles(null);
-    void invoke<ExportListEntry[]>("list_export_files", {
-      projectId,
-      document: doc,
-    })
-      .then((list) => {
+    Promise.all([
+      invoke<ExportListEntry[]>("list_project_files", { projectId }).catch(() => [] as ExportListEntry[]),
+      invoke<ExportListEntry[]>("list_export_files", { projectId, document: doc }),
+    ])
+      .then(([disk, gen]) => {
         if (dead) return;
+        const by = new Map<string, ExportListEntry>();
+        for (const f of gen) by.set(f.path, f);
+        for (const f of disk) if (!by.has(f.path)) by.set(f.path, f);
+        const list = [...by.values()].sort((a, b) => a.path.localeCompare(b.path));
         setFiles(list);
         if (!list.some((f) => f.path === active)) {
           const prefer =
@@ -109,6 +171,13 @@ export function CodeView() {
       dead = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, doc]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    void invoke<string[]>("list_project_overrides", { projectId })
+      .then(setOverrides)
+      .catch(() => setOverrides([]));
   }, [projectId, doc]);
 
   const entry = useMemo(
@@ -158,10 +227,19 @@ export function CodeView() {
     }
   };
 
+  const writeTemplate = async (path: string, text: string) => {
+    if (!projectId) return;
+    await invoke("write_project_file", { projectId, path, text });
+    setOverrides((prev) => (prev.includes(path) ? prev : [...prev, path]));
+  };
+
   const scheduleCommit = (text: string) => {
     window.clearTimeout(parseTimer.current);
     parseTimer.current = window.setTimeout(() => {
-      void commitText(text);
+      const path = entry?.path;
+      if (!path) return;
+      if (path === DEFAULT_FILE) void commitText(text);
+      else void writeTemplate(path, text).catch((e: unknown) => announce(e instanceof Error ? e.message : String(e)));
     }, SITE_JSON_DEBOUNCE_MS);
   };
 
@@ -187,14 +265,16 @@ export function CodeView() {
 
     viewRef.current?.destroy();
     const ranges = entry.ranges;
-    const canEdit = entry.path === DEFAULT_FILE;
+    const canEdit = entry.path !== KINDS_CSS;
     const state = EditorState.create({
       doc: entry.text,
       extensions: [
         lineNumbers(),
         drawSelection(),
         syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-        keymap.of(defaultKeymap),
+        keymap.of([...defaultKeymap, ...searchKeymap]),
+        search({ createPanel: thaiSearchPanel }),
+        canEdit && entry.path === DEFAULT_FILE ? autocompletion({ override: [siteJsonComplete] }) : [],
         canEdit
           ? EditorView.updateListener.of((update) => {
               if (!update.docChanged) return;
@@ -214,9 +294,14 @@ export function CodeView() {
             const live = viewRef.current;
             if (!canEdit || !live) return false;
             const text = live.state.doc.toString();
-            void commitText(text).then((err) => {
+            const done =
+              entry.path === DEFAULT_FILE
+                ? commitText(text)
+                : writeTemplate(entry.path, text).then(() => null);
+            void done.then((err) => {
               if (err) return;
               holdRef.current = false;
+              if (entry.path !== DEFAULT_FILE) return;
               const fresh = filesRef.current?.find((f) => f.path === DEFAULT_FILE)?.text;
               const currentView = viewRef.current;
               if (fresh != null && currentView && currentView.state.doc.toString() !== fresh && !holdRef.current) {
@@ -291,14 +376,20 @@ export function CodeView() {
   };
 
   const openFolder = () => {
-    const path = dest ?? lastExportDest(projectId);
-    if (!path) return;
-    void invoke("open_export_folder", { destPath: path }).catch((e: unknown) => {
-      announce(e instanceof Error ? e.message : String(e));
+    if (!projectId) return;
+    void invoke("open_project_folder", { projectId }).catch(() => {
+      const path = dest ?? lastExportDest(projectId);
+      if (!path) {
+        announce("ยังไม่มีโฟลเดอร์โปรเจกต์ — บันทึกก่อน");
+        return;
+      }
+      void invoke("open_export_folder", { destPath: path }).catch((e: unknown) => {
+        announce(e instanceof Error ? e.message : String(e));
+      });
     });
   };
 
-  const folderDisabled = !dest;
+  const folderDisabled = false;
 
   return (
     <div
@@ -309,7 +400,7 @@ export function CodeView() {
       className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden bg-background"
     >
       <nav
-        aria-label="ไฟล์ในแพ็กเกจส่งออก"
+        aria-label="ไฟล์ในโปรเจกต์"
         className="scrollbar-thin flex w-56 shrink-0 flex-col overflow-auto border-r border-border bg-sidebar py-1 text-[11px]"
       >
         {!files && !error ? (
@@ -328,12 +419,15 @@ export function CodeView() {
             key={f.path}
             type="button"
             className={cn(
-              "truncate px-2 py-1 text-left hover:bg-sidebar-accent",
+              "truncate px-2 py-1 text-left ring-transparent transition-shadow hover:bg-sidebar-accent hover:ring-1 hover:ring-ring",
               f.path === active && "bg-sidebar-accent font-medium",
             )}
+            title={f.path}
+            style={{ paddingLeft: 8 + f.path.split("/").slice(0, -1).length * 12 }}
             onClick={() => openFile(f.path)}
           >
-            {f.path}
+            <FileText className="mr-1 inline size-3 shrink-0 text-muted-foreground" aria-hidden />
+            {f.path.split("/").pop()}
           </button>
         ))}
       </nav>
@@ -365,6 +459,27 @@ export function CodeView() {
             </div>
           ))}
         </div>
+        {overrides.length > 0 ? (
+          <p role="status" className="border-b border-border bg-muted/50 px-2 py-1 text-[11px] text-muted-foreground">
+            หน้าออกแบบตามข้อมูลหน้า โค้ดเทมเพลตเป็นของโปรเจกต์
+            {overrides.includes(SITE_CSS) ? (
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                className="ml-2"
+                onClick={() => {
+                  if (!projectId || !doc) return;
+                  void invoke("regenerate_site_css", { projectId, document: doc }).then(() => {
+                    setOverrides((prev) => prev.filter((p) => p !== SITE_CSS));
+                  });
+                }}
+              >
+                สร้าง CSS ใหม่
+              </Button>
+            ) : null}
+          </p>
+        ) : null}
         <div className="flex h-9 shrink-0 items-center gap-2 border-b border-border px-2">
           <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
             {active}

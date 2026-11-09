@@ -73,7 +73,7 @@ fn calendar_is_version4_kind_and_compiles() {
     assert!(is_a5_kind(NodeType::Calendar));
     assert!(is_version4_kind(NodeType::Calendar));
     assert!(ALL_TYPES.contains(&NodeType::Calendar));
-    assert_eq!(ALL_TYPES.len(), 59);
+    assert_eq!(ALL_TYPES.len(), 63);
     assert_eq!(type_name(NodeType::Calendar), "calendar");
     let l = kind_looks();
     assert!(l.a5_kinds.contains_key("calendar"));

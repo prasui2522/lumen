@@ -20,7 +20,7 @@ fn no_native_select_kind_select_wire_name_unchanged() {
     assert_eq!(type_name(NodeType::Select), "select");
     let names: Vec<&str> = ALL_TYPES.iter().map(|t| type_name(*t)).collect();
     assert!(!names.iter().any(|n| *n == "nativeSelect"));
-    assert_eq!(ALL_TYPES.len(), 59); // A4.2 table
+    assert_eq!(ALL_TYPES.len(), 63); // A4.2 table, plus design-only kinds
 }
 
 #[test]

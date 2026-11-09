@@ -1,9 +1,11 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { EditorTopBar } from "@/components/editor/EditorTopBar";
 import { LayersPanel } from "@/components/editor/LayersPanel";
 import { DesignCanvas } from "@/components/editor/DesignCanvas";
+import { ViteDesignCanvas } from "@/components/editor/ViteDesignCanvas";
 import { StylePanel } from "@/components/editor/StylePanel";
 import { PreviewStage } from "@/components/editor/PreviewStage";
 import { EditorPanes } from "@/components/editor/EditorPanes";
@@ -388,6 +390,12 @@ export function EditorPage() {
         }}
         onBack={requestBack}
         onExport={() => void onExport()}
+        onOpenSite={() => {
+          if (!openId) return;
+          void invoke("open_project_folder", { projectId: openId }).catch((e: unknown) =>
+            toast.error(errMessage(e)),
+          );
+        }}
         exporting={exporting}
         exportDisabled={!documentReady}
         paletteQuery={cmdQuery}
@@ -517,27 +525,30 @@ export function EditorPage() {
           <EditorPanes
             layers={<LayersPanel />}
             canvas={
-              <main
-                data-kbd-pane="canvas"
-                tabIndex={-1}
-                className="relative flex h-full min-h-0 min-w-0 flex-col bg-muted/40"
-              >
-                {documentReady ? (
-                  <DesignCanvas />
-                ) : (
-                  <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-                    กำลังเปิดโปรเจกต์…
-                  </div>
-                )}
+              <div className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col">
+                <ViteDesignCanvas
+                  fallback={
+                    <main
+                      data-kbd-pane="canvas"
+                      tabIndex={-1}
+                      className="relative flex h-full min-h-0 min-w-0 flex-col bg-muted/40"
+                    >
+                      {documentReady ? (
+                        <DesignCanvas />
+                      ) : (
+                        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+                          กำลังเปิดโปรเจกต์…
+                        </div>
+                      )}
+                    </main>
+                  }
+                />
                 {blocksFlyoutMounted ? (
                   <Suspense fallback={null}>
-                    <BlocksFlyout
-                      open={blocksFlyoutOpen}
-                      onOpenChange={setBlocksFlyoutOpen}
-                    />
+                    <BlocksFlyout open={blocksFlyoutOpen} onOpenChange={setBlocksFlyoutOpen} />
                   </Suspense>
                 ) : null}
-              </main>
+              </div>
             }
             style={<StylePanel />}
           />

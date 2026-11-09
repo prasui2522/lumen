@@ -146,7 +146,7 @@ export function HrefField({ id, value, disabled, onCommit, label, className, ari
                     setDraft(null);
                     apply(p.path);
                   }}
-                  className="flex cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-xs outline-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground"
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs outline-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground"
                 >
                   <span className="truncate">{p.name}</span>
                   <span className="ml-auto shrink-0 pl-2 font-mono text-[11px] text-muted-foreground">{p.path}</span>

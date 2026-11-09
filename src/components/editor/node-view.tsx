@@ -138,7 +138,11 @@ function bindInteractive(
 
   return {
     "data-node-id": node.id,
-    className: chromeClass(ctx, node),
+    className: cn(
+      chromeClass(ctx, node),
+      node.style.borderEffect === "led" && "wb-led",
+      node.style.backdropFilter?.blur ? "wb-glass" : undefined,
+    ),
     draggable: canDrag,
     onClick: (e) => {
       e.stopPropagation();
@@ -213,7 +217,7 @@ function renderChildren(
   const out: ReactNode[] = [];
   kids.forEach((id, i) => {
     if (i === ind) out.push(<InsertLine key="__insert" vertical={vertical} />);
-    out.push(<NodeView key={id} ctx={ctx} nodeId={id} slot={slots?.(id)} />);
+    out.push(<NodeView key={id} ctx={ctx} nodeId={id} slot={slots?.(id)} inRow={vertical} />);
   });
   if (ind === kids.length && kids.length > 0) {
     out.push(<InsertLine key="__insert" vertical={vertical} />);
@@ -232,6 +236,8 @@ type NodeViewProps = {
   nodeId: string;
   /** Phase 11 A2.3: how the parent shapes this child ("fill" in an aspectRatio, "g:<dir>:<pos>" in a buttonGroup). */
   slot?: string;
+  /** Parent lays children out in a row. A kind-default width of 100% would crush siblings. */
+  inRow?: boolean;
 };
 
 /** A slot's inline override goes last on the child's root (its own look stays, like the export's cascade). */
@@ -252,11 +258,17 @@ function withOver(el: ReactNode, over: CSSProperties | undefined): ReactNode {
 }
 
 /** Recursive node renderer — Design (editable) and Preview (read-only). */
-export const NodeView = memo(function NodeView({ ctx, nodeId, slot }: NodeViewProps) {
+export const NodeView = memo(function NodeView({ ctx, nodeId, slot, inRow }: NodeViewProps) {
   const node = ctx.document.nodes[nodeId];
   if (!node || !isVisible(node)) return null;
 
   let style = resolvedStyle(node);
+  // Kind default `width: 100%` on a row sibling takes the whole row, so the
+  // other child (for example a copyright line) wraps and paints over the links.
+  // An explicit width stays.
+  if (inRow && node.type === "container" && node.style.width === undefined && style.width !== undefined) {
+    style = { ...style, width: "auto" };
+  }
   // A spacer's height is `props.size`, not a style key, so it counts as an own height: inside an aspectRatio it keeps its
   // size like the export does (A2.5 F3); its width still fills.
   const ownH = node.style.height !== undefined || node.props.type === "spacer";
@@ -553,6 +565,59 @@ function renderNode(ctx: NodeViewContext, node: Node, style: StyleProps, over: C
       return <TableView node={node} handlers={handlers} chrome={chrome} style={style} over={over} />;
     case "icon":
       return <IconView node={node} handlers={handlers} chrome={chrome} style={style} over={over} />;
+    case "command":
+    case "contextMenu": {
+      const items = node.props.items.length > 0 ? node.props.items : ["รายการ"];
+      const note = node.props.type === "command" ? "แบบจัดวาง ไม่กรองขณะพิมพ์" : "แบบจัดวาง ไม่ผูกกับคลิกขวา";
+      return (
+        <div
+          {...handlers}
+          data-node-type={node.type}
+          className={chrome}
+          style={canvasStyleToCss(ctx, node, style)}
+        >
+          {node.props.type === "command" ? <p>{node.props.placeholder}</p> : null}
+          <ul>
+            {items.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+          <p>{note}</p>
+        </div>
+      );
+    }
+    case "toast":
+      return (
+        <div
+          {...handlers}
+          data-node-type="toast"
+          className={chrome}
+          style={canvasStyleToCss(ctx, node, style)}
+        >
+          <strong>{node.props.title}</strong>
+          <p>{node.props.message}</p>
+          <p>แบบจัดวาง ไม่เด้งเอง</p>
+        </div>
+      );
+    case "resizable":
+      return (
+        <div
+          {...handlers}
+          data-node-type="resizable"
+          aria-label="แบ่งขนาด แบบจัดวาง"
+          className={cn(chrome, "relative")}
+          style={canvasStyleToCss(ctx, node, style, { display: "flex", flexDirection: "row" })}
+        >
+          {getChildren(node).length === 0 ? (
+            <>
+              <div style={{ flex: `0 0 ${Math.min(80, Math.max(20, node.props.split))}%`, minHeight: 80, background: "#f1f5f9" }} />
+              <div style={{ flex: "1 1 auto", minHeight: 80, background: "#e2e8f0" }} />
+            </>
+          ) : (
+            renderChildren(ctx, node, true)
+          )}
+        </div>
+      );
     default:
       return <Phase6bView node={node} handlers={handlers} chrome={chrome} style={style} over={over} />;
   }

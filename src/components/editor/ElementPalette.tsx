@@ -55,6 +55,7 @@ import {
   GalleryHorizontal,
   BarChart3,
   CalendarDays,
+  Search,
 } from "lucide-react";
 import {
   NODE_TYPE_LABEL,
@@ -134,6 +135,10 @@ const ICONS: Record<PaletteType, typeof Box> = {
   carousel: GalleryHorizontal,
   chart: BarChart3,
   calendar: CalendarDays,
+  command: Search,
+  contextMenu: Menu,
+  resizable: Columns2,
+  toast: MessageSquare,
 };
 
 /**
@@ -258,7 +263,7 @@ export function ElementPalette() {
               // Radix tooltips don't fire on disabled buttons → title fallback.
               title={enabled ? undefined : label}
               aria-label={`เพิ่ม${label}`}
-              className="flex h-12 flex-col items-center justify-center gap-0.5 rounded-md text-[11px] leading-4 text-sidebar-foreground outline-none hover:bg-sidebar-accent focus-visible:ring-3 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+              className="flex h-12 flex-col items-center justify-center gap-0.5 rounded-md text-[11px] leading-4 text-sidebar-foreground outline-none ring-transparent transition-shadow hover:bg-sidebar-accent hover:ring-1 hover:ring-ring focus-visible:ring-3 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:ring-transparent"
               onClick={() => add(type)}
               onDragStart={(e) => {
                 e.dataTransfer.setData(PALETTE_DRAG_MIME, type);

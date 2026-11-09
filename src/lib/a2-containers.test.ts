@@ -62,7 +62,7 @@ function oneOfEach(): Map<NodeType, Node> {
 describe("A2.2 container set and getChildren", () => {
   test("CONTAINER_NODE_TYPES = page, section, container + the five A2 containers + field + carousel", () => {
     expect([...CONTAINER_NODE_TYPES].sort()).toEqual(
-      ["page", "section", "container", ...A2_CONTAINERS, "field", "carousel"].sort(),
+      ["page", "section", "container", ...A2_CONTAINERS, "field", "carousel", "resizable"].sort(),
     );
     for (const t of A2_LEAVES) expect(isContainerType(t)).toBe(false);
     expect(A2_TYPES.filter((t) => isContainerType(t)).sort()).toEqual([...A2_CONTAINERS].sort());
@@ -110,8 +110,8 @@ describe("A2.2 canInsertInto matrix", () => {
       expect(canInsertInto(d, node.id, 0)).toBe(false);
       checked++;
     }
-    expect(oneOfEach().size).toBe(59);
-    expect(checked).toBe(49); // 59 kinds - 10 container kinds (A5.5 calendar is a leaf)
+    expect(oneOfEach().size).toBe(63);
+    expect(checked).toBe(52); // 63 kinds - 11 container kinds (resizable is a container)
   });
 
   test("locked card, locked page and missing parent refuse", () => {

@@ -26,7 +26,7 @@ pub(crate) fn norm(v: serde_json::Value) -> serde_json::Value {
 #[test]
 fn all_types_is_51_unique_and_names_match_the_wire_names() {
     // 51 through A2; A3.1 checkbox → 52; A3.3 field → 53; A4.1 list → 54; A4.2 table → 55; A4.5 icon → 56; A5.1 carousel → 57; A5.3 chart → 58; A5.5 calendar → 59 (F1.1).
-    assert_eq!(ALL_TYPES.len(), 59);
+    assert_eq!(ALL_TYPES.len(), 63);
     let names: Vec<&str> = ALL_TYPES.iter().map(|t| type_name(*t)).collect();
     let set: std::collections::BTreeSet<&str> = names.iter().copied().collect();
     assert_eq!(set.len(), ALL_TYPES.len(), "duplicate type name");
