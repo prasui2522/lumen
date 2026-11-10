@@ -15,6 +15,8 @@ mod calendar_render;
 mod sidecar;
 #[cfg(test)]
 mod a2_tests;
+#[cfg(test)]
+mod a3_tests;
 
 use db::{databases_dir, db_path, open_db, sites_dir, DbState};
 use assets::assets_dir;

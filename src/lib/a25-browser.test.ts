@@ -4,7 +4,7 @@
 // Skipped, and reported as skipped, ONLY when no headless Chromium is installed.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { A2_KINDS_FOR_TEST, BACKDROP, BODY, CSS, EMPTY, ENTRY } from "@/lib/a25-kinds.test";
-import { CHROME, activeDesc, bootBrowser, click, closeBrowser, dragDrop, mouse, openPage, press, rectOf, recordEvents, sleep, type Browser } from "@/lib/cdp-kit.test";
+import { CHROME, bootBrowser, click, closeBrowser, dragDrop, openPage, press, rectOf, sleep, type Browser } from "@/lib/cdp-kit.test";
 
 let b: Browser | null = null;
 beforeAll(async () => {

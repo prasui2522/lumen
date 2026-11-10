@@ -47,7 +47,7 @@ describe("F1: breakpoint borderRadius on a buttonGroup child keeps the corner ta
   for (const view of ["tablet", "phone", "foldOpen"] as const) {
     test(`TS declarations equal every grouped child's ${view} rule in the golden`, () => {
       let checked = 0;
-      for (const [id, k] of klass) {
+      for (const [id] of klass) {
         const n = doc.nodes[id] as Node & { styleBreakpoints?: Record<string, { borderRadius?: number }> };
         const bp = n.styleBreakpoints;
         const decls = breakpointRadiusDecls(slots[id], bp?.[view]?.borderRadius);

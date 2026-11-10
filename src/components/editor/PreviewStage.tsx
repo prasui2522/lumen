@@ -11,6 +11,12 @@ import {
   type RuntimePayload,
 } from "@/lib/preview-runtime";
 import { useSidecarStatus, viteFrameUrl } from "@/lib/preview-sidecar";
+import {
+  VITE_DIRTY_BADGE,
+  VITE_UNSAVED_SUB,
+  VITE_UNSAVED_TITLE,
+  viteSaveState,
+} from "@/lib/vite-save-hint";
 import { useProjectsStore } from "@/stores/projects-store";
 import { useEditorStore } from "@/stores/editor-store";
 import { DeviceStage, type FrameSource } from "@/components/editor/preview/DeviceStage";
@@ -28,6 +34,8 @@ function errMessage(e: unknown): string {
  */
 export function PreviewStage() {
   const openDocument = useProjectsStore((s) => s.openDocument);
+  const savedDocument = useProjectsStore((s) => s.savedDocument);
+  const dirty = useProjectsStore((s) => s.dirty);
   const openPageId = useEditorStore((s) => s.openPageId);
   const previewStatus = useEditorStore((s) => s.previewStatus);
   const previewError = useEditorStore((s) => s.previewError);
@@ -151,8 +159,34 @@ export function PreviewStage() {
       path: page.path,
       pageName: page.name,
     };
+    // A3 item 10: a Thai hint instead of a blank frame before the first save; a badge for unsaved edits.
+    const saveState = viteSaveState({
+      savedEmpty: !savedDocument || isDocumentEmpty(savedDocument),
+      openEmpty: !openDocument || isDocumentEmpty(openDocument),
+      dirty,
+    });
+    if (saveState === "unsaved") {
+      return (
+        <div
+          data-testid="vite-unsaved-hint"
+          className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 bg-muted/40 p-6 text-center"
+        >
+          <p className="text-sm font-medium text-foreground">{VITE_UNSAVED_TITLE}</p>
+          <p className="max-w-md text-xs text-muted-foreground">{VITE_UNSAVED_SUB}</p>
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {saveState === "dirty" ? (
+          <p
+            role="status"
+            data-testid="vite-dirty-badge"
+            className="shrink-0 border-b border-border bg-muted/60 px-3 py-1 text-[11px] text-muted-foreground"
+          >
+            {VITE_DIRTY_BADGE}
+          </p>
+        ) : null}
         <DeviceStage source={source} />
       </div>
     );

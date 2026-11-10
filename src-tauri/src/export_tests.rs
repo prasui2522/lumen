@@ -342,6 +342,7 @@ fn s3_export_folder_parent_of_zip() {
     std::fs::write(&zip, b"PK").unwrap();
     let got = export_folder_for(&zip).unwrap();
     assert_eq!(got, dir.canonicalize().unwrap());
+    let _ = std::fs::remove_dir_all(&dir); // A3 item 12: no /tmp/wb-export-test-* left behind
 }
 
 #[test]

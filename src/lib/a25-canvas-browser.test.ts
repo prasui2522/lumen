@@ -7,7 +7,7 @@ import { join } from "node:path";
 import type { PageDocument } from "@/schema";
 import { insertNode, setNodeProp, setNodeStyle } from "@/lib/document-ops";
 import { placedDocument } from "@/lib/a25-doc";
-import { BACKDROP, BODY, CSS, ENTRY } from "@/lib/a25-kinds.test";
+import { BODY, CSS, ENTRY } from "@/lib/a25-kinds.test";
 import { CHROME, bootBrowser, click, closeBrowser, dragFrom, openPage, recordEvents, rectOf, sleep, type Browser } from "@/lib/cdp-kit.test";
 
 const FX = join(import.meta.dir, "..", "..", "src-tauri", "src", "fixtures", "a2");

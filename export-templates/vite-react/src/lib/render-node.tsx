@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HOOK_ATTR, nodeFx, overriddenFamilies, styleToReact, withoutFamilies, cursorCss } from "@/lib/style";
 import type { SiteNode, StyleProps } from "@/lib/site-types";
 import { ICON_PATHS, iconInnerSvg } from "@/lib/icon-paths";
+import { safeHref } from "@/lib/safe";
 import { renderChartSvg, type ChartKind, type ChartSeries } from "@/lib/chart-render";
 import { renderCalendarHtml, type CalendarEra, type CalendarWeekStart } from "@/lib/calendar-render";
 
@@ -103,6 +104,8 @@ function SmartLink({
   children: ReactNode;
   [HOOK_ATTR]?: string;
 }) {
+  // A3 item 3: same scheme allow-list as the static export (`safe_href`): no javascript:/data: links.
+  href = safeHref(href);
   if (isInternalPath(href)) {
     return (
       <Link to={href} className={className} style={style} {...rest}>
@@ -272,7 +275,7 @@ function renderNodeInner(id: string, ctx: Ctx, inRow?: boolean): ReactNode {
       );
     }
     case "link": {
-      const href = String(p.href ?? "#");
+      const href = safeHref(String(p.href ?? "#"));
       const label = String(p.label ?? href);
       const newTab = p.openInNewTab === true;
       if (isInternalPath(href) && !newTab) {

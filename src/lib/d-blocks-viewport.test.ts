@@ -8,12 +8,15 @@ import {
   loadBlocksRegistry,
   resetBlocksRegistryCache,
 } from "@/lib/blocks-registry";
-import type { Node, StyleProps } from "@/lib/schema";
+import type { Node, StyleProps } from "@/schema";
 
 const PHONE_W = 719;
 const TABLET_W = 1024;
 
-function styleWidths(style: StyleProps | undefined): number[] {
+/** Block JSON may carry a raw `minWidth` (not a StyleProps key); the check reads it defensively. */
+type WidthStyle = StyleProps & { minWidth?: number };
+
+function styleWidths(style: WidthStyle | undefined): number[] {
   if (!style) return [];
   const out: number[] = [];
   for (const key of ["width", "minWidth", "maxWidth"] as const) {
@@ -54,7 +57,7 @@ describe("D blocks viewport (1024/719 proxy)", () => {
         if (h.w <= PHONE_W) continue;
         // Allowed if phone breakpoint shrinks or clears the width.
         const node = (b.nodes as Record<string, Node>)[h.id]!;
-        const phone = node.styleBreakpoints?.phone as StyleProps | undefined;
+        const phone = node.styleBreakpoints?.phone as WidthStyle | undefined;
         const phoneWs = styleWidths(phone);
         const phoneOk =
           phone != null &&

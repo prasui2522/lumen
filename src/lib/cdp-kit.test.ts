@@ -104,10 +104,28 @@ export async function bootBrowser(entry: string, body: string, css = ""): Promis
   return { cdp, proc, dir, bundleError: "" };
 }
 
-export function closeBrowser(b: Browser | null) {
+/**
+ * A3 item 12: stop a headless Chromium and only then remove its folder. Removing the profile while the
+ * browser was still exiting let Chromium write it back (`/tmp/a2b-*`, `/tmp/a241-*` were left behind).
+ * TERM, wait for the exit (KILL after 3 s), then remove with retries.
+ */
+export async function stopChrome(proc: ChildProcess | null | undefined, dir?: string | null): Promise<void> {
+  if (proc && proc.exitCode === null && proc.signalCode === null) {
+    await new Promise<void>((res) => {
+      const kill = setTimeout(() => proc.kill("SIGKILL"), 3000);
+      proc.once("exit", () => {
+        clearTimeout(kill);
+        res();
+      });
+      proc.kill();
+    });
+  }
+  if (dir) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+}
+
+export async function closeBrowser(b: Browser | null) {
   b?.cdp?.close();
-  b?.proc?.kill();
-  if (b?.dir) rmSync(b.dir, { recursive: true, force: true });
+  await stopChrome(b?.proc, b?.dir);
 }
 
 /** Load the page fresh and wait for the entry's `window.__ready`. `doc` is placed on `window.__DOC` first. */

@@ -220,7 +220,7 @@ describe("A1.4d: the wrapper never gets a height (the control's box is the wrapp
     const allowed = new Set(["display", "width", "minHeight", "maxWidth", "margin", "opacity"]);
     for (const k of ["select", "slider", "progress", "textarea"] as const) {
       for (const own of [{}, { padding: pad }, { height: 30, padding: pad }, { minHeight: 50 }, { width: 120, maxWidth: "80%", opacity: 0.4 }]) {
-        const { wrapper } = splitControlStyle(rootOf(k, own as never)) as { wrapper: Css };
+        const { wrapper } = splitControlStyle(rootOf(k, own as never)) as unknown as { wrapper: Css };
         for (const key of Object.keys(wrapper)) expect(allowed.has(key), `${k} ${JSON.stringify(own)} wrapper has ${key}`).toBe(true);
       }
     }

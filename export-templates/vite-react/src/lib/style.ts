@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { BoxSpacing, CssSize, StyleProps } from "./site-types";
+import { cssSafe, easingCss } from "./safe";
 
 function sizeCss(v: CssSize | undefined): string | undefined {
   if (v === undefined) return undefined;
@@ -204,8 +205,9 @@ export function styleToReact(style: StyleProps | undefined): CSSProperties {
     if (tr.durationMs !== undefined) {
       out.transitionDuration = `${clampNum(tr.durationMs, 0, 2000)}ms`;
     }
-    if (tr.easing === "spring") out.transitionTimingFunction = "cubic-bezier(0.34,1.56,0.64,1)";
-    else if (tr.easing) out.transitionTimingFunction = tr.easing;
+    // A3 item 4: keywords, spring or a bounded cubic-bezier only (Rust `transition_easing`).
+    const ease = easingCss(tr.easing);
+    if (ease) out.transitionTimingFunction = ease;
     if (tr.delayMs !== undefined) out.transitionDelay = `${clampNum(tr.delayMs, 0, 2000)}ms`;
   }
   const filt = style.filter;
@@ -237,6 +239,17 @@ export function styleToReact(style: StyleProps | undefined): CSSProperties {
       out.backdropFilter = css;
     }
   }
+  // A3 item 3: every string value that came from site.json passes the same filter as Rust `css_safe`
+  // (no url(), script schemes, comments or declaration breaks). Built values (numbers, our own
+  // transform / filter / shadow text) pass it unchanged.
+  for (const [k, v] of Object.entries(out)) {
+    if (typeof v !== "string") continue;
+    const safe = cssSafe(v);
+    if (safe) (out as Record<string, unknown>)[k] = safe;
+    else delete (out as Record<string, unknown>)[k];
+  }
+  // Gradients are built only from validated colours and numbers (`gradientToCss`); added after the filter
+  // because `gradient(` is on its deny list.
   const img = bgGrad ?? textGrad;
   if (img) {
     out.backgroundImage = img;

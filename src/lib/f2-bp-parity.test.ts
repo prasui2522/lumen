@@ -55,7 +55,8 @@ function effective(id: string, w: number): string[] {
 }
 
 /** Headless Chromium run with its own throw-away profile (F2.1 e: the /tmp/f2c-* profile is always removed). */
-async function dump(url: string, w: number, probe = PROBE): Promise<any> {
+// `_probe` is documentation only: `inject` already wrote that probe into the page being dumped.
+async function dump(url: string, w: number, _probe = PROBE): Promise<any> {
   const profile = mkdtempSync(join(tmpdir(), "f2c-"));
   try {
     const p = Bun.spawn([CHROME!, "--no-sandbox", "--disable-gpu", "--headless", "--dump-dom", `--window-size=${w},900`, "--virtual-time-budget=3000",
@@ -92,7 +93,7 @@ function buildAndServeVite(dir: string, siteJson: string, probe: string, extraCs
   if (b.status !== 0) throw new Error(`vite build failed: ${b.stderr}`);
   const dist = join(app, "dist");
   writeFileSync(join(dist, "index.html"), inject(readFileSync(join(dist, "index.html"), "utf8"), probe));
-  return Bun.serve({ port: 0, hostname: "127.0.0.1", fetch(req) {
+  return Bun.serve({ port: 0, hostname: "127.0.0.1", fetch(req: Request) {
     const p = new URL(req.url).pathname;
     const f = p.startsWith("/assets/") || p.includes(".") ? join(dist, p) : join(dist, "index.html");
     return existsSync(f) ? new Response(Bun.file(f), { headers: { "content-type": TYPES[extname(f)] ?? "application/octet-stream" } }) : new Response("", { status: 404 });

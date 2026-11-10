@@ -1,16 +1,13 @@
 /**
  * R7: design on the Vite iframe. Selection, reorder, and inline text stay in the
  * app document (same undo as the canvas). If Vite is down, the in-app canvas shows.
+ * A3 item 13 (PREVIEW spec): Design never starts the sidecar. The in-app canvas is the default; the Vite
+ * frame appears here only after the user starts Vite with รันด้วย Vite (one tree, 60 s idle stop unchanged).
  */
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { findParent, moveNodeInDocument, setNodeProp } from "@/lib/document-ops";
-import {
-  publishSidecar,
-  sidecarStart,
-  useSidecarStatus,
-  viteFrameUrl,
-} from "@/lib/preview-sidecar";
+import { useSidecarStatus, viteFrameUrl } from "@/lib/preview-sidecar";
 import { useProjectsStore } from "@/stores/projects-store";
 import { useEditorStore } from "@/stores/editor-store";
 import { ViteFrame } from "@/components/editor/preview/ViteFrame";
@@ -18,7 +15,6 @@ import { ViteFrame } from "@/components/editor/preview/ViteFrame";
 type Box = { id: string; x: number; y: number; w: number; h: number };
 
 export function ViteDesignCanvas({ fallback }: { fallback: ReactNode }) {
-  const openId = useProjectsStore((s) => s.openId);
   const doc = useProjectsStore((s) => s.openDocument);
   const updateOpenDocument = useProjectsStore((s) => s.updateOpenDocument);
   const selected = useEditorStore((s) => s.selectedNodeId);
@@ -31,25 +27,12 @@ export function ViteDesignCanvas({ fallback }: { fallback: ReactNode }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
 
-  // A1 (audit High 1): start once per project / phase change — never on document edits (the running
-  // sidecar takes edits through site.json HMR). The document is read at call time, not a dependency.
-  const hasDoc = doc != null;
-  useEffect(() => {
-    if (forceCanvas || !openId || !hasDoc) return;
-    if (status.state === "running" || status.state === "starting") return;
-    const current = useProjectsStore.getState().openDocument;
-    if (!current) return;
-    void sidecarStart(openId, current)
-      .then(publishSidecar)
-      .catch(() => setForceCanvas(true));
-  }, [forceCanvas, openId, hasDoc, status.state]);
-
   if (forceCanvas || status.state !== "running" || status.port == null) {
     return (
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex h-7 shrink-0 items-center gap-2 border-b border-border px-2 text-[11px] text-muted-foreground">
           {status.state === "starting" ? "กำลังเปิดตัวอย่าง Vite…" : "ผืนผ้าในแอป"}
-          {status.state === "error" || forceCanvas ? (
+          {forceCanvas && status.state === "running" ? (
             <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px]" onClick={() => setForceCanvas(false)}>
               ใช้เฟรม Vite
             </Button>

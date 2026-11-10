@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, drawSelection } from "@codemirror/view";
-import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { HighlightStyle, defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { defaultKeymap } from "@codemirror/commands";
 import { autocompletion } from "@codemirror/autocomplete";
 import {
@@ -37,8 +37,12 @@ import {
   viewFromParsedSite,
 } from "@/lib/site-json-edit";
 import { siteJsonComplete } from "@/lib/site-json-hint";
+import { themedSpecs } from "@/lib/code-view-colors";
 import { useProjectsStore } from "@/stores/projects-store";
 import { useEditorStore } from "@/stores/editor-store";
+
+/** A3 item 8: CodeMirror's default token colours, read from theme variables (index.css). */
+const codeHighlight = HighlightStyle.define(themedSpecs(defaultHighlightStyle.specs));
 
 export type ExportListEntry = {
   path: string;
@@ -271,7 +275,7 @@ export function CodeView() {
       extensions: [
         lineNumbers(),
         drawSelection(),
-        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+        syntaxHighlighting(codeHighlight, { fallback: true }),
         keymap.of([...defaultKeymap, ...searchKeymap]),
         search({ createPanel: thaiSearchPanel }),
         canEdit && entry.path === DEFAULT_FILE ? autocompletion({ override: [siteJsonComplete] }) : [],

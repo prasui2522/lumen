@@ -1173,23 +1173,56 @@ fn motion_from_decls(preset: &str) -> String {
     }
 }
 
-fn transition_easing(raw: &str) -> Option<String> {
+/// A3 item 4: largest |y1| / |y2| accepted in `cubic-bezier()` (spring uses 1.56). Same bound in TS
+/// (`BEZIER_Y_MAX` in `style-css.ts` and the Vite template's `safe.ts`); `fixtures/a3/parity.json` pins it.
+pub(crate) const BEZIER_Y_MAX: f64 = 5.0;
+
+/// A3 item 4: one number grammar for `cubic-bezier()` arguments, shared with TS: optional sign, then digits
+/// with an optional fraction, or a leading-dot fraction. No exponent, hex, `inf` or `nan` (Rust's `f64`
+/// parser and JS `Number()` disagree on those, and on the empty string).
+fn bezier_num(s: &str) -> Option<f64> {
+    let (neg, body) = match s.as_bytes().first() {
+        Some(b'-') => (true, &s[1..]),
+        Some(b'+') => (false, &s[1..]),
+        _ => (false, s),
+    };
+    if body.is_empty() || body.len() > 16 {
+        return None;
+    }
+    let mut dot = false;
+    let mut digits = 0;
+    for c in body.chars() {
+        match c {
+            '0'..='9' => digits += 1,
+            '.' if !dot => dot = true,
+            _ => return None,
+        }
+    }
+    if digits == 0 {
+        return None;
+    }
+    let v: f64 = body.parse().ok()?;
+    let v = if neg { -v } else { v };
+    Some(if v == 0.0 { 0.0 } else { v })
+}
+
+pub(crate) fn transition_easing(raw: &str) -> Option<String> {
     let t = raw.trim().to_ascii_lowercase();
     match t.as_str() {
         "ease" | "ease-in" | "ease-out" | "ease-in-out" | "linear" => Some(t),
         "spring" => Some(TRANSITION_SPRING.into()),
         _ if t.starts_with("cubic-bezier(") && t.ends_with(')') => {
-            // Accept cubic-bezier(n,n,n,n) with x in 0–1 (loose parse).
+            // A3 item 4: x1 / x2 in [0, 1] (CSS requires it), y1 / y2 within ±BEZIER_Y_MAX; anything else is
+            // rejected (no clamping), exactly like TS.
             let inner = &t["cubic-bezier(".len()..t.len() - 1];
-            let nums: Vec<&str> = inner.split(',').map(str::trim).collect();
-            if nums.len() != 4 {
-                return None;
-            }
-            let parsed: Vec<f64> = nums.iter().filter_map(|s| s.parse().ok()).collect();
-            if parsed.len() != 4 {
+            let parsed: Vec<f64> = inner.split(',').map(str::trim).map_while(bezier_num).collect();
+            if parsed.len() != 4 || inner.split(',').count() != 4 {
                 return None;
             }
             if !(0.0..=1.0).contains(&parsed[0]) || !(0.0..=1.0).contains(&parsed[2]) {
+                return None;
+            }
+            if parsed[1].abs() > BEZIER_Y_MAX || parsed[3].abs() > BEZIER_Y_MAX {
                 return None;
             }
             Some(format!(

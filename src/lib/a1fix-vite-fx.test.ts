@@ -221,7 +221,7 @@ describe.skipIf(!CHROME || !HAS_TPL_DEPS)("A1 parity in real Chromium (CDP): sta
       const st = readFileSync(join(FX, "fx-sample.html"), "utf8").replace('<link rel="stylesheet" href="styles.css">', `<style>${readFileSync(join(FX, "fx-sample.css"), "utf8")}</style>`);
       writeFileSync(join(dir, "static.html"), st);
       const dist = join(app, "dist");
-      server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch(req) {
+      server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch(req: Request) {
         const p = new URL(req.url).pathname;
         let f: string;
         if (p === "/static.html") f = join(dir, "static.html");
@@ -275,10 +275,10 @@ describe("A1 sidecar (audit High 1): client side", () => {
     expect(normalizeStatus(null).session).toBeNull();
   });
 
-  test("ViteDesignCanvas start effect does not depend on the document (no restart on edits)", () => {
+  // A3 item 13 replaced this A1 check: ViteDesignCanvas no longer starts the sidecar at all (only รันด้วย Vite
+  // does), so edits cannot restart it. Full coverage: a3-hardening.test.ts "A3 item 13".
+  test("ViteDesignCanvas never starts the sidecar (so document edits cannot restart it)", () => {
     const src = readFileSync(join(ROOT, "src", "components", "editor", "ViteDesignCanvas.tsx"), "utf8");
-    const m = /void sidecarStart\([\s\S]*?\}, \[([^\]]*)\]\);/.exec(src);
-    expect(m).not.toBeNull();
-    expect(m![1].split(",").map((x) => x.trim())).not.toContain("doc");
+    expect(src).not.toContain("sidecarStart");
   });
 });

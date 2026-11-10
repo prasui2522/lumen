@@ -48,9 +48,15 @@ const wrap = (fn) =>
 history.pushState = wrap(history.pushState);
 history.replaceState = wrap(history.replaceState);
 window.addEventListener("popstate", route);
+// A3 item 1: only the app window that embeds this frame may steer it (not the page itself, a sibling or a
+// popup), and only to a same-site path ("/…", never "//host" or a scheme).
 window.addEventListener("message", (e) => {
-  if (!e.data || e.data.type !== "wb:navigate") return;
-  if (typeof e.data.path === "string") history.pushState({}, "", e.data.path);
+  if (window.parent === window || e.source !== window.parent) return;
+  const d = e.data;
+  if (!d || typeof d !== "object" || d.type !== "wb:navigate") return;
+  const p = d.path;
+  if (typeof p !== "string" || !p.startsWith("/") || p.startsWith("//") || p.includes("\\")) return;
+  history.pushState({}, "", p);
 });
 document.addEventListener("click", (e) => {
   const t = e.target;

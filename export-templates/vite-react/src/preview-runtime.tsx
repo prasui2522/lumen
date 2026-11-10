@@ -89,7 +89,10 @@ function Runtime() {
         });
         if (m.path) setNavTo((n) => ({ path: m.path!, seq: (n?.seq ?? 0) + 1 }));
       } else if (m.type === "wb:navigate") {
-        setNavTo((n) => ({ path: m.path, seq: (n?.seq ?? 0) + 1 }));
+        // A3 item 1: same-site paths only (the source check above already limits this to the app).
+        const p = m.path;
+        if (typeof p !== "string" || !p.startsWith("/") || p.startsWith("//") || p.includes("\\")) return;
+        setNavTo((n) => ({ path: p, seq: (n?.seq ?? 0) + 1 }));
       }
     };
     window.addEventListener("message", onMessage);

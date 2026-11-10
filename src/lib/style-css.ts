@@ -226,16 +226,28 @@ export function transformOriginKw(raw: string | undefined): string | undefined {
   return (TRANSFORM_ORIGINS as readonly string[]).includes(t) ? t : undefined;
 }
 
+/** A3 item 4: largest |y1| / |y2| in `cubic-bezier()` (Rust `BEZIER_Y_MAX`). */
+export const BEZIER_Y_MAX = 5;
+/** A3 item 4: Rust `bezier_num` grammar — sign, digits, optional fraction; no exponent / hex / inf / nan / empty. */
+const BEZIER_NUM = /^[+-]?(\d+\.?\d*|\.\d+)$/;
+
+/** Rust `str::trim` (Unicode White_Space; unlike JS `trim`, U+FEFF is kept). */
+const RUST_WS = "\\u0009-\\u000d\\u0020\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000";
+const RUST_TRIM = new RegExp(`^[${RUST_WS}]+|[${RUST_WS}]+$`, "g");
+const rustTrim = (s: string) => s.replace(RUST_TRIM, "");
+
 export function transitionEasingCss(raw: string | undefined): string | undefined {
   if (!raw) return undefined;
-  const t = raw.trim().toLowerCase();
+  const t = rustTrim(raw).replace(/[A-Z]/g, (c) => c.toLowerCase());
   if (["ease", "ease-in", "ease-out", "ease-in-out", "linear"].includes(t)) return t;
   if (t === "spring") return TRANSITION_SPRING_BEZIER;
   if (t.startsWith("cubic-bezier(") && t.endsWith(")")) {
-    const inner = t.slice("cubic-bezier(".length, -1);
-    const nums = inner.split(",").map((s) => Number(s.trim()));
-    if (nums.length !== 4 || nums.some((n) => !Number.isFinite(n))) return undefined;
+    // A3 item 4 (mirror of Rust `transition_easing`): strict numbers, x1 / x2 in [0, 1], |y| ≤ BEZIER_Y_MAX.
+    const parts = t.slice("cubic-bezier(".length, -1).split(",").map(rustTrim);
+    if (parts.length !== 4 || !parts.every((s) => BEZIER_NUM.test(s) && s.replace(/^[+-]/, "").length <= 16)) return undefined;
+    const nums = parts.map((s) => Number(s) + 0);
     if (nums[0]! < 0 || nums[0]! > 1 || nums[2]! < 0 || nums[2]! > 1) return undefined;
+    if (Math.abs(nums[1]!) > BEZIER_Y_MAX || Math.abs(nums[3]!) > BEZIER_Y_MAX) return undefined;
     return `cubic-bezier(${numCss(nums[0]!)},${numCss(nums[1]!)},${numCss(nums[2]!)},${numCss(nums[3]!)})`;
   }
   return undefined;

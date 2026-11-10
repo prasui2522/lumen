@@ -5,9 +5,10 @@
 // Skipped, and reported as skipped, when no headless Chromium is installed (CHROME_HEADLESS or ~/.cache/ms-playwright).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { stopChrome } from "@/lib/cdp-kit.test";
 
 function findChrome(): string | null {
   const env = process.env.CHROME_HEADLESS;
@@ -166,10 +167,9 @@ const key = async (k: string, code: string, vk: number, shift = false) => {
 beforeAll(async () => {
   if (CHROME) await boot();
 }, 60000);
-afterAll(() => {
+afterAll(async () => {
   cdp?.close();
-  proc?.kill();
-  if (dir) rmSync(dir, { recursive: true, force: true });
+  await stopChrome(proc, dir); // A3 item 12: wait for Chromium to exit before removing its profile
 });
 
 describe.skipIf(!CHROME)("F-A24-1: the canvas scrollArea in real Chromium (the real DesignCanvas)", () => {

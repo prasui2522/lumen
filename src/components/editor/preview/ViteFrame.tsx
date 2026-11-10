@@ -20,9 +20,12 @@ export type ViteFrameProps = {
 /**
  * S6 Tier 2 frame: Vite on 127.0.0.1, or the `wbpreview` bridge when the app
  * origin is `tauri://` (mixed content would otherwise blank the frame).
- * No `sandbox` attribute: WebKitGTK refuses sandboxed custom-scheme iframes.
- * Isolation is the bridge origin vs `tauri://`, so Tauri IPC stays unreachable.
+ * A3 item 2: sandboxed with the two tokens a Vite dev page needs — scripts, and its own origin (ES modules,
+ * the HMR socket and our `e.origin` check). The origin is still the bridge / 127.0.0.1, never the app's,
+ * so Tauri IPC stays unreachable; no forms, popups, top navigation, downloads or modals.
  */
+export const VITE_FRAME_SANDBOX = "allow-scripts allow-same-origin";
+
 export function ViteFrame({
   url,
   port,
@@ -79,6 +82,7 @@ export function ViteFrame({
       }}
       title={title}
       src={url}
+      sandbox={VITE_FRAME_SANDBOX}
       referrerPolicy="no-referrer"
       style={style}
       className={className}

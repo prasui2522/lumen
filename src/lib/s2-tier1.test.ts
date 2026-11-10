@@ -110,7 +110,7 @@ function serveDir(dir: string, index: string): ReturnType<typeof Bun.serve> {
   return Bun.serve({
     port: 0,
     hostname: "127.0.0.1",
-    fetch(req) {
+    fetch(req: Request) {
       const p = new URL(req.url).pathname;
       const f = p.includes(".") ? join(dir, p) : join(dir, index);
       return existsSync(f)

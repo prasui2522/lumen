@@ -302,7 +302,81 @@ pub fn import_project_folder(
     adopt_import(&state, name, &canon)
 }
 
+/// A3 item 5: zip-bomb limits for `import_project_zip`. Checked against the central directory first, then
+/// enforced again on the bytes actually inflated (a lying header cannot get past the real count).
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct ZipLimits {
+    pub entries: usize,
+    pub entry_bytes: u64,
+    pub total_bytes: u64,
+}
+
+pub(crate) const ZIP_LIMITS: ZipLimits = ZipLimits {
+    entries: 5_000,
+    entry_bytes: 64 * 1024 * 1024,
+    total_bytes: 256 * 1024 * 1024,
+};
+
+pub(crate) const ZIP_TOO_MANY: &str = "ไฟล์ zip มีไฟล์มากเกินไป (เกิน 5,000 ไฟล์)";
+pub(crate) const ZIP_ENTRY_TOO_BIG: &str = "ไฟล์ zip มีไฟล์ที่ใหญ่เกินไป (เกิน 64 MB ต่อไฟล์เมื่อแตกออก)";
+pub(crate) const ZIP_TOTAL_TOO_BIG: &str = "ไฟล์ zip ใหญ่เกินไป (รวมเกิน 256 MB เมื่อแตกออก)";
+
+/// A3 item 5: extract `archive` into `dest` within `lim`. Entries without a safe enclosed name and symlink
+/// entries are skipped; the caller removes `dest` on error.
+pub(crate) fn unzip_bounded<R: std::io::Read + std::io::Seek>(
+    archive: &mut zip::ZipArchive<R>,
+    dest: &Path,
+    lim: ZipLimits,
+) -> Result<(), String> {
+    use std::io::Read as _;
+    if archive.len() > lim.entries {
+        return Err(ZIP_TOO_MANY.into());
+    }
+    // Declared sizes first: refuse before writing anything.
+    let mut declared: u64 = 0;
+    for i in 0..archive.len() {
+        let f = archive.by_index_raw(i).map_err(|_| "ไฟล์ zip ใช้ไม่ได้".to_string())?;
+        if f.size() > lim.entry_bytes {
+            return Err(ZIP_ENTRY_TOO_BIG.into());
+        }
+        declared = declared.saturating_add(f.size());
+        if declared > lim.total_bytes {
+            return Err(ZIP_TOTAL_TOO_BIG.into());
+        }
+    }
+    let mut written: u64 = 0;
+    for i in 0..archive.len() {
+        let file = archive.by_index(i).map_err(|_| "ไฟล์ zip ใช้ไม่ได้".to_string())?;
+        let Some(rel) = file.enclosed_name() else {
+            continue;
+        };
+        if file.is_symlink() {
+            continue;
+        }
+        let out = dest.join(&rel);
+        if file.is_dir() {
+            std::fs::create_dir_all(&out).map_err(|e| e.to_string())?;
+            continue;
+        }
+        if let Some(parent) = out.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        let mut sink = std::fs::File::create(&out).map_err(|e| e.to_string())?;
+        // Read at most one byte past the per-entry cap so an under-declared entry is caught.
+        let n = std::io::copy(&mut file.take(lim.entry_bytes + 1), &mut sink).map_err(|e| e.to_string())?;
+        if n > lim.entry_bytes {
+            return Err(ZIP_ENTRY_TOO_BIG.into());
+        }
+        written = written.saturating_add(n);
+        if written > lim.total_bytes {
+            return Err(ZIP_TOTAL_TOO_BIG.into());
+        }
+    }
+    Ok(())
+}
+
 /// R6: unzip, then the same path as opening a folder. Bad JSON does not create a project.
+/// A3 item 5: bounded extraction; the temp folder is removed on every path (also on errors).
 #[tauri::command]
 pub fn import_project_zip(
     state: State<'_, DbState>,
@@ -313,23 +387,7 @@ pub fn import_project_zip(
     let mut archive = zip::ZipArchive::new(zip_file).map_err(|_| "ไฟล์ zip ใช้ไม่ได้".to_string())?;
     let tmp = std::env::temp_dir().join(format!("wb-import-{}", uuid::Uuid::new_v4().simple()));
     std::fs::create_dir_all(&tmp).map_err(|e| e.to_string())?;
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
-        let Some(rel) = file.enclosed_name().map(|p| p.to_path_buf()) else {
-            continue;
-        };
-        let out = tmp.join(&rel);
-        if file.is_dir() {
-            std::fs::create_dir_all(&out).map_err(|e| e.to_string())?;
-            continue;
-        }
-        if let Some(parent) = out.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-        }
-        let mut dest = std::fs::File::create(&out).map_err(|e| e.to_string())?;
-        std::io::copy(&mut file, &mut dest).map_err(|e| e.to_string())?;
-    }
-    let result = adopt_import(&state, name, &tmp);
+    let result = unzip_bounded(&mut archive, &tmp, ZIP_LIMITS).and_then(|()| adopt_import(&state, name, &tmp));
     let _ = std::fs::remove_dir_all(&tmp);
     result
 }

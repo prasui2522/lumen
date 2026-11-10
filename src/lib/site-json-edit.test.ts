@@ -4,7 +4,7 @@ import { join } from "node:path";
 import type { PageDocument } from "@/schema";
 import { SITE_JSON_HISTORY_KEY, SITE_JSON_PATH, viewFromParsedSite } from "./site-json-edit";
 
-const page = (id: string, root: string): PageDocument["pages"] => [
+const page = (id: string, root: string): NonNullable<PageDocument["pages"]> => [
   {
     id,
     name: id,

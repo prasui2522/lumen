@@ -381,6 +381,10 @@ fn template_files() -> Vec<(&'static str, &'static [u8])> {
             include_bytes!("../../export-templates/vite-react/src/lib/style.ts"),
         ),
         (
+            "src/lib/safe.ts",
+            include_bytes!("../../export-templates/vite-react/src/lib/safe.ts"),
+        ),
+        (
             "src/lib/site-types.ts",
             include_bytes!("../../export-templates/vite-react/src/lib/site-types.ts"),
         ),

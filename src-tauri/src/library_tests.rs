@@ -7,10 +7,32 @@ use serde_json::json;
 use std::path::PathBuf;
 use uuid::Uuid;
 
-fn mem() -> Connection {
+/// A3 item 12: a file DB in its own temp folder, removed when the test drops it (it used to leak
+/// `/tmp/wb-c6-mem-*`). Derefs to the `Connection`.
+struct MemDb {
+    conn: Option<Connection>,
+    dir: PathBuf,
+}
+
+impl std::ops::Deref for MemDb {
+    type Target = Connection;
+    fn deref(&self) -> &Connection {
+        self.conn.as_ref().expect("open")
+    }
+}
+
+impl Drop for MemDb {
+    fn drop(&mut self) {
+        drop(self.conn.take());
+        let _ = std::fs::remove_dir_all(&self.dir);
+    }
+}
+
+fn mem() -> MemDb {
     let dir = std::env::temp_dir().join(format!("wb-c6-mem-{}", Uuid::new_v4().simple()));
     std::fs::create_dir_all(&dir).unwrap();
-    open_db(&dir.join("web_builder.db")).unwrap()
+    let conn = open_db(&dir.join("web_builder.db")).unwrap();
+    MemDb { conn: Some(conn), dir }
 }
 
 fn good_preset(id: &str) -> String {

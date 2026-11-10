@@ -82,6 +82,21 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.91 0 0);
     --sidebar-ring: oklch(0.55 0.15 244);
+    /* A3 item 8: code-view token colours (CodeMirror defaults). */
+    --cm-meta: #404740;
+    --cm-keyword: #708;
+    --cm-atom: #219;
+    --cm-literal: #164;
+    --cm-string: #a11;
+    --cm-regexp: #e40;
+    --cm-def-var: #00f;
+    --cm-local-var: #30a;
+    --cm-type: #085;
+    --cm-class: #167;
+    --cm-special-var: #256;
+    --cm-def-prop: #00c;
+    --cm-comment: #940;
+    --cm-invalid: #f00;
 }
 
 .dark {
@@ -116,6 +131,37 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.68 0.15 240);
+    /* A3 item 8: lighter token shades, each >= 4.5:1 on --background (tested). */
+    --cm-meta: #c8ccc8;
+    --cm-keyword: #e0b0ff;
+    --cm-atom: #9ecbff;
+    --cm-literal: #b5e8a8;
+    --cm-string: #ffb4a8;
+    --cm-regexp: #ffb27a;
+    --cm-def-var: #a8c8ff;
+    --cm-local-var: #c8b4ff;
+    --cm-type: #8fe0c0;
+    --cm-class: #8fd8e8;
+    --cm-special-var: #a8d8e8;
+    --cm-def-prop: #a8c0ff;
+    --cm-comment: #e8c088;
+    --cm-invalid: #ff9a9a;
+    --cm-selection: #1e3a5f;
+    --cm-selection-blur: #2e3440;
+    --cm-search-match: #463800;
+}
+
+/* A3 item 8: CodeMirror's base selection (#d7d4f0 / #d9d9d9) is light; with light text in the dark
+   theme that fell far below AA. These selectors out-rank the base theme's. */
+.dark .cm-editor .cm-selectionLayer .cm-selectionBackground {
+    background: var(--cm-selection-blur);
+}
+.dark .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
+.dark .cm-editor .cm-content ::selection {
+    background: var(--cm-selection);
+}
+.dark .cm-editor .cm-searchMatch {
+    background: var(--cm-search-match);
 }
 
 
@@ -148,6 +194,21 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.91 0 0);
     --sidebar-ring: oklch(0.55 0.15 244);
+    /* A3 item 8: code-view token colours (CodeMirror defaults). */
+    --cm-meta: #404740;
+    --cm-keyword: #708;
+    --cm-atom: #219;
+    --cm-literal: #164;
+    --cm-string: #a11;
+    --cm-regexp: #e40;
+    --cm-def-var: #00f;
+    --cm-local-var: #30a;
+    --cm-type: #085;
+    --cm-class: #167;
+    --cm-special-var: #256;
+    --cm-def-prop: #00c;
+    --cm-comment: #940;
+    --cm-invalid: #f00;
 }
 
 /* Thin panel scrollbars (Firefox/Chromium via standard props; WebKitGTK via pseudo-elements). */
