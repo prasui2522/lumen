@@ -149,6 +149,8 @@ fn build(doc: &PageDocument, opts: &CompileOptions) -> Result<(String, String), 
         state_forced: String::new(),
         motion_keyframes: String::new(),
         motion_presets_emitted: HashSet::new(),
+        motion_css: String::new(),
+        fx_fallback: String::new(),
         relax_row_width: false,
     };
     c.render(&doc.root, 0, false);
@@ -212,6 +214,8 @@ pub fn style_css(doc: &PageDocument, opts: &CompileOptions) -> Result<String, St
         state_forced: String::new(),
         motion_keyframes: String::new(),
         motion_presets_emitted: HashSet::new(),
+        motion_css: String::new(),
+        fx_fallback: String::new(),
         relax_row_width: false,
     };
     c.render(&doc.root, 0, false);
@@ -254,6 +258,8 @@ pub fn markup_kind_types(doc: &PageDocument, opts: &CompileOptions) -> Result<BT
         state_forced: String::new(),
         motion_keyframes: String::new(),
         motion_presets_emitted: HashSet::new(),
+        motion_css: String::new(),
+        fx_fallback: String::new(),
         relax_row_width: false,
     };
     c.render(&doc.root, 0, false);
@@ -305,10 +311,16 @@ impl Compiler<'_> {
         css.push_str(&self.hook_base);
         css.push_str(&state);
         // B7.2 §7.2: per-node `:hover` / `:focus-visible` / `:active` (after `.nN` base in `build`).
+        // A1 precedence (intended, user-confirmed 2026-11-10): a state rule `[data-wb-page] [data-wb-id]:hover`
+        // (0,3,0) beats the breakpoint base `@media … {[data-wb-page] [data-wb-id]}` (0,2,0) below, so a state
+        // sits on top of whichever base is active. A future breakpoint-specific state override must be emitted
+        // with at least the state's specificity AND after this block, so it wins over the generic state.
         css.push_str(&self.state_css);
         css.push_str(&keyframes);
         // E2: entrance `@keyframes` (deduped by preset).
         css.push_str(&self.motion_keyframes);
+        // A1: entrance animation rules (hook selectors) right after their keyframes.
+        css.push_str(&self.motion_css);
         if !self.bp_tablet.is_empty() {
             css.push_str("@media (max-width:1024px){");
             css.push_str(&self.bp_tablet);
@@ -327,6 +339,8 @@ impl Compiler<'_> {
         css.push_str(&other_at);
         css.push_str(&reduced);
         css.push_str(&self.state_reduced);
+        // A1: glass fallback under `prefers-reduced-transparency` (hook selectors).
+        css.push_str(&self.fx_fallback);
         css.push_str(&forced);
         // B3.1 §7.3: per-node text-gradient forced-colours fallback (after type forced rules).
         css.push_str(&self.text_grad_forced);
@@ -1847,6 +1861,11 @@ struct Compiler<'a> {
     motion_keyframes: String,
     /// E2: presets already emitted into `motion_keyframes`.
     motion_presets_emitted: HashSet<String>,
+    /// A1 (audit High 2): per-node entrance `animation` rules on the node's hook (shared block, so Vite /
+    /// Tier 1 get them too; before A1 they were `.nN` rules in the static-only node CSS).
+    motion_css: String,
+    /// A1 (audit High 2): per-node glass fallback (`prefers-reduced-transparency`) on the node's hook.
+    fx_fallback: String,
     /// Child of a horizontal flex parent. A kind-default width of 100% is
     /// relaxed to `auto` so it does not crush the siblings.
     relax_row_width: bool,
@@ -1872,6 +1891,76 @@ pub fn page_scope_id(doc: &PageDocument, opts: &CompileOptions) -> String {
         return doc.pages[0].id.clone();
     }
     "home".into()
+}
+
+/// A1 (audit High 2): transition longhands the Vite render writes inline (`style.ts`); restated on the hook and
+/// taken off the inline style so `prefers-reduced-motion` `transition:none` wins there too.
+pub(crate) const TRANSITION_FAMS: [&str; 4] = [
+    "transition-property",
+    "transition-duration",
+    "transition-timing-function",
+    "transition-delay",
+];
+
+/// A1 (audit High 2): CSS families a node's fx rules override — the keys of its hover / focus-visible / active
+/// styles, the transition longhands (states or a transition), the view-entrance from-state, and the glass
+/// fallback keys. Same table as template `fxFamilies` (style.ts).
+pub(crate) fn fx_families(
+    node: &Node,
+    has_transition: bool,
+    entrance: Option<&MotionEntrance>,
+    backdrop_on: bool,
+) -> BTreeSet<&'static str> {
+    let mut out: BTreeSet<&'static str> = BTreeSet::new();
+    let states = node.states.as_ref().filter(|s| !s.is_empty());
+    if let Some(st) = states {
+        for s in [&st.hover, &st.focus_visible, &st.active].into_iter().flatten() {
+            if s.is_empty() {
+                continue;
+            }
+            for (k, _) in state_decls(s) {
+                out.insert(prop_family(k));
+            }
+        }
+    }
+    if states.is_some() || has_transition {
+        out.extend(TRANSITION_FAMS);
+    }
+    if let Some(e) = entrance.filter(|e| e.trigger == "view") {
+        for d in motion_from_decls(&e.preset).split(';') {
+            if let Some((k, _)) = d.split_once(':') {
+                match k {
+                    "opacity" => {
+                        out.insert("opacity");
+                    }
+                    "transform" => {
+                        out.insert("transform");
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+    if backdrop_on {
+        out.extend(["-webkit-backdrop-filter", "backdrop-filter", "background-color"]);
+    }
+    out
+}
+
+/// A1 (audit High 2): `(needs a hook, fx families)` for a node — the single source for `node_class` and the
+/// Rust ↔ template golden (`fixtures/a1fix/fx-families.json`).
+pub(crate) fn node_fx(node: &Node) -> (bool, BTreeSet<&'static str>) {
+    let eff = resolved_style(node);
+    let has_states = node.states.as_ref().is_some_and(|s| !s.is_empty());
+    let has_transition = node.style.transition.as_ref().is_some_and(|t| !t.is_unset());
+    let entrance = node
+        .motion
+        .as_ref()
+        .and_then(|m| m.entrance.as_ref())
+        .filter(|e| motion_preset_ok(&e.preset) && (e.trigger == "load" || e.trigger == "view"));
+    let backdrop_on = eff.backdrop_filter.as_ref().is_some_and(|f| !f.is_unset());
+    let hook = has_states || has_transition || entrance.is_some() || backdrop_on || uses_text_gradient(&eff);
+    (hook, fx_families(node, has_transition, entrance, backdrop_on))
 }
 
 /// B0.1 item 2: kinds whose Vite rendering takes the shared base defaults (template `PLAIN_KINDS`). For these the
@@ -2079,6 +2168,13 @@ impl<'a> Compiler<'a> {
             .and_then(|m| m.entrance.as_ref())
             .filter(|e| motion_preset_ok(&e.preset) && (e.trigger == "load" || e.trigger == "view"));
         let has_motion = entrance.is_some();
+        let backdrop_on = eff.backdrop_filter.as_ref().is_some_and(|f| !f.is_unset());
+        let text_grad = uses_text_gradient(&eff);
+        // A1 (audit High 2): nodes whose per-node rules (states, transition reduced-motion, entrance motion,
+        // glass fallback, text-gradient forced colours) must reach every output. They are written against the
+        // node's `[data-wb-page] [data-wb-id]` hook in the shared block, so the Vite / Tier 1 render (which has
+        // no `.nN` classes) matches static + Preview. Template `fxFamilies` / `hasFxHook` mirror `node_fx`.
+        let (fx_hook, fx_fams) = node_fx(node);
         // Kind default `width:100%` on a row sibling takes the whole row and
         // crushes the others (a copyright line wraps over the links). An
         // explicit width still wins. `.nN` follows `.t-x`, so `auto` overrides.
@@ -2094,12 +2190,14 @@ impl<'a> Compiler<'a> {
             && fold.is_empty()
             && !has_states
             && !has_motion
+            && !fx_hook
             && eff.border_effect.as_deref() != Some("led")
         {
             return None;
         }
         let class = format!("n{}", self.next_class);
         self.next_class += 1;
+        let hook_sel = scoped_hook_selector(&page_scope_id(self.doc, self.opts), &node.id, node.id == self.doc.root);
         if !d.is_empty() {
             self.node_css.push_str(&rule(&format!(".{class}"), &d));
         }
@@ -2116,38 +2214,42 @@ impl<'a> Compiler<'a> {
                 "@media (prefers-reduced-motion:reduce){{.{class}::after{{animation:none}}}}"
             ));
         }
-        if eff.backdrop_filter.as_ref().is_some_and(|f| !f.is_unset()) {
+        if backdrop_on {
             let solid = opaque_hex(eff.background_color.as_deref());
-            self.node_css.push_str(&format!(
-                "@media (prefers-reduced-transparency:reduce){{.{class}{{-webkit-backdrop-filter:none;backdrop-filter:none;background-color:{solid}}}}}"
+            self.fx_fallback.push_str(&format!(
+                "@media (prefers-reduced-transparency:reduce){{{hook_sel}{{-webkit-backdrop-filter:none;backdrop-filter:none;background-color:{solid}}}}}"
             ));
         }
         // B3.1 §7.3: text gradient → forced-colours restore readable text (CanvasText).
-        if uses_text_gradient(&eff) {
+        if text_grad {
             self.text_grad_forced.push_str(&format!(
-                "@media (forced-colors:active){{.{class}{{color:CanvasText;background:none}}}}"
+                "@media (forced-colors:active){{{hook_sel}{{color:CanvasText;background:none}}}}"
             ));
         }
-        // B7.2: state rules after the base `.nN` rule; order hover → focus-visible → active.
+        // B7.2: state rules after the base rules; order hover → focus-visible → active.
         if let Some(st) = states {
-            self.emit_node_states(&class, node, st, &eff, has_transition);
+            self.emit_node_states(&hook_sel, node, st, &eff, has_transition);
         } else if has_transition {
             self.state_reduced.push_str(&format!(
-                "@media (prefers-reduced-motion:reduce){{.{class}{{transition:none}}}}"
+                "@media (prefers-reduced-motion:reduce){{{hook_sel}{{transition:none}}}}"
             ));
         }
         // E2 load / E3 view entrance.
         if let Some(e) = entrance {
-            self.emit_node_motion(&class, e);
+            self.emit_node_motion(&hook_sel, e);
         }
         // B0 (§9.B P1): breakpoint rules belong to the shared generator and target the node's `data-wb-id` hook, so
         // the Vite export (base styles inline) can use the very same bytes. The generator also restates the base
         // value of every overridden key (whole shorthand family) as it stands in this output's cascade
         // (`.t-x` defaults + extras, then `.nN`), so Vite can take those keys off the inline style (PM ruling:
         // no `!important`). In the static output the restatement equals what `.t-x` / `.nN` already give.
-        if !(tablet.is_empty() && phone.is_empty() && fold.is_empty()) {
-            let sel = scoped_hook_selector(&page_scope_id(self.doc, self.opts), &node.id, node.id == self.doc.root);
-            let fams: BTreeSet<&str> = tablet.iter().chain(phone.iter()).chain(fold.iter()).map(|(k, _)| prop_family(k)).collect();
+        let has_bp = !(tablet.is_empty() && phone.is_empty() && fold.is_empty());
+        if has_bp || fx_hook {
+            let sel = hook_sel.clone();
+            // A1: the restated families are the breakpoint families plus the fx families (state keys,
+            // transition, view-entrance from-state, glass), so Vite can take all of them off the inline style.
+            let mut fams: BTreeSet<&str> = tablet.iter().chain(phone.iter()).chain(fold.iter()).map(|(k, _)| prop_family(k)).collect();
+            fams.extend(fx_fams.iter().copied());
             // B0.1 item 2: only plain kinds restate the type default; a shadcn-drawn kind restates its own keys.
             let eff_static = if RESTATE_KINDS.contains(&node.node_type) {
                 let mut e = def.clone();
@@ -2184,7 +2286,7 @@ impl<'a> Compiler<'a> {
     }
 
     /// E2/E3: emit entrance `@keyframes` (deduped) + per-node `animation` / view timeline.
-    fn emit_node_motion(&mut self, class: &str, e: &MotionEntrance) {
+    fn emit_node_motion(&mut self, sel: &str, e: &MotionEntrance) {
         let preset = e.preset.as_str();
         let kf = motion_keyframe_name(preset);
         if self.motion_presets_emitted.insert(preset.to_string()) {
@@ -2199,17 +2301,17 @@ impl<'a> Compiler<'a> {
         if e.trigger == "view" {
             // E3: from-state and timeline only inside `@supports`; unsupported browsers see final state.
             let from = motion_from_decls(preset);
-            self.node_css.push_str(&format!(
-                "@supports (animation-timeline:view()){{.{class}{{{from}animation-name:{kf};animation-duration:{dur}ms;animation-timing-function:{ease};animation-delay:{delay}ms;animation-fill-mode:backwards;animation-timeline:view();animation-range:entry 0% entry 60%}}}}"
+            self.motion_css.push_str(&format!(
+                "@supports (animation-timeline:view()){{{sel}{{{from}animation-name:{kf};animation-duration:{dur}ms;animation-timing-function:{ease};animation-delay:{delay}ms;animation-fill-mode:backwards;animation-timeline:view();animation-range:entry 0% entry 60%}}}}"
             ));
         } else {
             // E2 load: shorthand with fill-mode backwards (no forwards).
-            self.node_css.push_str(&format!(
-                ".{class}{{animation:{kf} {dur}ms {ease} {delay}ms backwards}}"
+            self.motion_css.push_str(&format!(
+                "{sel}{{animation:{kf} {dur}ms {ease} {delay}ms backwards}}"
             ));
         }
         self.state_reduced.push_str(&format!(
-            "@media (prefers-reduced-motion:reduce){{.{class}{{animation:none}}}}"
+            "@media (prefers-reduced-motion:reduce){{{sel}{{animation:none}}}}"
         ));
     }
 
@@ -2217,7 +2319,7 @@ impl<'a> Compiler<'a> {
     /// reduced-motion + forced-colors fallbacks.
     fn emit_node_states(
         &mut self,
-        class: &str,
+        sel: &str,
         node: &Node,
         st: &NodeStates,
         base_eff: &StyleProps,
@@ -2229,7 +2331,7 @@ impl<'a> Compiler<'a> {
         if let Some(hover) = st.hover.as_ref().filter(|s| !s.is_empty()) {
             let d = state_decls(hover);
             if !d.is_empty() {
-                let inner = rule(&format!(".{class}:hover"), &d);
+                let inner = rule(&format!("{sel}:hover"), &d);
                 self.state_css
                     .push_str(&format!("@media (hover:hover){{{inner}}}"));
                 if hover.transform.as_ref().is_some_and(|t| !t.is_unset()) {
@@ -2237,7 +2339,7 @@ impl<'a> Compiler<'a> {
                 }
                 if uses_text_gradient(&state_as_style(hover)) {
                     self.text_grad_forced.push_str(&format!(
-                        "@media (forced-colors:active){{.{class}{{color:CanvasText;background:none}}}}"
+                        "@media (forced-colors:active){{{sel}{{color:CanvasText;background:none}}}}"
                     ));
                 }
             }
@@ -2248,18 +2350,18 @@ impl<'a> Compiler<'a> {
                 let d = state_decls(fv);
                 if !d.is_empty() {
                     self.state_css
-                        .push_str(&rule(&format!(".{class}:focus-visible"), &d));
+                        .push_str(&rule(&format!("{sel}:focus-visible"), &d));
                     if fv.transform.as_ref().is_some_and(|t| !t.is_unset()) {
                         transform_pseudos.push(":focus-visible");
                     }
                     if fv.box_shadow.as_ref().is_some_and(|layers| !layers.is_empty()) {
                         self.state_forced.push_str(&format!(
-                            "@media (forced-colors:active){{.{class}:focus-visible{{outline:2px solid CanvasText}}}}"
+                            "@media (forced-colors:active){{{sel}:focus-visible{{outline:2px solid CanvasText}}}}"
                         ));
                     }
                     if uses_text_gradient(&state_as_style(fv)) {
                         self.text_grad_forced.push_str(&format!(
-                            "@media (forced-colors:active){{.{class}{{color:CanvasText;background:none}}}}"
+                            "@media (forced-colors:active){{{sel}{{color:CanvasText;background:none}}}}"
                         ));
                     }
                 }
@@ -2270,13 +2372,13 @@ impl<'a> Compiler<'a> {
             let d = state_decls(active);
             if !d.is_empty() {
                 self.state_css
-                    .push_str(&rule(&format!(".{class}:active"), &d));
+                    .push_str(&rule(&format!("{sel}:active"), &d));
                 if active.transform.as_ref().is_some_and(|t| !t.is_unset()) {
                     transform_pseudos.push(":active");
                 }
                 if uses_text_gradient(&state_as_style(active)) {
                     self.text_grad_forced.push_str(&format!(
-                        "@media (forced-colors:active){{.{class}{{color:CanvasText;background:none}}}}"
+                        "@media (forced-colors:active){{{sel}{{color:CanvasText;background:none}}}}"
                     ));
                 }
             }
@@ -2286,7 +2388,7 @@ impl<'a> Compiler<'a> {
         // state changes restore the base transform (or `none`). `has_transition` is informational —
         // states always emit `transition:none` (matches B9.1).
         let _ = has_transition;
-        let mut reduced = format!(".{class}{{transition:none}}");
+        let mut reduced = format!("{sel}{{transition:none}}");
         if !transform_pseudos.is_empty() {
             let restore = base_eff
                 .transform
@@ -2295,7 +2397,7 @@ impl<'a> Compiler<'a> {
                 .unwrap_or_else(|| "none".into());
             let sels: String = transform_pseudos
                 .iter()
-                .map(|p| format!(".{class}{p}"))
+                .map(|p| format!("{sel}{p}"))
                 .collect::<Vec<_>>()
                 .join(",");
             reduced.push_str(&format!("{sels}{{transform:{restore}}}"));
@@ -3878,3 +3980,7 @@ mod e2_tests;
 #[cfg(test)]
 #[path = "compiler_d10_preview_tests.rs"]
 mod d10_preview_tests;
+
+#[cfg(test)]
+#[path = "compiler_a1fix_tests.rs"]
+mod a1fix_tests;

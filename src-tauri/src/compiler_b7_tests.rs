@@ -99,18 +99,18 @@ fn b7_hover_focus_active_order_and_fx_class() {
     assert!(html.contains("class=\"t-button n1 fx\""), "{html}");
     assert!(html.contains("<a "), "{html}");
 
-    let hover = css.find("@media (hover:hover){.n1:hover{").expect("hover");
-    let focus = css.find(".n1:focus-visible{").expect("focus-visible");
-    let active = css.find(".n1:active{").expect("active");
+    let hover = css.find("@media (hover:hover){[data-wb-page=\"home\"] [data-wb-id=\"b\"]:hover{").expect("hover");
+    let focus = css.find("[data-wb-page=\"home\"] [data-wb-id=\"b\"]:focus-visible{").expect("focus-visible");
+    let active = css.find("[data-wb-page=\"home\"] [data-wb-id=\"b\"]:active{").expect("active");
     assert!(hover < focus && focus < active, "order hover→focus→active in {css}");
     assert!(css.contains("background-color:#38bdf8"), "{css}");
     assert!(css.contains("background-color:#0284c7"), "{css}");
     assert!(
-        css.contains("@media (forced-colors:active){.n1:focus-visible{outline:2px solid CanvasText}}"),
+        css.contains("@media (forced-colors:active){[data-wb-page=\"home\"] [data-wb-id=\"b\"]:focus-visible{outline:2px solid CanvasText}}"),
         "{css}"
     );
     assert!(
-        css.contains("@media (prefers-reduced-motion:reduce){.n1{transition:none}}"),
+        css.contains("@media (prefers-reduced-motion:reduce){[data-wb-page=\"home\"] [data-wb-id=\"b\"]{transition:none}}"),
         "{css}"
     );
 }
@@ -130,7 +130,7 @@ fn b7_focus_visible_skipped_for_unlinked_button() {
     });
     let (html, css) = compile_export(&doc, &CompileOptions::default()).unwrap();
     assert!(html.contains("<span class=\"t-button n1 fx\""), "{html}");
-    assert!(css.contains("@media (hover:hover){.n1:hover{"), "{css}");
+    assert!(css.contains("@media (hover:hover){[data-wb-page=\"home\"] [data-wb-id=\"b\"]:hover{"), "{css}");
     assert!(!css.contains(":focus-visible"), "{css}");
 }
 
@@ -214,22 +214,22 @@ fn b7_press_button_shape_matches_b91_example() {
         "base {css}"
     );
     assert!(
-        css.contains("@media (hover:hover){.n1:hover{background-color:#38bdf8;transform:translate(0px, -1px)}}"),
+        css.contains("@media (hover:hover){[data-wb-page=\"home\"] [data-wb-id=\"b\"]:hover{background-color:#38bdf8;transform:translate(0px, -1px)}}"),
         "hover {css}"
     );
     assert!(
-        css.contains(".n1:active{")
+        css.contains("[data-wb-page=\"home\"] [data-wb-id=\"b\"]:active{")
             && css.contains("transform:translate(0px, 5px)")
             && css.contains("box-shadow:0px 1px 0px 0px #0369a1, 0px 2px 4px 0px #00000033"),
         "active {css}"
     );
     assert!(
-        css.contains("@media (prefers-reduced-motion:reduce){.n1{transition:none}.n1:hover,.n1:active{transform:none}}"),
+        css.contains("@media (prefers-reduced-motion:reduce){[data-wb-page=\"home\"] [data-wb-id=\"b\"]{transition:none}[data-wb-page=\"home\"] [data-wb-id=\"b\"]:hover,[data-wb-page=\"home\"] [data-wb-id=\"b\"]:active{transform:none}}"),
         "reduced {css}"
     );
     // No focus-visible in this fixture; hover before active.
     let h = css.find("@media (hover:hover)").expect("hover media");
-    let a = css.find(".n1:active{").expect("active");
+    let a = css.find("[data-wb-page=\"home\"] [data-wb-id=\"b\"]:active{").expect("active");
     assert!(h < a, "{css}");
     assert!(!css.contains(":focus-visible"), "{css}");
 }
@@ -263,11 +263,11 @@ fn b83_preview_legacy_press_skips_fx_buttons() {
         preview.contains(".t-button:not(.fx):active{transform:translateY(1px)}"),
         "{preview}"
     );
-    assert!(preview.contains(".n1:active{"), "{preview}");
+    assert!(preview.contains("[data-wb-page=\"home\"] [data-wb-id=\"b\"]:active{"), "{preview}");
     // Export must not include the legacy Preview press rule.
     let (_, export_css) = compile_export(&doc, &CompileOptions::default()).unwrap();
     assert!(!export_css.contains(":not(.fx)"), "{export_css}");
-    assert!(export_css.contains(".n1:active{"), "{export_css}");
+    assert!(export_css.contains("[data-wb-page=\"home\"] [data-wb-id=\"b\"]:active{"), "{export_css}");
 }
 
 #[test]
@@ -284,7 +284,7 @@ fn b7_states_in_shared_style_css_block() {
         StyleProps::default(),
     );
     let block = style_css(&doc, &CompileOptions::default()).unwrap();
-    assert!(block.contains("@media (hover:hover){.n1:hover{opacity:0.8}}") || block.contains("opacity:0.8"), "{block}");
+    assert!(block.contains("@media (hover:hover){[data-wb-page=\"home\"] [data-wb-id=\"b\"]:hover{opacity:0.8}}") || block.contains("opacity:0.8"), "{block}");
     let (_, css) = compile_export(&doc, &CompileOptions::default()).unwrap();
     assert!(css.ends_with(&format!("{block}\n")), "state rules live in the shared block");
 }

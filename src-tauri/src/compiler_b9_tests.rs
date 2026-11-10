@@ -30,17 +30,17 @@ fn b91_compiled_css_matches_worked_example() {
         "base {css}"
     );
     assert!(
-        css.contains("@media (hover:hover){.n1:hover{background-color:#38bdf8;transform:translate(0px, -1px)}}"),
+        css.contains("@media (hover:hover){[data-wb-page=\"home\"] [data-wb-id=\"btn\"]:hover{background-color:#38bdf8;transform:translate(0px, -1px)}}"),
         "hover {css}"
     );
     assert!(
         css.contains("transform:translate(0px, 5px)")
             && css.contains("box-shadow:0px 1px 0px 0px #0369a1, 0px 2px 4px 0px #00000033")
-            && css.contains(".n1:active{"),
+            && css.contains("[data-wb-page=\"home\"] [data-wb-id=\"btn\"]:active{"),
         "active {css}"
     );
     assert!(
-        css.contains("@media (prefers-reduced-motion:reduce){.n1{transition:none}.n1:hover,.n1:active{transform:none}}"),
+        css.contains("@media (prefers-reduced-motion:reduce){[data-wb-page=\"home\"] [data-wb-id=\"btn\"]{transition:none}[data-wb-page=\"home\"] [data-wb-id=\"btn\"]:hover,[data-wb-page=\"home\"] [data-wb-id=\"btn\"]:active{transform:none}}"),
         "reduced {css}"
     );
     // Sink invariant: translateY(d) + primary-shadow-y(6−d) = 6 (active: 5 + 1).
@@ -111,7 +111,7 @@ fn b91_unlinked_button_is_span_desktop_only() {
     let (html, css) = compile_export(&doc, &CompileOptions::default()).unwrap();
     assert!(html.contains("<span class=\"t-button n1 fx\""), "unlinked → span (desktop-only :active) {html}");
     assert!(!html.contains("<a "), "{html}");
-    assert!(css.contains(".n1:active{"), "{css}");
+    assert!(css.contains("[data-wb-page=\"home\"] [data-wb-id=\"b\"]:active{"), "{css}");
     // focus-visible not emitted for unlinked span.
     assert!(!css.contains(":focus-visible"), "{css}");
 }
@@ -122,7 +122,7 @@ fn b91_state_rules_live_in_shared_style_block() {
     let d = press_doc();
     let block = style_css(&d, &CompileOptions::default()).unwrap();
     assert!(block.contains("@media (hover:hover)"), "{block}");
-    assert!(block.contains(".n1:active{"), "{block}");
+    assert!(block.contains("[data-wb-page=\"home\"] [data-wb-id=\"btn\"]:active{"), "{block}");
     let (_, css) = compile_export(&d, &CompileOptions::default()).unwrap();
     assert!(css.ends_with(&format!("{block}\n")));
 }

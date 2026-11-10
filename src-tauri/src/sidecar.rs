@@ -90,11 +90,21 @@ document.addEventListener("dblclick", (e) => {
 
 const RUN_VITE: &str = r#"
 const port = process.env.WB_VITE_PORT || "47300";
+// A1: the app starts this script as a process-group leader. If the app goes away (crash, kill -9),
+// our parent changes; take the whole group (bun x → vite → esbuild) down so nothing outlives the app.
+const parent = process.ppid;
 const proc = Bun.spawn(["bun", "--bun", "x", "vite", "--host", "127.0.0.1", "--port", port, "--strictPort"], {
   stdout: "inherit",
   stderr: "inherit",
   stdin: "ignore",
 });
+setInterval(() => {
+  if (process.ppid !== parent) {
+    try { proc.kill("SIGKILL"); } catch {}
+    try { process.kill(-process.pid, "SIGKILL"); } catch {}
+    process.exit(1);
+  }
+}, 1000);
 await proc.exited;
 process.exit(proc.exitCode ?? 1);
 "#;
@@ -140,6 +150,21 @@ pub struct SidecarStatus {
     pub pss_mb: Option<f64>,
     pub error: Option<String>,
     pub error_code: Option<String>,
+    /// A1: start session id. Concurrent `preview_sidecar_start` callers during one start get the same id.
+    #[serde(default)]
+    pub session: u64,
+}
+
+/// A1: a start whose session was stopped or replaced while it prepared; its child (if any) is already killed.
+pub const START_SUPERSEDED: &str = "PREVIEW_START_SUPERSEDED";
+
+/// A1: result of claiming a start under the lock.
+#[derive(Debug, Clone)]
+pub enum StartGate {
+    /// This caller owns the new session and must spawn.
+    Fresh(u64),
+    /// A start is already in flight (or running): the same session, no second spawn.
+    Existing(SidecarStatus),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -324,6 +349,11 @@ struct Inner {
     last_health: Instant,
     restart_at: Option<Instant>,
     preview_ws: Option<PathBuf>,
+    /// A1: current start session (bumped only by `begin_start`).
+    session: u64,
+    /// A1: every process group this sidecar spawned `(pid, pgid, token)`, so stop / replace can kill
+    /// one that is no longer the tracked child.
+    spawned: Vec<(u32, i32, String)>,
 }
 
 impl Inner {
@@ -344,8 +374,91 @@ impl Inner {
             last_health: Instant::now(),
             restart_at: None,
             preview_ws: None,
+            session: 0,
+            spawned: Vec::new(),
         }
     }
+}
+
+fn status_of(g: &Inner) -> SidecarStatus {
+    let pss = g.child.as_ref().map(|c| pss_kb(c.id() as u32) as f64 / 1024.0);
+    SidecarStatus {
+        state: g.phase,
+        port: g.port,
+        pss_mb: pss,
+        error: g.error.clone(),
+        error_code: g.error_code.clone(),
+        session: g.session,
+    }
+}
+
+fn set_error_locked(g: &mut Inner, code: &str) {
+    let key = code.split(':').next().unwrap_or(code);
+    g.phase = SidecarPhase::Error;
+    g.error_code = Some(key.to_string());
+    g.error = Some(error_thai(code));
+    g.restart_at = None;
+}
+
+/// A1: `(pid, sid)` of every process in group `pgid` (Linux `/proc/*/stat`).
+fn group_members(pgid: i32) -> Vec<(i32, i32)> {
+    let mut out = Vec::new();
+    if pgid <= 1 {
+        return out;
+    }
+    let Ok(rd) = fs::read_dir("/proc") else { return out };
+    for e in rd.flatten() {
+        let name = e.file_name();
+        let Some(pid) = name.to_str().and_then(|n| n.parse::<i32>().ok()) else { continue };
+        let Ok(stat) = fs::read_to_string(format!("/proc/{pid}/stat")) else { continue };
+        let Some(close) = stat.rfind(')') else { continue };
+        // after ") ": state ppid pgrp session …
+        let f: Vec<&str> = stat[close + 1..].split_whitespace().collect();
+        if f.len() < 4 || f[0] == "Z" {
+            continue;
+        }
+        let pgrp = f[2].parse::<i32>().unwrap_or(0);
+        let sid = f[3].parse::<i32>().unwrap_or(0);
+        if pgrp == pgid {
+            out.push((pid, sid));
+        }
+    }
+    out
+}
+
+/// A1: kill every group this sidecar spawned except `keep` (0 = none). A group is ours when its leader still
+/// carries our token, or when every member is in our own session (Linux never reuses a pid as a new pgid
+/// while the group exists). Reaps the leaders it can.
+fn kill_untracked(spawned: &mut Vec<(u32, i32, String)>, keep: i32) {
+    #[cfg(unix)]
+    let my_sid = unsafe { libc::getsid(0) };
+    #[cfg(not(unix))]
+    let my_sid = 0;
+    let mut rest = Vec::new();
+    for (pid, pgid, token) in spawned.drain(..) {
+        if pgid == keep {
+            rest.push((pid, pgid, token));
+            continue;
+        }
+        let members = group_members(pgid);
+        let leader_ours = read_cmdline(pid).is_some_and(|c| cmdline_has_token(&c, &token));
+        if !members.is_empty() && (leader_ours || members.iter().all(|(_, sid)| *sid == my_sid)) {
+            kill_group(pgid, libc::SIGTERM);
+            let start = Instant::now();
+            while !group_members(pgid).is_empty() && start.elapsed() < Duration::from_millis(1500) {
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            if !group_members(pgid).is_empty() {
+                kill_group(pgid, libc::SIGKILL);
+            }
+        }
+        #[cfg(unix)]
+        unsafe {
+            let mut st = 0;
+            libc::waitpid(pid as i32, &mut st, libc::WNOHANG);
+        }
+    }
+    *spawned = rest;
 }
 
 pub struct Sidecar {
@@ -375,14 +488,87 @@ impl Sidecar {
 
     pub fn status(&self) -> SidecarStatus {
         let g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let pss = g.child.as_ref().map(|c| pss_kb(c.id() as u32) as f64 / 1024.0);
-        SidecarStatus {
-            state: g.phase,
-            port: g.port,
-            pss_mb: pss,
-            error: g.error.clone(),
-            error_code: g.error_code.clone(),
+        status_of(&g)
+    }
+
+    /// A1 (audit High 1): claim the start under the lock, before any slow work. While a start is in flight
+    /// (or running), every other caller gets that same session back and spawns nothing.
+    pub fn begin_start(&self) -> StartGate {
+        let mut g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        if g.phase == SidecarPhase::Running || g.phase == SidecarPhase::Starting {
+            return StartGate::Existing(status_of(&g));
         }
+        g.session = g.session.wrapping_add(1);
+        g.phase = SidecarPhase::Starting;
+        g.port = None;
+        g.error = None;
+        g.error_code = None;
+        g.restart_at = None;
+        g.health_misses = 0;
+        g.last_activity = Instant::now();
+        StartGate::Fresh(g.session)
+    }
+
+    /// A1: a start that failed while preparing turns into an error only if it is still the live start.
+    pub fn fail_start(&self, session: u64, code: &str) {
+        let mut g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        if g.session == session && g.phase == SidecarPhase::Starting {
+            set_error_locked(&mut g, code);
+        }
+    }
+
+    fn is_live_start(&self, session: u64) -> bool {
+        let g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        g.session == session && g.phase == SidecarPhase::Starting
+    }
+
+    /// A1: spawn `cmd` (+ `--preview-token`) as a new process group and make it the tracked child — unless the
+    /// session was stopped / replaced meanwhile, in which case the new group is killed at once. Any older group
+    /// this sidecar spawned is killed too, so there is never more than one tree.
+    fn spawn_tracked(&self, session: u64, mut cmd: Command, port: u16, exe: String) -> Result<u32, String> {
+        let token = Uuid::new_v4().simple().to_string();
+        cmd.arg("--preview-token").arg(&token);
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            cmd.process_group(0);
+        }
+        let mut child = cmd
+            .spawn()
+            .map_err(|e| format!("PREVIEW_INSTALL_FAILED:{e}"))?;
+        let pid = child.id();
+        let pgid = pid as i32;
+        let mut g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        if g.session != session || g.phase != SidecarPhase::Starting {
+            drop(g);
+            kill_group(pgid, libc::SIGKILL);
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(START_SUPERSEDED.into());
+        }
+        if let Some(mut old) = g.child.take() {
+            kill_group(g.pgid, libc::SIGKILL);
+            let _ = old.kill();
+            let _ = old.wait();
+        }
+        g.spawned.push((pid, pgid, token.clone()));
+        let rec = SidecarFile {
+            pid,
+            pgid,
+            port,
+            started_at: now_secs(),
+            exe,
+            token: token.clone(),
+        };
+        let wrote = write_sidecar_file(&sidecar_path(&self.cache_dir), &rec);
+        g.child = Some(child);
+        g.pgid = pgid;
+        g.token = token;
+        g.port = Some(port);
+        g.last_activity = Instant::now();
+        g.up_since = Some(Instant::now());
+        kill_untracked(&mut g.spawned, pgid);
+        wrote.map(|_| pid)
     }
 
     pub fn note_activity(&self) {
@@ -420,15 +606,6 @@ impl Sidecar {
         }
     }
 
-    pub fn set_error(&self, code: &str) {
-        let key = code.split(':').next().unwrap_or(code);
-        let mut g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        g.phase = SidecarPhase::Error;
-        g.error_code = Some(key.to_string());
-        g.error = Some(error_thai(code));
-        g.restart_at = None;
-    }
-
     fn stop_locked(&self, g: &mut Inner) {
         if let Some(mut child) = g.child.take() {
             kill_group(g.pgid, libc::SIGTERM);
@@ -446,6 +623,8 @@ impl Sidecar {
                 std::thread::sleep(Duration::from_millis(50));
             }
         }
+        // A1: nothing we spawned outlives a stop (a tree that lost the tracked slot, a crashed leader's group).
+        kill_untracked(&mut g.spawned, 0);
         g.phase = SidecarPhase::Stopped;
         g.port = None;
         g.pgid = 0;
@@ -457,12 +636,21 @@ impl Sidecar {
 
     #[cfg(test)]
     pub fn start_dummy(&self, exe: &Path, extra_args: &[&str]) -> Result<u16, String> {
+        self.start_dummy_slow(exe, extra_args, 0)
+            .and_then(|st| st.port.ok_or_else(|| "no port".to_string()))
+    }
+
+    /// A1 test double of `preview_sidecar_start`: gate → `prep_ms` of "slow work" → tracked spawn → running.
+    #[cfg(test)]
+    pub fn start_dummy_slow(&self, exe: &Path, extra_args: &[&str], prep_ms: u64) -> Result<SidecarStatus, String> {
+        let session = match self.begin_start() {
+            StartGate::Existing(st) => return Ok(st),
+            StartGate::Fresh(n) => n,
+        };
+        std::thread::sleep(Duration::from_millis(prep_ms));
         let port = pick_port()?;
-        let token = Uuid::new_v4().simple().to_string();
         let mut cmd = Command::new(exe);
         cmd.args(extra_args)
-            .arg("--preview-token")
-            .arg(&token)
             .env_clear()
             .env("PATH", "/usr/bin:/bin")
             .env("HOME", std::env::var("HOME").unwrap_or_else(|_| "/tmp".into()))
@@ -470,34 +658,33 @@ impl Sidecar {
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null());
-        #[cfg(unix)]
-        {
-            use std::os::unix::process::CommandExt;
-            cmd.process_group(0);
+        match self.spawn_tracked(session, cmd, port, exe.to_string_lossy().into_owned()) {
+            Ok(_) => {}
+            Err(e) if e == START_SUPERSEDED => return Ok(self.status()),
+            Err(e) => {
+                self.fail_start(session, &e);
+                return Err(e);
+            }
         }
-        let child = cmd.spawn().map_err(|e| format!("เริ่มเครื่องมือแสดงตัวอย่างไม่สำเร็จ: {e}"))?;
-        let pid = child.id();
-        let pgid = pid as i32;
-        let rec = SidecarFile {
-            pid,
-            pgid,
-            port,
-            started_at: now_secs(),
-            exe: exe.to_string_lossy().into_owned(),
-            token: token.clone(),
-        };
-        write_sidecar_file(&sidecar_path(&self.cache_dir), &rec)?;
         let mut g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        g.phase = SidecarPhase::Running;
-        g.port = Some(port);
-        g.child = Some(child);
-        g.pgid = pgid;
-        g.token = token;
-        g.last_activity = Instant::now();
-        g.error = None;
-        g.error_code = None;
-        g.up_since = Some(Instant::now());
-        Ok(port)
+        if g.session == session && g.phase == SidecarPhase::Starting {
+            g.phase = SidecarPhase::Running;
+        }
+        Ok(status_of(&g))
+    }
+
+    /// A1 tests: register a group spawned outside `spawn_tracked` (stands in for a lost / untracked tree).
+    #[cfg(test)]
+    pub fn track_spawned_for_test(&self, pid: u32, pgid: i32, token: &str) {
+        let mut g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        g.spawned.push((pid, pgid, token.to_string()));
+    }
+
+    /// A1 tests: groups this sidecar still tracks as spawned.
+    #[cfg(test)]
+    pub fn spawned_groups(&self) -> Vec<i32> {
+        let g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        g.spawned.iter().map(|(_, pgid, _)| *pgid).collect()
     }
 }
 
@@ -545,7 +732,8 @@ fn sidecar_loop(s: Arc<Sidecar>) {
                 Err(_) => continue,
             };
             let mut restore_ws = None;
-            if g.phase == SidecarPhase::Running || g.phase == SidecarPhase::Starting {
+            // A1: a start still preparing (install, no child yet) is not idle-stopped mid-way.
+            if g.phase == SidecarPhase::Running || (g.phase == SidecarPhase::Starting && g.child.is_some()) {
                 if should_idle_stop(g.visible, g.last_activity.elapsed(), Duration::from_millis(IDLE_MS)) {
                     restore_ws = g.preview_ws.clone();
                     s.stop_locked(&mut g);
@@ -572,7 +760,14 @@ fn sidecar_loop(s: Arc<Sidecar>) {
             crate::export::restore_index_after_preview(&ws);
         }
         if let Some(spec) = spec {
-            let _ = start_vite(&s, &spec.ws, &spec.deps, &spec.bun_version);
+            // A1: the backoff restart claims its session like any other start.
+            if let StartGate::Fresh(session) = s.begin_start() {
+                if let Err(code) = start_vite(&s, session, &spec.ws, &spec.deps, &spec.bun_version) {
+                    if code != START_SUPERSEDED {
+                        s.fail_start(session, &code);
+                    }
+                }
+            }
         }
         probe_health(&s);
     }
@@ -766,6 +961,7 @@ pub fn resolve_bun(resource_dir: Option<&Path>) -> PathBuf {
 /// Prepare workspace + optional shared deps (S7) + spawn bun (S6).
 pub fn start_vite(
     s: &Sidecar,
+    session: u64,
     ws: &Path,
     deps: &Path,
     bun_version: &str,
@@ -775,6 +971,9 @@ pub fn start_vite(
     }
     let hash = template_hash(bun_version);
     ensure_deps(&s.bun, deps, &hash)?;
+    if !s.is_live_start(session) {
+        return Err(START_SUPERSEDED.into());
+    }
     link_node_modules(ws, &deps.join(&hash).join("node_modules"))?;
     if let Ok(mut spec) = s.spec.lock() {
         *spec = Some(SpawnSpec {
@@ -786,12 +985,9 @@ pub fn start_vite(
     write_preview_only_files(ws)?;
 
     let port = pick_port()?;
-    let token = Uuid::new_v4().simple().to_string();
     let log = open_log(&s.log_dir)?;
     let mut cmd = Command::new(&s.bun);
     cmd.arg("run-vite.ts")
-        .arg("--preview-token")
-        .arg(&token)
         .current_dir(ws)
         .env_clear()
         .env("PATH", bun_path_env(&s.bun))
@@ -801,46 +997,21 @@ pub fn start_vite(
         .stdin(Stdio::null())
         .stdout(Stdio::from(log.try_clone().map_err(|e| e.to_string())?))
         .stderr(Stdio::from(log));
-    #[cfg(unix)]
-    {
-        use std::os::unix::process::CommandExt;
-        cmd.process_group(0);
-    }
     {
         let mut g = s.inner.lock().unwrap_or_else(|e| e.into_inner());
-        g.phase = SidecarPhase::Starting;
+        if g.session != session || g.phase != SidecarPhase::Starting {
+            return Err(START_SUPERSEDED.into());
+        }
         g.port = Some(port);
         g.preview_ws = Some(ws.to_path_buf());
-        g.error = None;
-        g.error_code = None;
-        g.restart_at = None;
     }
-    let child = cmd.spawn().map_err(|e| {
-        s.set_error("PREVIEW_INSTALL_FAILED");
-        format!("เริ่มเครื่องมือแสดงตัวอย่างไม่สำเร็จ: {e}")
-    })?;
-    let pid = child.id();
-    let rec = SidecarFile {
-        pid,
-        pgid: pid as i32,
-        port,
-        started_at: now_secs(),
-        exe: s.bun.to_string_lossy().into_owned(),
-        token: token.clone(),
-    };
-    write_sidecar_file(&sidecar_path(&s.cache_dir), &rec)?;
-    {
-        let mut g = s.inner.lock().unwrap_or_else(|e| e.into_inner());
-        g.phase = SidecarPhase::Starting;
-        g.child = Some(child);
-        g.pgid = pid as i32;
-        g.token = token;
-        g.last_activity = Instant::now();
-        g.up_since = Some(Instant::now());
-    }
+    s.spawn_tracked(session, cmd, port, s.bun.to_string_lossy().into_owned())?;
     let deadline = Instant::now() + Duration::from_secs(15);
     let mut ready = false;
     while Instant::now() < deadline {
+        if !s.is_live_start(session) {
+            return Err(START_SUPERSEDED.into());
+        }
         if vite_probe_quick(port) {
             ready = true;
             break;
@@ -848,14 +1019,16 @@ pub fn start_vite(
         std::thread::sleep(Duration::from_millis(50));
     }
     let mut g = s.inner.lock().unwrap_or_else(|e| e.into_inner());
+    if g.session != session || g.phase != SidecarPhase::Starting {
+        return Err(START_SUPERSEDED.into());
+    }
     if ready {
         g.phase = SidecarPhase::Running;
         g.last_activity = Instant::now();
         Ok(port)
     } else {
-        drop(g);
-        s.set_error("PREVIEW_INSTALL_FAILED");
-        Err("เครื่องมือแสดงตัวอย่างไม่ตอบ".into())
+        set_error_locked(&mut g, "PREVIEW_INSTALL_FAILED");
+        Err("PREVIEW_INSTALL_FAILED:เครื่องมือแสดงตัวอย่างไม่ตอบ".into())
     }
 }
 
@@ -1083,9 +1256,13 @@ pub fn hmr_mark(s: &Sidecar) {
 fn fail_running(s: &Sidecar, status: Option<i32>) {
     let mut g = s.inner.lock().unwrap_or_else(|e| e.into_inner());
     if let Some(mut child) = g.child.take() {
+        // A1: the leader alone dying leaves vite / esbuild in its group — take the group down.
+        kill_group(g.pgid, libc::SIGKILL);
         let _ = child.kill();
         let _ = child.wait();
     }
+    g.pgid = 0;
+    kill_untracked(&mut g.spawned, 0);
     if let Some(up) = g.up_since {
         if should_reset_restarts(up.elapsed()) {
             g.restarts = 0;

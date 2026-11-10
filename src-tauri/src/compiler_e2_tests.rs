@@ -42,12 +42,12 @@ fn e2_load_fade_emits_keyframes_backwards_no_forwards() {
     assert!(html.contains("class=\"t-heading t-h2 n1\""), "{html}");
     assert!(css.contains("@keyframes wb-in-fade{from{opacity:0}to{opacity:1}}"), "{css}");
     assert!(
-        css.contains(".n1{animation:wb-in-fade 300ms ease-out 40ms backwards}"),
+        css.contains("[data-wb-page=\"home\"] [data-wb-id=\"h\"]{animation:wb-in-fade 300ms ease-out 40ms backwards}"),
         "{css}"
     );
     assert!(!css.contains("forwards"), "{css}");
     assert!(
-        css.contains("@media (prefers-reduced-motion:reduce){.n1{animation:none}}"),
+        css.contains("@media (prefers-reduced-motion:reduce){[data-wb-page=\"home\"] [data-wb-id=\"h\"]{animation:none}}"),
         "{css}"
     );
     assert!(!html.to_ascii_lowercase().contains("<script"));
@@ -111,8 +111,8 @@ fn e2_identical_presets_dedupe_keyframes() {
         1,
         "dedupe: {css}"
     );
-    assert!(css.contains(".n1{animation:wb-in-fade 200ms ease 0ms backwards}"));
-    assert!(css.contains(".n2{animation:wb-in-fade 500ms linear 10ms backwards}"));
+    assert!(css.contains("[data-wb-page=\"home\"] [data-wb-id=\"a\"]{animation:wb-in-fade 200ms ease 0ms backwards}"));
+    assert!(css.contains("[data-wb-page=\"home\"] [data-wb-id=\"b\"]{animation:wb-in-fade 500ms linear 10ms backwards}"));
 }
 
 #[test]
@@ -131,7 +131,7 @@ fn e3_view_trigger_hides_from_only_inside_supports() {
     let (_, css) = compile_export(&heading_doc(entrance("fade", "view")), &CompileOptions::default()).unwrap();
     assert!(css.contains("@keyframes wb-in-fade{from{opacity:0}to{opacity:1}}"), "{css}");
     assert!(
-        css.contains("@supports (animation-timeline:view()){.n1{opacity:0;animation-name:wb-in-fade;"),
+        css.contains("@supports (animation-timeline:view()){[data-wb-page=\"home\"] [data-wb-id=\"h\"]{opacity:0;animation-name:wb-in-fade;"),
         "{css}"
     );
     assert!(css.contains("animation-timeline:view()"), "{css}");
@@ -140,7 +140,7 @@ fn e3_view_trigger_hides_from_only_inside_supports() {
     // Strip @supports → no *applied* hide on the node (keyframes from{} alone don't hide).
     let stripped = strip_supports_blocks(&css);
     assert!(
-        !stripped.contains(".n1{opacity:0") && !stripped.contains(".n1{opacity:0;"),
+        !stripped.contains(".n1{opacity:0") && !stripped.contains("[data-wb-page=\"home\"] [data-wb-id=\"h\"]{opacity:0"),
         "fallback must not hide content: {stripped}"
     );
     assert!(!stripped.contains("animation-timeline:view()"), "{stripped}");
@@ -151,12 +151,12 @@ fn e3_view_slide_from_inside_supports_only() {
     let (_, css) =
         compile_export(&heading_doc(entrance("slideUp", "view")), &CompileOptions::default()).unwrap();
     assert!(
-        css.contains("@supports (animation-timeline:view()){.n1{opacity:0;transform:translateY(24px);"),
+        css.contains("@supports (animation-timeline:view()){[data-wb-page=\"home\"] [data-wb-id=\"h\"]{opacity:0;transform:translateY(24px);"),
         "{css}"
     );
     let stripped = strip_supports_blocks(&css);
     assert!(
-        !stripped.contains(".n1{opacity:0") && !stripped.contains("transform:translateY(24px);animation"),
+        !stripped.contains("[data-wb-page=\"home\"] [data-wb-id=\"h\"]{opacity:0") && !stripped.contains("transform:translateY(24px);animation"),
         "{stripped}"
     );
 }

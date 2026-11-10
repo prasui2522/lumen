@@ -121,6 +121,10 @@ export type SiteNode = {
     active?: StyleProps;
     focusVisible?: StyleProps;
   };
+  /** E1 entrance motion (compiled by the Rust generator into `site.css`; A1: on the node's hook). */
+  motion?: {
+    entrance?: { preset?: string; trigger?: string; durationMs?: number; delayMs?: number; easing?: string };
+  };
 };
 
 export type SitePage = {

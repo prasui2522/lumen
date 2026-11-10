@@ -175,3 +175,10 @@ None of these blocks A1.3. Each is a later decision or a known limit.
 95. **Low (B2 accept, 2026-11-05).** Carry into B3 Designer GUI pass:
     1. Re-verify shadow editor **blur slider drag = one undo**, **focus-after-remove** on a neighbour layer, and an **export pixel check** of compiled `box-shadow` (real-app XTEST under B2 did not fully exercise the expanded layer UI).
     2. **Template-side `tsc`:** run `tsc --noEmit` in `export-templates/vite-react` (read-only, no installs) when touching the Vite export template; note pass/fail in the slice report. (B2 ran it at accept — see commit body / progress.)
+
+96. **A1 fix (2026-11-10, Designer-accepted).** Single Vite sidecar (start session under the lock, stray-group kill, parent watchdog) + state / motion / reduced-motion / glass rules on the `[data-wb-page] [data-wb-id]` hook in the shared `style_css`. Tests: `compiler_a1fix_tests`, sidecar `a1_*`, `a1fix-vite-fx` (CDP parity static vs Tier 1 vs Vite). Open items:
+    1. **Info.** LED rules stay on `.nN` (static only). Move them to the `data-wb-id` hook if LED ever renders in Vite / Tier 1.
+    2. **Info (intended, user-confirmed).** Hover / state rules beat breakpoint base rules (the state sits on top of the active base). Any future breakpoint-specific state override must win over the generic state (see the comment at `style_block` in `compiler.rs`).
+    3. **Info (parity-test skip).** `a1fix-vite-fx` skips the link-style button's base fill and text colour: the `.t-button` default look is static-only (button is not a plain kind; see 92.2 / 92.10).
+    4. **Info (parity-test skip).** `a1fix-vite-fx` normalises Vite's minified gradients, which drop the implicit `0%` / `100%` stops (same rendering).
+    5. **Low (S-series, from the Designer).** The first Design→Preview after an idle stop once showed 'preview unavailable' (bridge-fail / stopped). Reproduce and fix in S.

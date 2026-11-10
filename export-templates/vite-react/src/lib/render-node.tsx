@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { HOOK_ATTR, overriddenFamilies, styleToReact, withoutFamilies, cursorCss } from "@/lib/style";
+import { HOOK_ATTR, nodeFx, overriddenFamilies, styleToReact, withoutFamilies, cursorCss } from "@/lib/style";
 import type { SiteNode, StyleProps } from "@/lib/site-types";
 import { ICON_PATHS, iconInnerSvg } from "@/lib/icon-paths";
 import { renderChartSvg, type ChartKind, type ChartSeries } from "@/lib/chart-render";
@@ -150,6 +150,13 @@ function previewCursorCss(id: string, node: SiteNode): string {
   return parts.join("");
 }
 
+/** A1: breakpoint + fx families for the dialog box (it carries the hook, see `case "dialog"`). */
+function dialogFams(node: SiteNode): Set<string> {
+  const fams = overriddenFamilies(node.styleBreakpoints);
+  for (const f of nodeFx(node).families) fams.add(f);
+  return fams;
+}
+
 export function RenderNode({ id, ctx, inRow }: { id: string; ctx: Ctx; inRow?: boolean }) {
   const el = renderNodeInner(id, ctx, inRow);
   const node = ctx.nodes[id];
@@ -159,12 +166,17 @@ export function RenderNode({ id, ctx, inRow }: { id: string; ctx: Ctx; inRow?: b
   // B0.1 item 1: every node root carries `.t-<type>` like the static export, so the generator's type rules
   // (state, reduced-motion, forced-colors) reach the Vite render too.
   const tcls = `t-${node.props.type}`;
-  const cls = (props.className ?? "").split(/\s+/).includes(tcls) ? props.className : [tcls, props.className].filter(Boolean).join(" ");
+  // A1 (audit High 2): states / transition / entrance motion / glass / text gradient rules target this node's
+  // hook in site.css (no `.nN` here); `fx` marks nodes with states, as the static `.nN fx` does.
+  const fx = nodeFx(node);
+  const own = (props.className ?? "").split(/\s+/).filter(Boolean);
+  const cls = [...(own.includes(tcls) ? [] : [tcls]), ...own, ...(fx.fx && !own.includes("fx") ? ["fx"] : [])].join(" ");
   const extra: Record<string, unknown> = { className: cls };
   if (inPreview()) extra[NODE_ID_ATTR] = id;
   if (id === ctx.pageRoot) extra[PAGE_ATTR] = ctx.pageId ?? id;
   const fams = overriddenFamilies(node.styleBreakpoints);
-  if (fams.size > 0) {
+  for (const f of fx.families) fams.add(f);
+  if (fams.size > 0 || fx.hook) {
     extra[HOOK_ATTR] = id;
     extra.style = withoutFamilies(props.style, fams);
   }
@@ -644,9 +656,9 @@ function renderNodeInner(id: string, ctx: Ctx, inRow?: boolean): ReactNode {
           {/* B0.1 item 1: <Dialog> renders no element of its own, so the type class and the breakpoint hook (with
               the overridden families off the inline style) go on the dialog box, as in the static export. */}
           <DialogContent
-            className="t-dialog"
-            style={withoutFamilies(style, overriddenFamilies(node.styleBreakpoints))}
-            {...(overriddenFamilies(node.styleBreakpoints).size > 0 ? { [HOOK_ATTR]: id } : {})}
+            className={nodeFx(node).fx ? "t-dialog fx" : "t-dialog"}
+            style={withoutFamilies(style, dialogFams(node))}
+            {...(dialogFams(node).size > 0 || nodeFx(node).hook ? { [HOOK_ATTR]: id } : {})}
             pageAttr={ctx.pageId ? PAGE_ATTR : undefined}
             pageAttrValue={ctx.pageId}
           >

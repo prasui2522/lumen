@@ -1,0 +1,293 @@
+{
+  "version": 2,
+  "meta": {
+    "title": "a1fix",
+    "lang": "th"
+  },
+  "root": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "type": "page",
+      "props": {
+        "type": "page",
+        "children": [
+          "btn",
+          "glass",
+          "head",
+          "txt",
+          "box",
+          "grad",
+          "plain",
+          "bpbtn",
+          "gtxt"
+        ]
+      },
+      "style": {
+        "backgroundColor": "#f8fafc",
+        "transition": {
+          "durationMs": 300,
+          "easing": "ease",
+          "property": "paint"
+        }
+      }
+    },
+    "btn": {
+      "id": "btn",
+      "type": "button",
+      "props": {
+        "type": "button",
+        "label": "กด",
+        "href": "https://example.com",
+        "action": "link"
+      },
+      "style": {
+        "boxShadow": [
+          {
+            "x": 0,
+            "y": 6,
+            "blur": 0,
+            "spread": 0,
+            "color": "#0369a1"
+          },
+          {
+            "x": 0,
+            "y": 10,
+            "blur": 12,
+            "spread": 0,
+            "color": "#00000033"
+          }
+        ],
+        "transition": {
+          "durationMs": 120,
+          "delayMs": 0,
+          "easing": "ease-out",
+          "property": "paint"
+        }
+      },
+      "states": {
+        "hover": {
+          "backgroundColor": "#38bdf8",
+          "transform": {
+            "translateY": -1
+          }
+        },
+        "active": {
+          "transform": {
+            "translateY": 5
+          },
+          "boxShadow": [
+            {
+              "x": 0,
+              "y": 1,
+              "blur": 0,
+              "spread": 0,
+              "color": "#0369a1"
+            },
+            {
+              "x": 0,
+              "y": 2,
+              "blur": 4,
+              "spread": 0,
+              "color": "#00000033"
+            }
+          ]
+        }
+      }
+    },
+    "glass": {
+      "id": "glass",
+      "type": "container",
+      "props": {
+        "type": "container",
+        "children": []
+      },
+      "style": {
+        "backgroundColor": "#ffffff80",
+        "backdropFilter": {
+          "blur": 12,
+          "saturate": 150
+        },
+        "padding": 24
+      }
+    },
+    "head": {
+      "id": "head",
+      "type": "heading",
+      "props": {
+        "type": "heading",
+        "level": 2,
+        "content": "เลื่อนมาเห็น"
+      },
+      "style": {
+        "opacity": 0.9
+      },
+      "motion": {
+        "entrance": {
+          "preset": "slideUp",
+          "trigger": "view",
+          "durationMs": 400,
+          "delayMs": 0,
+          "easing": "ease-out"
+        }
+      }
+    },
+    "txt": {
+      "id": "txt",
+      "type": "text",
+      "props": {
+        "type": "text",
+        "content": "ค่อย ๆ ปรากฏ"
+      },
+      "style": {},
+      "motion": {
+        "entrance": {
+          "preset": "fade",
+          "trigger": "load",
+          "durationMs": 300,
+          "delayMs": 40,
+          "easing": "ease-out"
+        }
+      }
+    },
+    "box": {
+      "id": "box",
+      "type": "container",
+      "props": {
+        "type": "container",
+        "children": []
+      },
+      "style": {
+        "backgroundColor": "#e2e8f0",
+        "padding": 16,
+        "transition": {
+          "durationMs": 200,
+          "easing": "ease",
+          "property": "paint"
+        }
+      }
+    },
+    "grad": {
+      "id": "grad",
+      "type": "heading",
+      "props": {
+        "type": "heading",
+        "level": 3,
+        "content": "ไล่สี"
+      },
+      "style": {
+        "textGradient": {
+          "kind": "linear",
+          "angle": 90,
+          "stops": [
+            {
+              "color": "#f43f5e",
+              "at": 0
+            },
+            {
+              "color": "#3b82f6",
+              "at": 100
+            }
+          ]
+        }
+      }
+    },
+    "plain": {
+      "id": "plain",
+      "type": "text",
+      "props": {
+        "type": "text",
+        "content": "ธรรมดา"
+      },
+      "style": {
+        "color": "#334155"
+      }
+    },
+    "bpbtn": {
+      "id": "bpbtn",
+      "type": "button",
+      "props": {
+        "type": "button",
+        "label": "ปุ่มสอง",
+        "href": "/about",
+        "action": "link"
+      },
+      "style": {
+        "backgroundColor": "#0f766e",
+        "color": "#ffffff",
+        "padding": 12,
+        "cursor": "pointer"
+      },
+      "styleBreakpoints": {
+        "tablet": {
+          "padding": 8
+        }
+      },
+      "states": {
+        "hover": {
+          "color": "#fef08a",
+          "opacity": 0.95,
+          "filter": {
+            "brightness": 110
+          }
+        },
+        "focusVisible": {
+          "boxShadow": [
+            {
+              "x": 0,
+              "y": 0,
+              "blur": 0,
+              "spread": 3,
+              "color": "#0077c2"
+            }
+          ]
+        },
+        "active": {
+          "backgroundColor": "#115e59",
+          "borderColor": "#134e4a",
+          "backgroundGradient": {
+            "kind": "linear",
+            "angle": 180,
+            "stops": [
+              {
+                "color": "#115e59",
+                "at": 0
+              },
+              {
+                "color": "#0f766e",
+                "at": 100
+              }
+            ]
+          }
+        }
+      }
+    },
+    "gtxt": {
+      "id": "gtxt",
+      "type": "text",
+      "props": {
+        "type": "text",
+        "content": "ชี้แล้วไล่สี"
+      },
+      "style": {},
+      "states": {
+        "hover": {
+          "textGradient": {
+            "kind": "linear",
+            "angle": 90,
+            "stops": [
+              {
+                "color": "#22c55e",
+                "at": 0
+              },
+              {
+                "color": "#0ea5e9",
+                "at": 100
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

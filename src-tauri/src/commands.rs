@@ -610,42 +610,49 @@ pub async fn preview_sidecar_start(
     project_id: String,
     document: Value,
 ) -> Result<crate::sidecar::SidecarStatus, String> {
-    let st = sc.status();
-    if st.state == crate::sidecar::SidecarPhase::Running || st.state == crate::sidecar::SidecarPhase::Starting {
-        return Ok(st);
-    }
+    // A1 (audit High 1): claim the start under the sidecar lock first. A 2nd / 3rd caller during the slow
+    // export + install below gets the same session back instead of spawning another Vite tree.
+    let session = match sc.begin_start() {
+        crate::sidecar::StartGate::Existing(st) => return Ok(st),
+        crate::sidecar::StartGate::Fresh(n) => n,
+    };
     sc.reset_restarts();
-    let doc = parse_document(&document)?;
-    let (opts, files) = {
-        let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
-        crate::assets::export_parts(&conn, &state.assets_dir, &project_id, &doc)?
+    let run = || -> Result<u16, String> {
+        let doc = parse_document(&document)?;
+        let (opts, files) = {
+            let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
+            crate::assets::export_parts(&conn, &state.assets_dir, &project_id, &doc)?
+        };
+        let site = state.sites_dir.join(&project_id);
+        let ws = if site.join("package.json").is_file() {
+            site.clone()
+        } else {
+            sc.cache_dir.join("preview").join("ws").join(&project_id)
+        };
+        if ws == site {
+            crate::export::sync_project_site(&ws, &doc, &opts, &files)?;
+        } else {
+            crate::export::write_export_tree(&ws, &doc, &opts, &files)?;
+        }
+        let bun_ver = if sc.bun.is_file() {
+            std::process::Command::new(&sc.bun)
+                .arg("--version")
+                .output()
+                .ok()
+                .and_then(|o| String::from_utf8(o.stdout).ok())
+                .unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let deps = sc.cache_dir.join("preview").join("deps");
+        crate::sidecar::start_vite(&sc, session, &ws, &deps, bun_ver.trim())
     };
-    let site = state.sites_dir.join(&project_id);
-    let ws = if site.join("package.json").is_file() {
-        site.clone()
-    } else {
-        sc.cache_dir.join("preview").join("ws").join(&project_id)
-    };
-    if ws == site {
-        crate::export::sync_project_site(&ws, &doc, &opts, &files)?;
-    } else {
-        crate::export::write_export_tree(&ws, &doc, &opts, &files)?;
-    }
-    let bun_ver = if sc.bun.is_file() {
-        std::process::Command::new(&sc.bun)
-            .arg("--version")
-            .output()
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .unwrap_or_default()
-    } else {
-        String::new()
-    };
-    let deps = sc.cache_dir.join("preview").join("deps");
-    match crate::sidecar::start_vite(&sc, &ws, &deps, bun_ver.trim()) {
+    match run() {
         Ok(_) => Ok(sc.status()),
+        // Stopped or replaced while preparing: report the current state, not an error.
+        Err(code) if code == crate::sidecar::START_SUPERSEDED => Ok(sc.status()),
         Err(code) => {
-            sc.set_error(&code);
+            sc.fail_start(session, &code);
             let thai = crate::sidecar::error_thai(&code);
             Err(if thai == code { code } else { format!("{code}:{thai}") })
         }

@@ -13,6 +13,8 @@ export type SidecarStatus = {
   pssMb: number | null;
   error: string | null;
   errorCode: string | null;
+  /** A1: start session id (concurrent starts during one start share it). */
+  session: number | null;
 };
 
 export const SIDECAR_IDLE_MS = 60_000;
@@ -42,6 +44,7 @@ const STOPPED: SidecarStatus = {
   pssMb: null,
   error: null,
   errorCode: null,
+  session: null,
 };
 
 export function normalizeStatus(raw: unknown): SidecarStatus {
@@ -56,6 +59,7 @@ export function normalizeStatus(raw: unknown): SidecarStatus {
     pssMb: typeof s.pssMb === "number" ? s.pssMb : null,
     error: typeof s.error === "string" ? s.error : null,
     errorCode: typeof s.errorCode === "string" ? s.errorCode : null,
+    session: typeof s.session === "number" ? s.session : null,
   };
 }
 
@@ -144,6 +148,7 @@ export function parseStartError(e: unknown): SidecarStatus {
     pssMb: null,
     error: fromCode || rest || raw,
     errorCode,
+    session: null,
   };
 }
 

@@ -1,0 +1,88 @@
+{
+  "box": {
+    "families": [
+      "transition-delay",
+      "transition-duration",
+      "transition-property",
+      "transition-timing-function"
+    ],
+    "hook": true
+  },
+  "bpbtn": {
+    "families": [
+      "background-color",
+      "background-image",
+      "border-color",
+      "box-shadow",
+      "color",
+      "filter",
+      "opacity",
+      "transition-delay",
+      "transition-duration",
+      "transition-property",
+      "transition-timing-function"
+    ],
+    "hook": true
+  },
+  "btn": {
+    "families": [
+      "background-color",
+      "box-shadow",
+      "transform",
+      "transition-delay",
+      "transition-duration",
+      "transition-property",
+      "transition-timing-function"
+    ],
+    "hook": true
+  },
+  "glass": {
+    "families": [
+      "-webkit-backdrop-filter",
+      "backdrop-filter",
+      "background-color"
+    ],
+    "hook": true
+  },
+  "grad": {
+    "families": [],
+    "hook": true
+  },
+  "gtxt": {
+    "families": [
+      "-webkit-background-clip",
+      "background-clip",
+      "background-image",
+      "color",
+      "transition-delay",
+      "transition-duration",
+      "transition-property",
+      "transition-timing-function"
+    ],
+    "hook": true
+  },
+  "head": {
+    "families": [
+      "opacity",
+      "transform"
+    ],
+    "hook": true
+  },
+  "plain": {
+    "families": [],
+    "hook": false
+  },
+  "root": {
+    "families": [
+      "transition-delay",
+      "transition-duration",
+      "transition-property",
+      "transition-timing-function"
+    ],
+    "hook": true
+  },
+  "txt": {
+    "families": [],
+    "hook": true
+  }
+}

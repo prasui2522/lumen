@@ -290,3 +290,71 @@ export function withoutFamilies(style: CSSProperties | undefined, fams: Set<stri
   for (const [k, v] of Object.entries(style)) if (!fams.has(propFamily(kebab(k)))) out[k] = v;
   return out as CSSProperties;
 }
+
+/* ---- A1 (audit High 2): fx hook — same table as `node_fx` / `fx_families` in compiler.rs ---- */
+
+/** Transition longhands this file writes inline; restated on the hook by the generator. */
+export const TRANSITION_FAMS = [
+  "transition-property",
+  "transition-duration",
+  "transition-timing-function",
+  "transition-delay",
+] as const;
+
+/** E3 view-entrance from-state keys per preset (compiler.rs `motion_from_decls`). */
+const VIEW_FROM_FAMS: Record<string, string[]> = {
+  fade: ["opacity"],
+  slideUp: ["opacity", "transform"],
+  slideDown: ["opacity", "transform"],
+  slideLeft: ["opacity", "transform"],
+  slideRight: ["opacity", "transform"],
+  scaleIn: ["opacity", "transform"],
+};
+
+type FxNode = {
+  style?: StyleProps;
+  states?: { hover?: StyleProps; active?: StyleProps; focusVisible?: StyleProps };
+  motion?: { entrance?: { preset?: string; trigger?: string } };
+};
+
+const anyDefined = (o: object | undefined, keys: string[]) =>
+  !!o && keys.some((k) => (o as Record<string, unknown>)[k] !== undefined && (o as Record<string, unknown>)[k] !== null);
+
+const gradientSet = (g: unknown) =>
+  !!g && Array.isArray((g as { stops?: unknown[] }).stops) && (g as { stops: unknown[] }).stops.length > 0;
+
+/** Mirrors Rust `StateStyle::is_empty` (negated). */
+export function stateSet(s: StyleProps | undefined): boolean {
+  if (!s) return false;
+  const r = s as Record<string, unknown>;
+  return (
+    anyDefined(s, ["backgroundColor", "color", "borderColor", "opacity", "cursor"]) ||
+    (Array.isArray(r.boxShadow) && r.boxShadow.length > 0) ||
+    gradientSet(r.backgroundGradient) ||
+    gradientSet(r.textGradient) ||
+    anyDefined(r.filter as object | undefined, ["blur", "brightness", "contrast", "saturate", "grayscale", "hueRotate"]) ||
+    anyDefined(r.backdropFilter as object | undefined, ["blur", "saturate", "brightness"]) ||
+    anyDefined(r.transform as object | undefined, ["translateX", "translateY", "scale", "scaleX", "scaleY", "rotate", "skewX", "skewY"])
+  );
+}
+
+/** `{ hook, families, fx }`: hook → the root carries `data-wb-id`; families leave the inline style (the generator
+ * restates them on the hook); fx → the root carries `fx` (states), like the static `.nN fx`. */
+export function nodeFx(node: FxNode): { hook: boolean; families: Set<string>; fx: boolean } {
+  const families = new Set<string>();
+  const st = node.states;
+  const states = st ? [st.hover, st.focusVisible, st.active].filter(stateSet) : [];
+  const hasStates = states.length > 0;
+  for (const s of states) for (const k of Object.keys(styleToReact(s))) families.add(propFamily(kebab(k)));
+  const tr = node.style?.transition;
+  const hasTransition = anyDefined(tr, ["durationMs", "delayMs", "easing", "property"]);
+  if (hasStates || hasTransition) for (const f of TRANSITION_FAMS) families.add(f);
+  const e = node.motion?.entrance;
+  const entrance = !!e && !!e.preset && e.preset in VIEW_FROM_FAMS && (e.trigger === "load" || e.trigger === "view");
+  if (entrance && e!.trigger === "view") for (const f of VIEW_FROM_FAMS[e!.preset!]) families.add(f);
+  const backdrop = anyDefined(node.style?.backdropFilter, ["blur", "saturate", "brightness"]);
+  if (backdrop) for (const f of ["-webkit-backdrop-filter", "backdrop-filter", "background-color"]) families.add(f);
+  const base = styleToReact(node.style);
+  const textGrad = base.backgroundClip === "text";
+  return { hook: hasStates || hasTransition || entrance || backdrop || textGrad, families, fx: hasStates };
+}

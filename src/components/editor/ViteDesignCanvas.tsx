@@ -31,13 +31,18 @@ export function ViteDesignCanvas({ fallback }: { fallback: ReactNode }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
 
+  // A1 (audit High 1): start once per project / phase change — never on document edits (the running
+  // sidecar takes edits through site.json HMR). The document is read at call time, not a dependency.
+  const hasDoc = doc != null;
   useEffect(() => {
-    if (forceCanvas || !openId || !doc) return;
+    if (forceCanvas || !openId || !hasDoc) return;
     if (status.state === "running" || status.state === "starting") return;
-    void sidecarStart(openId, doc)
+    const current = useProjectsStore.getState().openDocument;
+    if (!current) return;
+    void sidecarStart(openId, current)
       .then(publishSidecar)
       .catch(() => setForceCanvas(true));
-  }, [forceCanvas, openId, doc, status.state]);
+  }, [forceCanvas, openId, hasDoc, status.state]);
 
   if (forceCanvas || status.state !== "running" || status.port == null) {
     return (

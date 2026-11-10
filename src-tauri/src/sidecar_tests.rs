@@ -277,3 +277,116 @@ fn s9_log_has_crash_code_not_document() {
     assert!(!raw.contains("nodes"));
     let _ = fs::remove_dir_all(&dir);
 }
+
+// ---- A1 (audit High 1): one start session, one process tree, nothing left after stop ----
+
+/// Live processes (not zombies) whose cmdline contains `marker`.
+fn a1_count(marker: &str) -> usize {
+    let mut n = 0;
+    for e in fs::read_dir("/proc").unwrap().flatten() {
+        let Some(pid) = e.file_name().to_str().and_then(|x| x.parse::<u32>().ok()) else { continue };
+        if !pid_alive(pid) {
+            continue;
+        }
+        if let Ok(c) = fs::read(format!("/proc/{pid}/cmdline")) {
+            if c.windows(marker.len()).any(|w| w == marker.as_bytes()) {
+                n += 1;
+            }
+        }
+    }
+    n
+}
+
+fn a1_wait_count(marker: &str, want: usize) -> usize {
+    let start = std::time::Instant::now();
+    loop {
+        let n = a1_count(marker);
+        if n == want || start.elapsed() > std::time::Duration::from_secs(5) {
+            return n;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+}
+
+fn a1_sidecar() -> (Arc<Sidecar>, PathBuf) {
+    let cache = std::env::temp_dir().join(format!("wb-a1-{}", Uuid::new_v4().simple()));
+    fs::create_dir_all(&cache).unwrap();
+    (Sidecar::new(cache.clone(), cache.join("logs"), PathBuf::new()), cache)
+}
+
+#[test]
+fn a1_concurrent_starts_share_one_session_and_one_tree() {
+    let (s, cache) = a1_sidecar();
+    let marker = format!("a1mark{}", Uuid::new_v4().simple());
+    let script = format!("while :; do sleep 1; done; : {marker}");
+    let mut hs = Vec::new();
+    for _ in 0..3 {
+        let s2 = Arc::clone(&s);
+        let sc = script.clone();
+        hs.push(std::thread::spawn(move || {
+            s2.start_dummy_slow(Path::new("/bin/sh"), &["-c", &sc], 300).unwrap()
+        }));
+    }
+    let sts: Vec<SidecarStatus> = hs.into_iter().map(|h| h.join().unwrap()).collect();
+    let first = sts[0].session;
+    assert!(first > 0, "{sts:?}");
+    assert!(sts.iter().all(|st| st.session == first), "same session for every caller: {sts:?}");
+    assert_eq!(a1_wait_count(&marker, 1), 1, "exactly one process tree");
+    assert_eq!(s.spawned_groups().len(), 1);
+    assert_eq!(s.status().state, SidecarPhase::Running);
+    s.stop();
+    assert_eq!(a1_wait_count(&marker, 0), 0, "stop leaves no child");
+    assert!(s.spawned_groups().is_empty());
+    let _ = fs::remove_dir_all(&cache);
+}
+
+#[test]
+fn a1_stop_while_preparing_spawns_nothing() {
+    let (s, cache) = a1_sidecar();
+    let marker = format!("a1mark{}", Uuid::new_v4().simple());
+    let script = format!("while :; do sleep 1; done; : {marker}");
+    let s2 = Arc::clone(&s);
+    let h = std::thread::spawn(move || s2.start_dummy_slow(Path::new("/bin/sh"), &["-c", &script], 400).unwrap());
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    assert_eq!(s.status().state, SidecarPhase::Starting, "Starting is claimed before the slow work");
+    s.stop();
+    let st = h.join().unwrap();
+    assert_eq!(st.state, SidecarPhase::Stopped);
+    std::thread::sleep(std::time::Duration::from_millis(200));
+    assert_eq!(a1_count(&marker), 0);
+    assert!(s.spawned_groups().is_empty());
+    let _ = fs::remove_dir_all(&cache);
+}
+
+#[test]
+fn a1_stop_kills_untracked_group_and_orphaned_members() {
+    let (s, cache) = a1_sidecar();
+    // Tracked tree whose leader dies but leaves a member in its group (the crash case).
+    let marker = format!("a1mark{}", Uuid::new_v4().simple());
+    let inner = format!("while :; do sleep 1; done; : {marker}");
+    let outer = format!("sh -c '{inner}' & wait");
+    s.start_dummy(Path::new("/bin/sh"), &["-c", &outer]).unwrap();
+    assert_eq!(a1_wait_count(&marker, 2), 2);
+    // An untracked group of ours (lost the tracked slot).
+    let tok = Uuid::new_v4().simple().to_string();
+    let mut cmd = Command::new("/bin/sh");
+    cmd.args(["-c", &inner, "--preview-token", &tok]);
+    {
+        use std::os::unix::process::CommandExt;
+        cmd.process_group(0);
+    }
+    let mut lost = cmd.spawn().unwrap();
+    s.track_spawned_for_test(lost.id(), lost.id() as i32, &tok);
+    assert_eq!(a1_wait_count(&marker, 3), 3);
+    s.stop();
+    let _ = lost.try_wait();
+    assert_eq!(a1_wait_count(&marker, 0), 0, "stop kills tracked group members and untracked groups");
+    let _ = lost.wait();
+    let _ = fs::remove_dir_all(&cache);
+}
+
+#[test]
+fn a1_run_vite_has_parent_watchdog_and_group_kill() {
+    assert!(RUN_VITE.contains("process.ppid !== parent"));
+    assert!(RUN_VITE.contains("process.kill(-process.pid, \"SIGKILL\")"));
+}
