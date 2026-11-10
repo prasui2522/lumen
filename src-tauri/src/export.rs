@@ -771,6 +771,12 @@ pub fn clear_override(dir: &Path, rel: &str) -> Result<(), String> {
 
 /// R6: a folder is ours only when package name and site.json both match the export.
 pub fn load_import_document(dir: &Path) -> Result<PageDocument, String> {
+    // A2: the two marker files must be real files in the folder, not links to somewhere else.
+    for rel in ["package.json", "src", "src/data", "src/data/site.json"] {
+        if std::fs::symlink_metadata(dir.join(rel)).is_ok_and(|m| m.file_type().is_symlink()) {
+            return Err("โฟลเดอร์นี้ไม่ใช่โปรเจกต์ที่ส่งออกจากแอป".into());
+        }
+    }
     let pkg = std::fs::read_to_string(dir.join("package.json"))
         .map_err(|_| "โฟลเดอร์นี้ไม่ใช่โปรเจกต์ที่ส่งออกจากแอป".to_string())?;
     let meta: serde_json::Value = serde_json::from_str(&pkg)
@@ -800,8 +806,18 @@ pub fn copy_project_tree(src: &Path, dest: &Path) -> Result<(), String> {
             if rel.contains("..") {
                 continue;
             }
-            if path.is_dir() {
+            // A2: never follow a link out of the imported folder: `file_type()` is the entry itself
+            // (lstat), so symlinks — to files or folders, inside or outside — are skipped, as are
+            // sockets / fifos / devices.
+            let Ok(ft) = ent.file_type() else { continue };
+            if ft.is_symlink() {
+                continue;
+            }
+            if ft.is_dir() {
                 walk(src_root, &path, dest)?;
+                continue;
+            }
+            if !ft.is_file() {
                 continue;
             }
             let bytes = std::fs::read(&path).map_err(|e| format!("คัดลอกโปรเจกต์ไม่สำเร็จ: {e}"))?;
@@ -849,8 +865,16 @@ pub fn list_site_tree(dir: &Path) -> Result<Vec<ExportListEntry>, String> {
                 continue;
             }
             let path = ent.path();
-            if path.is_dir() {
+            // A2: list the folder itself only — symlinks (and other non-regular entries) are not followed.
+            let Ok(ft) = ent.file_type() else { continue };
+            if ft.is_symlink() {
+                continue;
+            }
+            if ft.is_dir() {
                 walk(root, &path, out)?;
+                continue;
+            }
+            if !ft.is_file() {
                 continue;
             }
             let rel = path

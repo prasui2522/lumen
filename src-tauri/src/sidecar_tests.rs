@@ -19,10 +19,18 @@ fn s6_excluded_ports_never_in_preview_range() {
 
 #[test]
 fn s6_pick_port_in_range_and_free() {
-    let p = pick_port().unwrap();
-    assert!((PORT_MIN..=PORT_MAX).contains(&p));
-    assert!(!is_excluded_port(p));
-    assert!(TcpListener::bind(("127.0.0.1", p)).is_ok());
+    assert!((PORT_MIN..=PORT_MAX).contains(&pick_port().unwrap()));
+    // A2: hold the probe lock so no parallel test's probe bind sits on the port between pick and bind.
+    // The range overlaps the kernel's ephemeral ports, so an unrelated connect() may still take a port in
+    // the instant after the probe; a handful of picks must include a free one (each pick is checked).
+    let _g = PICK_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let free = (0..5).any(|_| {
+        let p = pick_port_unlocked().unwrap();
+        assert!((PORT_MIN..=PORT_MAX).contains(&p));
+        assert!(!is_excluded_port(p));
+        TcpListener::bind(("127.0.0.1", p)).is_ok()
+    });
+    assert!(free);
 }
 
 #[test]
@@ -389,4 +397,163 @@ fn a1_stop_kills_untracked_group_and_orphaned_members() {
 fn a1_run_vite_has_parent_watchdog_and_group_kill() {
     assert!(RUN_VITE.contains("process.ppid !== parent"));
     assert!(RUN_VITE.contains("process.kill(-process.pid, \"SIGKILL\")"));
+}
+
+// ---------------- A2 ----------------
+
+/// A2 tests: on any exit (including a failed assert) kill our own leftovers, found by the test's unique marker.
+struct Reap(String);
+impl Drop for Reap {
+    fn drop(&mut self) {
+        for p in a2_pids(&self.0) {
+            unsafe {
+                libc::kill(p as i32, libc::SIGKILL);
+            }
+        }
+    }
+}
+
+fn a2_pids(marker: &str) -> Vec<u32> {
+    let mut out = Vec::new();
+    for e in fs::read_dir("/proc").unwrap().flatten() {
+        let Some(pid) = e.file_name().to_str().and_then(|x| x.parse::<u32>().ok()) else { continue };
+        if !pid_alive(pid) {
+            continue;
+        }
+        if let Ok(c) = fs::read(format!("/proc/{pid}/cmdline")) {
+            if c.windows(marker.len()).any(|w| w == marker.as_bytes()) {
+                out.push(pid);
+            }
+        }
+    }
+    out
+}
+
+/// A2 item 9 (Designer Low b): leader AND child ignore SIGTERM → stop escalates to SIGKILL; 0 left.
+#[test]
+fn a2_stop_escalates_to_kill_when_tree_ignores_term() {
+    let (s, cache) = a1_sidecar();
+    let marker = format!("a2ign{}", Uuid::new_v4().simple());
+    let _reap = Reap(marker.clone());
+    let child = format!("(while :; do sleep 1; done; : {marker}c) &");
+    let script = format!("trap '' TERM; {child} while :; do sleep 1; done; : {marker}");
+    s.start_dummy(Path::new("/bin/sh"), &["-c", &script]).unwrap();
+    assert_eq!(a1_wait_count(&marker, 2), 2, "leader + TERM-ignoring child");
+    let groups = s.spawned_groups();
+    assert_eq!(groups.len(), 1);
+    let t0 = Instant::now();
+    s.stop();
+    let took = t0.elapsed();
+    assert_eq!(a1_wait_count(&marker, 0), 0, "SIGKILL escalation leaves no process");
+    assert!(group_members(groups[0]).is_empty(), "group empty");
+    assert!(took >= STOP_KILL_AFTER, "TERM was ignored, so stop waited for the KILL deadline ({took:?})");
+    // The group-wide KILL at the deadline ends the tree at once; without it the leader alone is killed and the
+    // member waits for kill_untracked's own TERM→1.5 s→KILL, which this bound rejects.
+    assert!(took < STOP_KILL_AFTER + Duration::from_millis(1200), "then the whole group is killed promptly ({took:?})");
+    let _ = fs::remove_dir_all(&cache);
+}
+
+/// A2 item 9: the leader exits on SIGTERM but leaves a TERM-ignoring member in its group → KILL; 0 left.
+#[test]
+fn a2_stop_kills_term_ignoring_member_after_leader_exits() {
+    let (s, cache) = a1_sidecar();
+    let marker = format!("a2mem{}", Uuid::new_v4().simple());
+    let _reap = Reap(marker.clone());
+    let script = format!(
+        "(trap '' TERM; while :; do sleep 1; done; : {marker}c) & trap 'exit 0' TERM; while :; do sleep 1; done; : {marker}"
+    );
+    s.start_dummy(Path::new("/bin/sh"), &["-c", &script]).unwrap();
+    assert_eq!(a1_wait_count(&marker, 2), 2);
+    let pgid = s.spawned_groups()[0];
+    s.stop();
+    assert_eq!(a1_wait_count(&marker, 0), 0, "member that ignored TERM was killed");
+    assert!(group_members(pgid).is_empty());
+    let _ = fs::remove_dir_all(&cache);
+}
+
+/// A2 item 6: every process of a spawned tree carries the token in its environment.
+#[test]
+fn a2_spawned_tree_carries_token_env() {
+    let (s, cache) = a1_sidecar();
+    let marker = format!("a2env{}", Uuid::new_v4().simple());
+    let _reap = Reap(marker.clone());
+    let script = format!("(while :; do sleep 1; done; : {marker}c) & while :; do sleep 1; done; : {marker}");
+    s.start_dummy(Path::new("/bin/sh"), &["-c", &script]).unwrap();
+    assert_eq!(a1_wait_count(&marker, 2), 2);
+    let tok = s.status_token_for_test();
+    for pid in a2_pids(&marker) {
+        assert!(environ_has_token(pid as i32, &tok), "pid {pid} has {TOKEN_ENV}");
+    }
+    s.stop();
+    assert_eq!(a1_wait_count(&marker, 0), 0);
+    let _ = fs::remove_dir_all(&cache);
+}
+
+/// A2 item 6: the sweep kills only members that are in the recorded group AND carry the token; a member of
+/// the same group without the token, a record whose pid is not its group leader, and a record whose group
+/// does not match the live process are all left alone.
+#[test]
+fn a2_sweep_verifies_group_and_token_per_member() {
+    let cache = std::env::temp_dir().join(format!("wb-a2s-{}", Uuid::new_v4().simple()));
+    fs::create_dir_all(cache.join("preview")).unwrap();
+    let tok = Uuid::new_v4().simple().to_string();
+    let marker = format!("a2sw{}", Uuid::new_v4().simple());
+    let _reap = Reap(marker.clone());
+    // Leader exits at once, leaving two members in its group: one with the token env, one exec'd without it
+    // (/proc/<pid>/environ is the exec-time environment, so both are fresh execs with their own cmdline).
+    let script = format!(
+        "(exec /bin/sh -c 'while :; do sleep 1; done; : {marker}yes') & (exec env -u {TOKEN_ENV} /bin/sh -c 'while :; do sleep 1; done; : {marker}no') & exit 0"
+    );
+    let mut cmd = Command::new("/bin/sh");
+    cmd.args(["-c", &script]).env(TOKEN_ENV, &tok).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+    {
+        use std::os::unix::process::CommandExt;
+        cmd.process_group(0);
+    }
+    let mut leader = cmd.spawn().unwrap();
+    let lpid = leader.id();
+    let _ = leader.wait();
+    assert_eq!(a1_wait_count(&format!("{marker}yes"), 1), 1);
+    assert_eq!(a1_wait_count(&format!("{marker}no"), 1), 1);
+    let yes = a2_pids(&format!("{marker}yes"))[0];
+    let no = a2_pids(&format!("{marker}no"))[0];
+    assert_eq!(proc_pgid(no as i32), Some(lpid as i32));
+    let rec = |pid: u32, pgid: i32| SidecarFile { pid, pgid, port: 47303, started_at: 0, exe: "/bin/sh".into(), token: tok.clone() };
+    // pid != pgid (not a group leader record) → untouched
+    write_sidecar_file(&sidecar_path(&cache), &rec(yes, lpid as i32)).unwrap();
+    assert_eq!(sweep_orphans(&cache).unwrap(), 0);
+    // record names a group the live pid is not in → untouched
+    write_sidecar_file(&sidecar_path(&cache), &rec(yes, yes as i32)).unwrap();
+    assert_eq!(sweep_orphans(&cache).unwrap(), 0);
+    assert!(pid_alive(yes) && pid_alive(no));
+    // wrong token → untouched
+    let mut bad = rec(lpid, lpid as i32);
+    bad.token = Uuid::new_v4().simple().to_string();
+    write_sidecar_file(&sidecar_path(&cache), &bad).unwrap();
+    assert_eq!(sweep_orphans(&cache).unwrap(), 0);
+    assert!(pid_alive(yes) && pid_alive(no));
+    // the real record: only the member carrying the token dies
+    write_sidecar_file(&sidecar_path(&cache), &rec(lpid, lpid as i32)).unwrap();
+    // the token member (and its current `sleep 1`, which inherits the env) — never the other one
+    assert!(sweep_orphans(&cache).unwrap() >= 1);
+    assert_eq!(a1_wait_count(&format!("{marker}yes"), 0), 0, "token member killed");
+    assert_eq!(a1_count(&format!("{marker}no")), 1, "member without the token is not ours");
+    assert!(!sidecar_path(&cache).exists());
+    // cleanup: our own test process, pid checked by marker
+    for p in a2_pids(&format!("{marker}no")) {
+        unsafe {
+            libc::kill(p as i32, libc::SIGKILL);
+        }
+    }
+    assert_eq!(a1_wait_count(&format!("{marker}no"), 0), 0);
+    let _ = fs::remove_dir_all(&cache);
+}
+
+/// A2 item 4: the Preview entry measures boxes on events, not on a timer.
+#[test]
+fn a2_preview_entry_has_no_polling() {
+    assert!(!PREVIEW_ENTRY.contains("setInterval"));
+    assert!(PREVIEW_ENTRY.contains("new MutationObserver("));
+    assert!(PREVIEW_ENTRY.contains("new ResizeObserver(queueBoxes)"));
+    assert!(PREVIEW_ENTRY.contains("requestAnimationFrame("));
 }

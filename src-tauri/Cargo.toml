@@ -33,7 +33,9 @@ libc = "0.2"
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [features]
-default = ["custom-protocol"]
+# A2 (user decision 2026-11-10): custom-protocol only for real builds (`tauri build` enables it); plain
+# `cargo build` / `tauri dev` load the devUrl.
+default = []
 custom-protocol = ["tauri/custom-protocol"]
 
 [profile.release]

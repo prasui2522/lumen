@@ -122,8 +122,8 @@ function scanForbiddenStrings(
     if (NET_URL.test(value)) {
       errors.push({ path, message: "network URL not allowed" });
     }
-    // Asset refs look like bare UUIDs in image src in this app — block images must be empty placeholders.
-    if (path.endsWith(".src") && value.trim() !== "") {
+    // Block images must be empty placeholders: `src` as a bare id (legacy) or the AssetRef `{ id }` (A2).
+    if ((path.endsWith(".src") || path.endsWith(".src.id")) && value.trim() !== "") {
       errors.push({ path, message: "image src must be empty placeholder" });
     }
     if (value.length > 2000) {

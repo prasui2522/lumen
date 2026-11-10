@@ -182,3 +182,11 @@ None of these blocks A1.3. Each is a later decision or a known limit.
     3. **Info (parity-test skip).** `a1fix-vite-fx` skips the link-style button's base fill and text colour: the `.t-button` default look is static-only (button is not a plain kind; see 92.2 / 92.10).
     4. **Info (parity-test skip).** `a1fix-vite-fx` normalises Vite's minified gradients, which drop the implicit `0%` / `100%` stops (same rendering).
     5. **Low (S-series, from the Designer).** The first Design→Preview after an idle stop once showed 'preview unavailable' (bridge-fail / stopped). Reproduce and fix in S.
+
+97. **A2 fix (2026-11-10, Designer-accepted).** Failing tests reconciled and made deterministic (D6 AssetRef validator, D3 MIT attribution, B1/B6 canvas-only `--wb-glass-solid`, B6.2 rAF isolation, D10 golden + CDP, db-dirty history reset, pick_port lock); project-id / symlink hardening (`project_dir`, import and file tree skip links); event-driven Preview measuring; per-member verified orphan sweep; `custom-protocol` build-only; the preview runtime is checked, not rewritten, by dev / build. Tests: `a2_tests`, sidecar `a2_*`, `a2-mediums`. Open items:
+    1. **Info (accepted as is).** The menubar focus ring uses the 3px `ring-3` token (`#1aa2eb` in dark).
+    2. **Low (S-series).** Preview does not pass `onBoxes`, so it has no select / resize overlay.
+    3. **A3.** The bare template should build standalone: a committed placeholder `src/styles/kinds.css` that export overwrites in the exported copy only.
+    4. **A3.** Vite frame: a Thai hint when the project is not saved (instead of a blank frame), plus an optional 'unsaved changes' badge.
+    5. **A3.** `/tmp` leaks: `cdp-kit` `closeBrowser` leaves `a241-*` / `a2b-*` profiles; cargo tests leave `/tmp/wb-*`.
+    6. **Info.** Release-test builds may use LTO off and 16 codegen units via env only (`CARGO_PROFILE_RELEASE_LTO=false`, `CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`); the committed Cargo profile is unchanged.

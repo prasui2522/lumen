@@ -14,6 +14,42 @@ use crate::testmigrate::{self, PlanResult};
 use tauri::State;
 use tauri_plugin_opener::OpenerExt;
 
+/// A2 (audit Medium): a project id names exactly one folder directly under its root. Ids are UUIDs in
+/// practice; anything with a separator, `..`, a leading dot, NUL or other bytes is refused before it can
+/// reach the filesystem.
+pub(crate) const BAD_PROJECT_ID: &str = "รหัสโปรเจกต์ไม่ถูกต้อง";
+
+pub(crate) fn check_project_id(id: &str) -> Result<(), String> {
+    let ok = !id.is_empty()
+        && id.len() <= 128
+        && !id.starts_with('.')
+        && !id.contains("..")
+        && id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_' || b == b'.');
+    if ok {
+        Ok(())
+    } else {
+        Err(BAD_PROJECT_ID.into())
+    }
+}
+
+/// A2: `root/<id>` after `check_project_id`; when the folder exists, its canonical path must still be a
+/// direct child of the canonical root (a symlinked project folder pointing elsewhere is refused).
+pub(crate) fn project_dir(root: &Path, id: &str) -> Result<PathBuf, String> {
+    check_project_id(id)?;
+    let dir = root.join(id);
+    if Path::new(id).is_absolute() || dir.parent() != Some(root) {
+        return Err(BAD_PROJECT_ID.into());
+    }
+    if std::fs::symlink_metadata(&dir).is_ok() {
+        let canon_root = std::fs::canonicalize(root).map_err(|_| BAD_PROJECT_ID.to_string())?;
+        let canon = std::fs::canonicalize(&dir).map_err(|_| BAD_PROJECT_ID.to_string())?;
+        if canon.parent() != Some(canon_root.as_path()) {
+            return Err(BAD_PROJECT_ID.into());
+        }
+    }
+    Ok(dir)
+}
+
 #[tauri::command]
 pub fn list_projects(state: State<'_, DbState>) -> Result<Vec<ProjectSummary>, String> {
     let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
@@ -30,7 +66,7 @@ pub fn create_project(
     let (opts, files) = crate::assets::export_parts(&conn, &state.assets_dir, &created.id, &created.document)?;
     drop(conn);
     crate::export::sync_project_site(
-        &state.sites_dir.join(&created.id),
+        &project_dir(&state.sites_dir, &created.id)?,
         &created.document,
         &opts,
         &files,
@@ -47,7 +83,7 @@ pub fn open_project(
     let mut opened = db_open(&conn, &id)?;
     let (opts, files) = crate::assets::export_parts(&conn, &state.assets_dir, &id, &opened.document)?;
     drop(conn);
-    let dir = state.sites_dir.join(&id);
+    let dir = project_dir(&state.sites_dir, &id)?;
     let site_path = dir.join("src/data/site.json");
     if !site_path.is_file() {
         crate::export::sync_project_site(&dir, &opened.document, &opts, &files)?;
@@ -76,7 +112,7 @@ pub fn save_project(
     crate::assets::gc_unreferenced(&conn, &state.assets_dir, &id, &document)?;
     let (opts, files) = crate::assets::export_parts(&conn, &state.assets_dir, &id, &document)?;
     drop(conn);
-    crate::export::sync_project_site(&state.sites_dir.join(&id), &document, &opts, &files)?;
+    crate::export::sync_project_site(&project_dir(&state.sites_dir, &id)?, &document, &opts, &files)?;
     Ok(())
 }
 
@@ -174,14 +210,14 @@ pub fn list_project_files(
     state: State<'_, DbState>,
     project_id: String,
 ) -> Result<Vec<crate::export::ExportListEntry>, String> {
-    let dir = state.sites_dir.join(&project_id);
+    let dir = project_dir(&state.sites_dir, &project_id)?;
     crate::export::list_site_tree(&dir)
 }
 
 /// R3: reveal the Vite project folder in the file manager.
 #[tauri::command]
 pub fn open_project_folder(app: tauri::AppHandle, state: State<'_, DbState>, project_id: String) -> Result<(), String> {
-    let dir = state.sites_dir.join(&project_id);
+    let dir = project_dir(&state.sites_dir, &project_id)?;
     if !dir.join("package.json").is_file() {
         return Err("ยังไม่มีโฟลเดอร์โปรเจกต์ — บันทึกก่อน".into());
     }
@@ -207,7 +243,7 @@ pub fn write_project_file(
     if path == crate::export::KINDS_CSS_REL || path == "src/data/site.json" {
         return Err("ไฟล์นี้สร้างจากข้อมูลหน้า — แก้ที่ผืนผ้าหรือ site.json".into());
     }
-    let dir = state.sites_dir.join(&project_id);
+    let dir = project_dir(&state.sites_dir, &project_id)?;
     if !dir.join("package.json").is_file() {
         return Err("ยังไม่มีโฟลเดอร์โปรเจกต์ — บันทึกก่อน".into());
     }
@@ -217,7 +253,7 @@ pub fn write_project_file(
 
 #[tauri::command]
 pub fn list_project_overrides(state: State<'_, DbState>, project_id: String) -> Result<Vec<String>, String> {
-    Ok(crate::export::read_overrides(&state.sites_dir.join(project_id)))
+    Ok(crate::export::read_overrides(&project_dir(&state.sites_dir, &project_id)?))
 }
 
 /// R5: drop the hand-edit flag and write `site.css` from the document again.
@@ -227,7 +263,7 @@ pub fn regenerate_site_css(
     project_id: String,
     document: PageDocument,
 ) -> Result<(), String> {
-    let dir = state.sites_dir.join(&project_id);
+    let dir = project_dir(&state.sites_dir, &project_id)?;
     let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
     let (opts, _) = crate::assets::export_parts(&conn, &state.assets_dir, &project_id, &document)?;
     drop(conn);
@@ -243,7 +279,7 @@ fn adopt_import(state: &DbState, name: String, src: &Path) -> Result<ProjectWith
     created.document = doc.clone();
     db_save(&conn, &created.id, None, &doc, None)?;
     drop(conn);
-    let dest = state.sites_dir.join(&created.id);
+    let dest = project_dir(&state.sites_dir, &created.id)?;
     if let Err(e) = crate::export::copy_project_tree(src, &dest) {
         if let Ok(conn) = state.conn.lock() {
             let _ = db_delete(&conn, &created.id);
@@ -366,6 +402,7 @@ pub fn delete_project(
     test: State<'_, TestDbState>,
     id: String,
 ) -> Result<(), String> {
+    check_project_id(&id)?;
     let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
     db_delete(&conn, &id)?;
     // Close its test file first so the file can go.
@@ -445,6 +482,7 @@ pub fn db_test_open(
                     .unwrap_or_default()
             })
     });
+    check_project_id(&project_id)?;
     testdb::open(&state.databases_dir, &mut g, &project_id, &model)
 }
 
@@ -510,6 +548,7 @@ pub fn db_test_reset(
     project_id: String,
     model: Value,
 ) -> Result<OpenResult, String> {
+    check_project_id(&project_id)?;
     testdb::reset(&state.databases_dir, &mut *slot(&test)?, &project_id, &model)
 }
 
@@ -623,11 +662,11 @@ pub async fn preview_sidecar_start(
             let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
             crate::assets::export_parts(&conn, &state.assets_dir, &project_id, &doc)?
         };
-        let site = state.sites_dir.join(&project_id);
+        let site = project_dir(&state.sites_dir, &project_id)?;
         let ws = if site.join("package.json").is_file() {
             site.clone()
         } else {
-            sc.cache_dir.join("preview").join("ws").join(&project_id)
+            project_dir(&sc.cache_dir.join("preview").join("ws"), &project_id)?
         };
         if ws == site {
             crate::export::sync_project_site(&ws, &doc, &opts, &files)?;
@@ -691,7 +730,7 @@ pub async fn preview_sidecar_write_site(
         let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
         crate::assets::export_parts(&conn, &state.assets_dir, &project_id, &doc)?
     };
-    let ws = sc.cache_dir.join("preview").join("ws").join(&project_id);
+    let ws = project_dir(&sc.cache_dir.join("preview").join("ws"), &project_id)?;
     let json = crate::export::build_site_json(&doc, &opts.asset_exts)?;
     crate::export::write_site_json_atomic(&ws, &json)
 }

@@ -13,6 +13,8 @@ mod icon_paths;
 mod chart_render;
 mod calendar_render;
 mod sidecar;
+#[cfg(test)]
+mod a2_tests;
 
 use db::{databases_dir, db_path, open_db, sites_dir, DbState};
 use assets::assets_dir;

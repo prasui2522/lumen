@@ -5,6 +5,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { STYLE_KEYS, type StyleProps } from "@/schema";
+import { opaqueFill } from "@/lib/glass-material";
 import {
   backdropFilterToCss,
   filterToCss,
@@ -19,6 +20,8 @@ function cssFromStyle(style: StyleProps): string {
   const lines: string[] = [];
   for (const [k, v] of Object.entries(react)) {
     if (v === undefined || v === null || v === "") continue;
+    // A2: canvas-only custom properties are not export declarations (see the glass fallback test below).
+    if (k.startsWith("--")) continue;
     const inputHad = (style as Record<string, unknown>)[k] !== undefined;
     if (!inputHad && k === "borderColor") continue;
     const kebab = k
@@ -44,6 +47,17 @@ describe("B6 filter goldens", () => {
       readFileSync(join(STYLE_FX, `${name}.json`), "utf8"),
     ) as StyleProps;
     expect(cssFromStyle(style)).toBe(readFileSync(join(STYLE_FX, `${name}.css`), "utf8"));
+  });
+});
+
+describe("B6 canvas glass fallback (a4cb5eb --wb-glass-solid)", () => {
+  test("backdrop blur sets --wb-glass-solid to the opaque fill; index.css .wb-glass reads it", () => {
+    const solid = (st: StyleProps) => (styleToCss(st) as Record<string, unknown>)["--wb-glass-solid"];
+    expect(solid({ backdropFilter: { blur: 12 } } as StyleProps)).toBe(opaqueFill(undefined));
+    expect(opaqueFill(undefined)).toBe("#f8fafc");
+    expect(solid({ backdropFilter: { blur: 12 }, backgroundColor: "#ffffff80" } as StyleProps)).toBe(opaqueFill("#ffffff80"));
+    expect(solid({ filter: { blur: 4 } } as StyleProps)).toBeUndefined();
+    expect(src("index.css")).toContain("background-color: var(--wb-glass-solid, #f8fafc) !important;");
   });
 });
 

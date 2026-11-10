@@ -1,11 +1,11 @@
 /**
  * Phase 11 D10: compiled Preview HTML has no horizontal overflow at 1024 / 719.
- * Builds HTML via `cargo test d10_all_authored_page_blocks_compile` (D10_PREVIEW_OUT).
- * Skips when headless Chromium is missing.
+ * A2: reads the golden `src-tauri/src/fixtures/d10/preview-blocks.html` (kept in sync by
+ * `cargo test d10_all_authored_page_blocks_compile`, re-bless with D10_BLESS=1) — no cargo in the hook.
+ * Chromium runs on a free DevTools port with a throw-away /tmp profile. Skips when headless Chromium is missing.
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -23,6 +23,7 @@ function findChrome(): string | null {
 
 const CHROME = findChrome();
 const ROOT = join(import.meta.dir, "..", "..");
+const GOLDEN = join(ROOT, "src-tauri", "src", "fixtures", "d10", "preview-blocks.html");
 
 class Cdp {
   private id = 0;
@@ -41,13 +42,13 @@ class Cdp {
     });
     return new Cdp(ws);
   }
-  call(method: string, params?: Record<string, unknown>): Promise<any> {
+  call(method: string, params?: Record<string, unknown>, sessionId?: string): Promise<any> {
     const id = ++this.id;
     return new Promise((res, rej) => {
       this.waiting.set(id, (d) =>
         d.error ? rej(new Error(`${method}: ${d.error.message}`)) : res(d.result),
       );
-      this.ws.send(JSON.stringify({ id, method, params }));
+      this.ws.send(JSON.stringify({ id, method, params, sessionId }));
     });
   }
   close() {
@@ -56,61 +57,54 @@ class Cdp {
 }
 
 describe("D10 Preview scroll 1024/719", () => {
-  let chrome: ChildProcess | null = null;
+  let chrome: ReturnType<typeof Bun.spawn> | null = null;
   let cdp: Cdp | null = null;
+  let session = "";
   let outDir = "";
-  const port = 9229;
+  let profile = "";
 
   beforeAll(async () => {
     if (!CHROME) return;
     outDir = mkdtempSync(join(tmpdir(), "d10-preview-"));
-    const r = spawnSync(
-      "cargo",
-      [
-        "test",
-        "--lib",
-        "d10_all_authored_page_blocks_compile",
-        "--",
-        "--nocapture",
-      ],
-      {
-        cwd: join(ROOT, "src-tauri"),
-        env: { ...process.env, D10_PREVIEW_OUT: outDir },
-        encoding: "utf8",
-      },
+    profile = mkdtempSync(join(tmpdir(), "d10-chrome-"));
+    copyFileSync(GOLDEN, join(outDir, "index.html"));
+    chrome = Bun.spawn(
+      [CHROME!, "--remote-debugging-port=0", "--headless", "--disable-gpu", "--no-sandbox",
+        `--user-data-dir=${profile}`, "about:blank"],
+      { stdout: "ignore", stderr: "pipe" },
     );
-    if (r.status !== 0) {
-      throw new Error(`cargo test failed:\n${r.stderr}\n${r.stdout}`);
+    const reader = (chrome.stderr as ReadableStream<Uint8Array>).getReader();
+    let buf = "";
+    let ws: string | null = null;
+    const until = Date.now() + 20_000;
+    while (!ws && Date.now() < until) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += new TextDecoder().decode(value);
+      ws = /DevTools listening on (ws:\/\/\S+)/.exec(buf)?.[1] ?? null;
     }
-    if (!existsSync(join(outDir, "index.html"))) {
-      throw new Error("index.html not written");
+    if (!ws) throw new Error(`no DevTools endpoint: ${buf}`);
+    void (async () => { for (;;) { const r = await reader.read().catch(() => ({ done: true })); if (r.done) break; } })();
+    cdp = await Cdp.connect(ws);
+    const { targetId } = await cdp.call("Target.createTarget", { url: "about:blank" });
+    ({ sessionId: session } = await cdp.call("Target.attachToTarget", { targetId, flatten: true }));
+    await cdp.call("Page.enable", {}, session);
+    await cdp.call("Runtime.enable", {}, session);
+    await cdp.call("Page.navigate", { url: `file://${join(outDir, "index.html")}` }, session);
+    const t = Date.now() + 15_000;
+    while (Date.now() < t) {
+      const r = await cdp.call("Runtime.evaluate", { expression: "document.readyState", returnByValue: true }, session);
+      if (r.result.value === "complete") break;
+      await Bun.sleep(50);
     }
-    chrome = spawn(
-      CHROME!,
-      [
-        `--remote-debugging-port=${port}`,
-        "--headless=new",
-        "--disable-gpu",
-        "--no-sandbox",
-        `file://${join(outDir, "index.html")}`,
-      ],
-      { stdio: "ignore" },
-    );
-    await Bun.sleep(800);
-    const pages = (await fetch(`http://127.0.0.1:${port}/json/list`).then((x) =>
-      x.json(),
-    )) as { type: string; webSocketDebuggerUrl: string }[];
-    const page = pages.find((p) => p.type === "page") ?? pages[0];
-    if (!page?.webSocketDebuggerUrl) throw new Error("no CDP page target");
-    cdp = await Cdp.connect(page.webSocketDebuggerUrl);
-    await cdp.call("Page.enable");
-    await cdp.call("Runtime.enable");
-  }, 120_000);
+  }, 30_000);
 
-  afterAll(() => {
+  afterAll(async () => {
     cdp?.close();
     chrome?.kill("SIGKILL");
+    await chrome?.exited;
     if (outDir) rmSync(outDir, { recursive: true, force: true });
+    if (profile) rmSync(profile, { recursive: true, force: true });
   });
 
   async function overflowAt(width: number): Promise<{ sw: number; cw: number }> {
@@ -119,15 +113,23 @@ describe("D10 Preview scroll 1024/719", () => {
       height: 900,
       deviceScaleFactor: 1,
       mobile: width < 800,
-    });
-    await Bun.sleep(200);
+    }, session);
+    // two frames for layout after the viewport change (no fixed real-time wait)
+    await cdp!.call("Runtime.evaluate", {
+      expression: "new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(1))))",
+      awaitPromise: true,
+    }, session);
     const r = await cdp!.call("Runtime.evaluate", {
       expression:
         "({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth})",
       returnByValue: true,
-    });
+    }, session);
     return r.result.value as { sw: number; cw: number };
   }
+
+  test("golden preview HTML exists (cargo keeps it in sync)", () => {
+    expect(existsSync(GOLDEN)).toBe(true);
+  });
 
   test("no horizontal overflow at 1024 and 719", async () => {
     if (!CHROME) {

@@ -1,7 +1,7 @@
 /**
  * B6.2 (§5.3 / §9.B): per-page perf warnings T115–T117.
  */
-import { beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "fs";
 import { join } from "path";
 import type { Node, PageDocument } from "@/schema";
@@ -124,14 +124,15 @@ describe("B6.2 page-perf counters", () => {
 });
 
 describe("B6.2 announce-once + wiring", () => {
+  let prevRaf: typeof globalThis.requestAnimationFrame | undefined;
   beforeEach(() => {
-    // Bun unit tests have no window rAF — announce() needs it.
-    if (typeof globalThis.requestAnimationFrame !== "function") {
-      globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => {
-        cb(0);
-        return 0;
-      };
-    }
+    // A2: always a synchronous rAF here. Other test files install `setTimeout`-based ones on the shared
+    // global (`??=`), which made announce() land after the assertion under the full suite.
+    prevRaf = globalThis.requestAnimationFrame;
+    globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    };
     resetPagePerfAnnounced();
     useEditorStore.setState({
       announcement: "",
@@ -139,6 +140,12 @@ describe("B6.2 announce-once + wiring", () => {
       pagePerfWarnings: [],
       pagePerfToolbar: null,
     });
+  });
+
+  afterEach(() => {
+    if (prevRaf) globalThis.requestAnimationFrame = prevRaf;
+    else delete (globalThis as { requestAnimationFrame?: unknown }).requestAnimationFrame;
+    resetPagePerfAnnounced();
   });
 
   test("7th backdrop blur announces T115 once; second eval is quiet", () => {

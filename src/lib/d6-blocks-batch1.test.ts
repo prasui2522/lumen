@@ -76,11 +76,32 @@ describe("D6 batch 1 authored blocks", () => {
       const { block } = validateBlock(raw);
       for (const n of Object.values(block!.nodes)) {
         if (n.type === "image") {
-          expect((n.props as { src?: string }).src).toBe("");
-          expect((n.props as { alt?: string }).alt ?? "").toBe("");
+          // A2: `src` is an AssetRef `{ id, alt? }` (schema ImageProps); a block placeholder has an empty id.
+          const s = (n.props as { src?: unknown }).src as { id?: string; alt?: string } | undefined;
+          expect(s).toBeDefined();
+          expect(s!.id).toBe("");
+          expect(s!.alt ?? "").toBe("");
         }
       }
     }
+  });
+
+  test("validator rejects a real asset id in an image src (string or AssetRef)", () => {
+    const img = (src: unknown) => ({
+      ...(batch1[0] as Record<string, unknown>),
+      id: "a2-img-probe",
+      root: "r",
+      nodes: {
+        r: { id: "r", type: "section", props: { type: "section", children: ["i"] }, style: {} },
+        i: { id: "i", type: "image", props: { type: "image", src }, style: {} },
+      },
+    });
+    const msgs = (src: unknown) => validateBlock(img(src)).errors.map((e) => `${e.path}: ${e.message}`);
+    expect(msgs({ id: "" })).not.toContain("nodes.i.props.src.id: image src must be empty placeholder");
+    expect(msgs({ id: "3f2c9a1e-0000-4000-8000-000000000000" })).toContain(
+      "nodes.i.props.src.id: image src must be empty placeholder",
+    );
+    expect(msgs("3f2c9a1e-0000-4000-8000-000000000000")).toContain("nodes.i.props.src: image src must be empty placeholder");
   });
 
   test("registry loads migrated + D6 without duplicate ids", async () => {

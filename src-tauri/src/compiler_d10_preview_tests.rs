@@ -18,11 +18,23 @@ fn d10_all_authored_page_blocks_compile() {
             "compiled CSS contains overflow-prone {cap}"
         );
     }
+    let page = format!(
+        "<!doctype html><html><head><meta charset=utf-8><style>{css}</style></head><body>{html}</body></html>"
+    );
+    // A2: the bun Chromium check (`d10-preview-scroll.test.ts`) reads this golden instead of running cargo in
+    // its hook (that made the hook time out on a cold build). Re-bless with `D10_BLESS=1`.
+    let golden = concat!(env!("CARGO_MANIFEST_DIR"), "/src/fixtures/d10/preview-blocks.html");
+    if std::env::var("D10_BLESS").is_ok() {
+        std::fs::write(golden, &page).expect("write golden");
+    } else {
+        assert_eq!(
+            std::fs::read_to_string(golden).expect("golden fixtures/d10/preview-blocks.html"),
+            page,
+            "D10 preview HTML drifted (D10_BLESS=1 to re-bless)"
+        );
+    }
     if let Ok(dir) = std::env::var("D10_PREVIEW_OUT") {
         std::fs::create_dir_all(&dir).ok();
-        let page = format!(
-            "<!doctype html><html><head><meta charset=utf-8><style>{css}</style></head><body>{html}</body></html>"
-        );
-        std::fs::write(format!("{dir}/index.html"), page).expect("write html");
+        std::fs::write(format!("{dir}/index.html"), &page).expect("write html");
     }
 }

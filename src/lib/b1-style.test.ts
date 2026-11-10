@@ -21,6 +21,9 @@ function cssFromStyle(style: StyleProps): string {
   const lines: string[] = [];
   for (const [k, v] of Object.entries(react)) {
     if (v === undefined || v === null || v === "") continue;
+    // A2: canvas-only custom properties (`--wb-glass-solid`, read by index.css `.wb-glass`) are not export
+    // declarations; the shared goldens are the Rust `decls_css` output. Checked on their own in b6-style.
+    if (k.startsWith("--")) continue;
     // styleToCss always sets borderColor to currentColor; goldens are shadow-only → skip defaults that
     // the node did not set. Only emit keys present on the input style (plus boxShadow when produced).
     const inputHad =

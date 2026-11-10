@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "bun scripts/build-preview-runtime.mjs && vite",
-    "build": "bun scripts/build-preview-runtime.mjs && tsc && vite build",
-    "build:preview-runtime": "bun scripts/build-preview-runtime.mjs",
+    "dev": "bun scripts/build-preview-runtime.mjs --check=warn && vite",
+    "build": "bun scripts/build-preview-runtime.mjs --check && tsc && vite build",
+    "build:preview-runtime": "bun scripts/build-preview-runtime.mjs --write",
     "preview": "vite preview",
     "tauri": "tauri"
   },

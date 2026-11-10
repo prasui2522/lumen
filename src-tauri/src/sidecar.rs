@@ -75,9 +75,38 @@ function boxes() {
   });
   post({ type: "wb:boxes", boxes: list });
 }
-window.addEventListener("scroll", boxes, true);
-window.addEventListener("resize", boxes);
-setInterval(boxes, 400);
+// A2: event-driven measuring, no polling. At most one post per frame, after a scroll, a resize, a DOM /
+// attribute / text change, a node's own size change, a transition / animation end, font or page load.
+let boxesQueued = false;
+function queueBoxes() {
+  if (boxesQueued) return;
+  boxesQueued = true;
+  requestAnimationFrame(() => {
+    boxesQueued = false;
+    boxes();
+  });
+}
+const nodeRo = new ResizeObserver(queueBoxes);
+const watched = new WeakSet();
+function watchNodes() {
+  document.querySelectorAll("[data-node-id]").forEach((el) => {
+    if (watched.has(el)) return;
+    watched.add(el);
+    nodeRo.observe(el);
+  });
+}
+new MutationObserver(() => {
+  watchNodes();
+  queueBoxes();
+}).observe(document.documentElement, { subtree: true, childList: true, attributes: true, characterData: true });
+window.addEventListener("scroll", queueBoxes, true);
+window.addEventListener("resize", queueBoxes);
+document.addEventListener("transitionend", queueBoxes, true);
+document.addEventListener("animationend", queueBoxes, true);
+window.addEventListener("load", queueBoxes);
+if (document.fonts) document.fonts.ready.then(queueBoxes);
+watchNodes();
+queueBoxes();
 document.addEventListener("dblclick", (e) => {
   const t = e.target;
   if (!(t instanceof Element)) return;
@@ -182,7 +211,16 @@ pub fn is_excluded_port(p: u16) -> bool {
     EXCLUDED.contains(&p) || (14380..=14399).contains(&p)
 }
 
+/// A2: probes are serialised in-process, so two concurrent `pick_port` calls never hold each other's probe
+/// bind (that made `s6_pick_port_in_range_and_free` flaky under the parallel test runner).
+pub(crate) static PICK_LOCK: Mutex<()> = Mutex::new(());
+
 pub fn pick_port() -> Result<u16, String> {
+    let _g = PICK_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    pick_port_unlocked()
+}
+
+pub(crate) fn pick_port_unlocked() -> Result<u16, String> {
     let span = (PORT_MAX - PORT_MIN + 1) as u32;
     let seed = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -206,6 +244,41 @@ pub fn pick_port() -> Result<u16, String> {
 
 pub fn sidecar_path(cache: &Path) -> PathBuf {
     cache.join("preview").join("sidecar.json")
+}
+
+/// A2: every process of a preview tree carries `WB_PREVIEW_TOKEN=<token>` in its environment.
+pub const TOKEN_ENV: &str = "WB_PREVIEW_TOKEN";
+
+/// A2: `/proc/<pid>/environ` holds `WB_PREVIEW_TOKEN=<token>` (only readable for our own processes).
+fn environ_has_token(pid: i32, token: &str) -> bool {
+    if token.is_empty() {
+        return false;
+    }
+    let Ok(env) = fs::read(format!("/proc/{pid}/environ")) else { return false };
+    let want = format!("{TOKEN_ENV}={token}");
+    env.split(|b| *b == 0).any(|kv| kv == want.as_bytes())
+}
+
+/// A2: process group of `pid` from `/proc/<pid>/stat` (None when gone or a zombie).
+fn proc_pgid(pid: i32) -> Option<i32> {
+    let stat = fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    let close = stat.rfind(')')?;
+    let f: Vec<&str> = stat[close + 1..].split_whitespace().collect();
+    if f.len() < 3 || f[0] == "Z" {
+        return None;
+    }
+    f[2].parse().ok()
+}
+
+/// A2: a pid belongs to the recorded tree only when it is still in the recorded group AND carries the
+/// recorded token (cmdline for the leader, environment for every member). A reused pid or a group of
+/// someone else's never matches.
+fn sweep_member_ours(pid: i32, rec: &SidecarFile) -> bool {
+    if proc_pgid(pid) != Some(rec.pgid) {
+        return false;
+    }
+    environ_has_token(pid, &rec.token)
+        || read_cmdline(pid as u32).is_some_and(|c| cmdline_has_token(&c, &rec.token))
 }
 
 pub fn cmdline_has_token(cmdline: &[u8], token: &str) -> bool {
@@ -245,27 +318,42 @@ pub fn sweep_orphans(cache: &Path) -> Result<u32, String> {
             return Ok(0);
         }
     };
-    let mut killed = 0u32;
-    if pid_alive(rec.pid) {
-        if let Some(cmd) = read_cmdline(rec.pid) {
-            if cmdline_has_token(&cmd, &rec.token) {
-                unsafe {
-                    libc::kill(rec.pid as i32, libc::SIGTERM);
-                }
-                kill_group(rec.pgid, libc::SIGTERM);
-                std::thread::sleep(Duration::from_millis(200));
-                if pid_alive(rec.pid) {
-                    unsafe {
-                        libc::kill(rec.pid as i32, libc::SIGKILL);
-                    }
-                    kill_group(rec.pgid, libc::SIGKILL);
-                }
-                killed = 1;
+    let _ = fs::remove_file(&path);
+    // A2: the record is only a hint. We spawn the leader as its own group leader (pid == pgid) with a
+    // 32-hex token (>= 8 chars accepted); anything else in the file is not ours to touch.
+    if rec.pgid <= 1 || rec.pid as i32 != rec.pgid || rec.token.trim().len() < 8 {
+        return Ok(0);
+    }
+    // Never a group of this process (pid reuse could hand our own pgid back).
+    #[cfg(unix)]
+    if rec.pgid == unsafe { libc::getpgrp() } {
+        return Ok(0);
+    }
+    let ours = |pid: i32| sweep_member_ours(pid, &rec);
+    let victims: Vec<i32> = group_members(rec.pgid).into_iter().map(|(p, _)| p).filter(|p| ours(*p)).collect();
+    if victims.is_empty() {
+        return Ok(0);
+    }
+    // Per pid, re-checked right before each signal — never a group-wide kill on the file's word.
+    for p in &victims {
+        if ours(*p) {
+            unsafe {
+                libc::kill(*p, libc::SIGTERM);
             }
         }
     }
-    let _ = fs::remove_file(&path);
-    Ok(killed)
+    let start = Instant::now();
+    while victims.iter().any(|p| ours(*p)) && start.elapsed() < Duration::from_millis(1500) {
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    for p in &victims {
+        if ours(*p) {
+            unsafe {
+                libc::kill(*p, libc::SIGKILL);
+            }
+        }
+    }
+    Ok(victims.len() as u32)
 }
 
 #[cfg(unix)]
@@ -528,6 +616,8 @@ impl Sidecar {
     fn spawn_tracked(&self, session: u64, mut cmd: Command, port: u16, exe: String) -> Result<u32, String> {
         let token = Uuid::new_v4().simple().to_string();
         cmd.arg("--preview-token").arg(&token);
+        // A2: inherited by bun x → vite → esbuild, so a sweep can prove each member is ours.
+        cmd.env(TOKEN_ENV, &token);
         #[cfg(unix)]
         {
             use std::os::unix::process::CommandExt;
@@ -678,6 +768,12 @@ impl Sidecar {
     pub fn track_spawned_for_test(&self, pid: u32, pgid: i32, token: &str) {
         let mut g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         g.spawned.push((pid, pgid, token.to_string()));
+    }
+
+    /// A2 tests: token of the tracked tree.
+    #[cfg(test)]
+    pub fn status_token_for_test(&self) -> String {
+        self.inner.lock().unwrap_or_else(|e| e.into_inner()).token.clone()
     }
 
     /// A1 tests: groups this sidecar still tracks as spawned.

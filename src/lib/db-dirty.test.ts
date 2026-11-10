@@ -34,6 +34,10 @@ beforeEach(async () => {
   saveGate = null;
   store().closeOpen();
   await store().openProject("p1");
+  // Page undo history lives in the editor store, which the app resets on project switch (EditorPage);
+  // reset it here too so a test never sees steps left by another test (shuffled order).
+  const { useEditorStore } = await import("../stores/editor-store");
+  useEditorStore.getState().clearHistory();
 });
 
 describe("Phase 10 dirty = document dirty OR pendingDbModel", () => {
