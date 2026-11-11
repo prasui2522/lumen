@@ -10,7 +10,7 @@ import {
   type PreviewBundle,
   type RuntimePayload,
 } from "@/lib/preview-runtime";
-import { useSidecarStatus, viteFrameUrl } from "@/lib/preview-sidecar";
+import { publishSidecar, sidecarStatus, useSidecarStatus, viteFrameAllowed, viteFrameUrl } from "@/lib/preview-sidecar";
 import {
   VITE_DIRTY_BADGE,
   VITE_UNSAVED_SUB,
@@ -20,6 +20,8 @@ import {
 import { useProjectsStore } from "@/stores/projects-store";
 import { useEditorStore } from "@/stores/editor-store";
 import { DeviceStage, type FrameSource } from "@/components/editor/preview/DeviceStage";
+import { phrase, usePhrase } from "@/lib/phrases";
+import { peekLocale } from "@/lib/locale";
 
 function errMessage(e: unknown): string {
   if (typeof e === "string") return e;
@@ -33,6 +35,7 @@ function errMessage(e: unknown): string {
  * sidecar. S10: live Preview does not invoke the static HTML compiler.
  */
 export function PreviewStage() {
+  const p = usePhrase();
   const openDocument = useProjectsStore((s) => s.openDocument);
   const savedDocument = useProjectsStore((s) => s.savedDocument);
   const dirty = useProjectsStore((s) => s.dirty);
@@ -43,6 +46,21 @@ export function PreviewStage() {
   const setPreviewError = useEditorStore((s) => s.setPreviewError);
   const setMode = useEditorStore((s) => s.setMode);
   const sidecar = useSidecarStatus();
+  const [sidecarChecked, setSidecarChecked] = useState(false);
+
+  // Entering Preview/Split mounts this stage. Read the live sidecar before
+  // trusting a port left in memory after the 60s idle stop.
+  useEffect(() => {
+    let cancel = false;
+    void sidecarStatus().then((s) => {
+      if (cancel) return;
+      publishSidecar(s);
+      setSidecarChecked(true);
+    });
+    return () => {
+      cancel = true;
+    };
+  }, []);
 
   const [fellBack, setFellBack] = useState(false);
   const [payload, setPayload] = useState<RuntimePayload | null>(null);
@@ -118,21 +136,21 @@ export function PreviewStage() {
   const fallbackToBuiltIn = useCallback(() => {
     if (payloadRef.current) {
       setFellBack(true);
-      useEditorStore.getState().announce("กลับไปใช้ตัวอย่างในแอป");
+      useEditorStore.getState().announce(phrase(peekLocale(), "กลับไปใช้ตัวอย่างในแอป"));
       return;
     }
     setFellBack(true);
-    setPreviewError("สร้างตัวอย่างไม่ได้");
+    setPreviewError(phrase(peekLocale(), "สร้างตัวอย่างไม่ได้"));
     setPreviewStatus("error");
-    useEditorStore.getState().announce("กลับไปใช้ตัวอย่างในแอป");
+    useEditorStore.getState().announce(phrase(peekLocale(), "กลับไปใช้ตัวอย่างในแอป"));
   }, [setPreviewError, setPreviewStatus]);
 
   if (openDocument && isDocumentEmpty(openDocument)) {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-muted/40 p-6">
-        <p className="text-sm font-medium">หน้ายังว่าง</p>
+        <p className="text-sm font-medium">{p("หน้ายังว่าง")}</p>
         <p className="text-sm text-muted-foreground">
-          กลับไปที่ออกแบบเพื่อเพิ่มเนื้อหา
+          {p("กลับไปที่ออกแบบเพื่อเพิ่มเนื้อหา")}
         </p>
         <Button
           type="button"
@@ -140,13 +158,13 @@ export function PreviewStage() {
           size="sm"
           onClick={() => setMode("design")}
         >
-          ออกแบบ
+          {p("ออกแบบ")}
         </Button>
       </div>
     );
   }
 
-  const viteOn = sidecar.state === "running" && sidecar.port != null;
+  const viteOn = viteFrameAllowed(sidecarChecked, sidecar);
   const pages = openDocument ? ensurePages(openDocument).pages! : [];
   const pid = openPageId ?? (openDocument ? openPageIdOf(openDocument) : null);
   const page = pages.find((p) => p.id === pid) ?? pages[0];
@@ -195,14 +213,14 @@ export function PreviewStage() {
   if (previewStatus === "error") {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-muted/40 p-6">
-        <p className="text-sm font-medium text-destructive">สร้างตัวอย่างไม่ได้</p>
+        <p className="text-sm font-medium text-destructive">{p("สร้างตัวอย่างไม่ได้")}</p>
         {previewError ? (
           <p className="max-w-md truncate text-center text-xs text-muted-foreground">
             {previewError}
           </p>
         ) : null}
         <Button type="button" variant="outline" size="sm" onClick={retry}>
-          ลองอีกครั้ง
+          {p("ลองอีกครั้ง")}
         </Button>
       </div>
     );
@@ -212,7 +230,7 @@ export function PreviewStage() {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-muted/40 p-6">
         <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden />
-        <p className="text-sm text-muted-foreground">กำลังสร้างตัวอย่าง…</p>
+        <p className="text-sm text-muted-foreground">{p("กำลังสร้างตัวอย่าง…")}</p>
       </div>
     );
   }
@@ -232,7 +250,7 @@ export function PreviewStage() {
           role="status"
           className="shrink-0 border-b border-border bg-muted/60 px-3 py-1 text-[11px] text-muted-foreground"
         >
-          กลับไปใช้ตัวอย่างในแอป (Fell back to built-in Preview)
+          {p("กลับไปใช้ตัวอย่างในแอป")}
         </p>
       ) : null}
       <DeviceStage source={source} />

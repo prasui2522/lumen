@@ -32,6 +32,9 @@ import { focusProblemTarget, type TableProblem } from "@/lib/db-problems";
 import { DbTextField } from "./DbTextField";
 import { DefaultCell } from "./DefaultCell";
 import { KeysSection } from "./KeysSection";
+import { phraseProblemLine } from "@/lib/db-issue-i18n";
+import { useLocale } from "@/lib/locale";
+import { usePhrase } from "@/lib/phrases";
 
 /** First issue per (column, field) — duplicates of one id show once. */
 export type IssueLookup = (columnId: string | null, field: string) => string | null;
@@ -52,6 +55,8 @@ type Props = {
 
 export function TableEditor({ table, tables, issue, tableIssues, nameRef }: Props) {
   // Kept in the test-data store so it survives switching tables.
+  const p = usePhrase();
+  const locale = useLocale();
   const tab = useTestDataStore((s) => s.tab);
   const setTab = useTestDataStore((s) => s.setTab);
   const addColRef = useRef<HTMLButtonElement>(null);
@@ -67,11 +72,11 @@ export function TableEditor({ table, tables, issue, tableIssues, nameRef }: Prop
   };
 
   return (
-    <main data-table-editor={t.id} className="flex min-w-0 flex-1 flex-col overflow-auto" aria-label={`ตาราง ${t.name}`}>
+    <main data-table-editor={t.id} className="flex min-w-0 flex-1 flex-col overflow-auto" aria-label={`${p("ตาราง")} ${t.name}`}>
       <div className="flex flex-wrap items-start gap-3 border-b border-border px-4 py-3">
         <div className="flex w-56 flex-col gap-1">
           <label htmlFor={`${base}-name`} className="text-xs text-muted-foreground">
-            ชื่อตาราง
+            {p("ชื่อตาราง")}
           </label>
           <DbTextField
             id={`${base}-name`}
@@ -84,12 +89,12 @@ export function TableEditor({ table, tables, issue, tableIssues, nameRef }: Prop
         </div>
         <div className="flex w-56 flex-col gap-1">
           <label htmlFor={`${base}-label`} className="text-xs text-muted-foreground">
-            ชื่อที่แสดง
+            {p("ชื่อที่แสดง")}
           </label>
           <DbTextField
             id={`${base}-label`}
             value={t.label ?? ""}
-            placeholder="เช่น ผู้ใช้"
+            placeholder={p("เช่น ผู้ใช้")}
             onCommit={(v) => commit((m) => updateTable(m, t.id, { label: v.trim() }))}
           />
         </div>
@@ -98,14 +103,14 @@ export function TableEditor({ table, tables, issue, tableIssues, nameRef }: Prop
           size="sm"
           value={tab}
           onValueChange={(v) => v && setTab(v as "structure" | "data")}
-          aria-label="มุมมองตาราง"
+          aria-label={p("มุมมองตาราง")}
           className="ml-auto self-end rounded-lg bg-muted p-0.5"
         >
           <ToggleGroupItem value="structure" className="px-2.5 data-[state=on]:bg-background">
-            โครงสร้าง
+            {p("โครงสร้าง")}
           </ToggleGroupItem>
           <ToggleGroupItem value="data" className="px-2.5 data-[state=on]:bg-background">
-            ข้อมูลทดสอบ
+            {p("ข้อมูลทดสอบ")}
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
@@ -115,15 +120,15 @@ export function TableEditor({ table, tables, issue, tableIssues, nameRef }: Prop
       ) : (
         <div className="p-4">
           <table ref={tableRef} className="w-full max-w-4xl border-separate border-spacing-y-1 text-sm">
-            <caption className="sr-only">คอลัมน์ของตาราง {t.name}</caption>
+            <caption className="sr-only">{p("คอลัมน์")} · {t.name}</caption>
             <thead>
               <tr className="text-left text-xs text-muted-foreground">
-                <th scope="col" className="w-[30%] font-normal">คอลัมน์</th>
-                <th scope="col" className="w-[24%] font-normal">ชนิด</th>
-                <th scope="col" className="font-normal">ต้องมีค่า</th>
-                <th scope="col" className="font-normal">คีย์หลัก</th>
-                <th scope="col" className="w-[24%] font-normal">ค่าเริ่มต้น</th>
-                <th scope="col" className="w-8 font-normal"><span className="sr-only">ตัวเลือก</span></th>
+                <th scope="col" className="w-[30%] font-normal">{p("คอลัมน์")}</th>
+                <th scope="col" className="w-[24%] font-normal">{p("ชนิด")}</th>
+                <th scope="col" className="font-normal">{p("ต้องมีค่า")}</th>
+                <th scope="col" className="font-normal">{p("คีย์หลัก")}</th>
+                <th scope="col" className="w-[24%] font-normal">{p("ค่าเริ่มต้น")}</th>
+                <th scope="col" className="w-8 font-normal"><span className="sr-only">{p("ตัวเลือก")}</span></th>
               </tr>
             </thead>
             <tbody>
@@ -150,14 +155,14 @@ export function TableEditor({ table, tables, issue, tableIssues, nameRef }: Prop
             onClick={() => focusColumnName(useDbModelStore.getState().addColumn(t.id))}
           >
             <Plus aria-hidden />
-            เพิ่มคอลัมน์
+            {p("เพิ่มคอลัมน์")}
           </Button>
 
           <KeysSection table={t} tables={tables} base={base} issue={issue} />
 
           {tableIssues.length > 0 ? (
             <div className="mt-6 max-w-3xl">
-              <h3 className="text-xs font-medium text-destructive">ปัญหาของตาราง</h3>
+              <h3 className="text-xs font-medium text-destructive">{p("ปัญหาของตาราง")}</h3>
               <ul className="mt-1 grid gap-0.5 text-xs">
                 {tableIssues.map((x) => {
                   return (
@@ -169,7 +174,7 @@ export function TableEditor({ table, tables, issue, tableIssues, nameRef }: Prop
                         disabled={x.targets.length === 0}
                         onClick={() => focusProblemTarget(x.targets)}
                       >
-                        {x.text}
+                        {phraseProblemLine(locale, x.text)}
                       </button>
                     </li>
                   );
@@ -198,6 +203,7 @@ function ColumnRow({
   issue: IssueLookup;
   onDeleted: (focusColumnId: string | null) => void;
 }) {
+  const tr = usePhrase();
   const id = `${base}-${c.id}`;
   const isPk = t.primaryKey.includes(c.id);
   const typeError = issue(c.id, "type") ?? issue(c.id, "precision") ?? issue(c.id, "values");
@@ -209,7 +215,7 @@ function ColumnRow({
         <div className="flex items-start gap-1.5">
           <DbTextField
             id={`${id}-name`}
-            label={`ชื่อคอลัมน์ ${index + 1}`}
+            label={`${tr("ชื่อคอลัมน์")} ${index + 1}`}
             value={c.name}
             mono
             className="flex-1"
@@ -225,7 +231,7 @@ function ColumnRow({
               id={`${id}-type`}
               size="sm"
               className="h-7 min-w-0 flex-1 text-xs"
-              aria-label={`ชนิดของ ${c.name}`}
+              aria-label={`${tr("ชนิดของ")} ${c.name}`}
               aria-invalid={typeError ? true : undefined}
               aria-describedby={typeError ? `${id}-type-err` : undefined}
             >
@@ -234,7 +240,7 @@ function ColumnRow({
             <SelectContent>
               {DB_TYPES.map((ty) => (
                 <SelectItem key={ty} value={ty} className="text-xs">
-                  {DB_TYPE_LABELS[ty]}
+                  {tr(DB_TYPE_LABELS[ty])}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -253,7 +259,7 @@ function ColumnRow({
           id={`${id}-null`}
           checked={!c.nullable}
           disabled={nullableLocked(t, c.id)}
-          aria-label={`${c.name} ต้องมีค่า`}
+          aria-label={`${c.name} ${tr("ต้องมีค่า")}`}
           aria-invalid={nullError ? true : undefined}
           aria-describedby={
             [nullError ? `${id}-null-err` : "", nullableLocked(t, c.id) ? `${id}-pk-hint` : ""].filter(Boolean).join(" ") ||
@@ -263,7 +269,7 @@ function ColumnRow({
         />
         {nullableLocked(t, c.id) ? (
           <span id={`${id}-pk-hint`} className="mt-0.5 block max-w-[5.5rem] text-[11px] leading-tight text-muted-foreground">
-            คีย์หลักต้องมีค่าเสมอ
+            {tr("คีย์หลักต้องมีค่าเสมอ")}
           </span>
         ) : null}
         {nullError ? (
@@ -276,7 +282,7 @@ function ColumnRow({
         <Switch
           id={`${id}-pk`}
           checked={isPk}
-          aria-label={`${c.name} เป็นคีย์หลัก`}
+          aria-label={`${c.name} ${tr("เป็นคีย์หลัก")}`}
           onCheckedChange={(on) => commit((m) => setPrimaryKey(m, t.id, c.id, on))}
         />
       </td>
@@ -286,7 +292,7 @@ function ColumnRow({
       <td>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="ghost" size="icon-sm" aria-label={`ตัวเลือกของคอลัมน์ ${c.name}`}>
+            <Button type="button" variant="ghost" size="icon-sm" aria-label={`${tr("ตัวเลือกของคอลัมน์")} ${c.name}`}>
               <MoreHorizontal aria-hidden />
             </Button>
           </DropdownMenuTrigger>
@@ -302,13 +308,13 @@ function ColumnRow({
             }}
           >
             <DropdownMenuItem disabled={index === 0} onSelect={() => useDbModelStore.getState().moveColumn(t.id, c.id, -1)}>
-              เลื่อนขึ้น
+              {tr("เลื่อนขึ้น")}
             </DropdownMenuItem>
             <DropdownMenuItem
               disabled={index === t.columns.length - 1}
               onSelect={() => useDbModelStore.getState().moveColumn(t.id, c.id, 1)}
             >
-              เลื่อนลง
+              {tr("เลื่อนลง")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -322,7 +328,7 @@ function ColumnRow({
                 onDeleted(neighbour);
               }}
             >
-              ลบคอลัมน์
+              {tr("ลบคอลัมน์")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -336,14 +342,15 @@ function intOrUndefined(s: string): number | undefined {
 }
 
 function DecimalPopover({ table: t, column: c }: { table: DbTable; column: DbColumn }) {
+  const tr = usePhrase();
   const [open, setOpen] = useState(false);
-  const [p, setP] = useState<string | null>(null);
-  const [s, setS] = useState<string | null>(null);
+  const [prec, setPrec] = useState<string | null>(null);
+  const [scaleDraft, setScaleDraft] = useState<string | null>(null);
   const save = () => {
-    const precision = p === null ? c.precision : intOrUndefined(p);
-    const scale = s === null ? c.scale : intOrUndefined(s);
-    setP(null);
-    setS(null);
+    const precision = prec === null ? c.precision : intOrUndefined(prec);
+    const scale = scaleDraft === null ? c.scale : intOrUndefined(scaleDraft);
+    setPrec(null);
+    setScaleDraft(null);
     if (precision !== c.precision || scale !== c.scale) commit((m) => updateColumn(m, t.id, c.id, { precision, scale }));
   };
   const id = `db-${t.id}-${c.id}`;
@@ -356,15 +363,15 @@ function DecimalPopover({ table: t, column: c }: { table: DbTable; column: DbCol
       }}
     >
       <PopoverTrigger asChild>
-        <Button id={`db-${t.id}-${c.id}-decimal`} type="button" variant="outline" size="sm" className="h-7 px-2 font-mono text-xs" aria-label={`ความแม่นยำของ ${c.name}`}>
+        <Button id={`db-${t.id}-${c.id}-decimal`} type="button" variant="outline" size="sm" className="h-7 px-2 font-mono text-xs" aria-label={`${tr("ความแม่นยำของ")} ${c.name}`}>
           {c.precision ?? "?"},{c.scale ?? "?"}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 space-y-2">
         {(
           [
-            ["p", "ความแม่นยำ (1–38)", p, setP, c.precision],
-            ["s", "ตำแหน่งทศนิยม", s, setS, c.scale],
+            ["p", tr("ความแม่นยำ (1–38)"), prec, setPrec, c.precision],
+            ["s", tr("ตำแหน่งทศนิยม"), scaleDraft, setScaleDraft, c.scale],
           ] as const
         ).map(([k, label, draft, setDraft, value]) => (
           <div key={k} className="flex items-center justify-between gap-2">
@@ -394,6 +401,7 @@ function DecimalPopover({ table: t, column: c }: { table: DbTable; column: DbCol
 }
 
 function EnumPopover({ table: t, column: c }: { table: DbTable; column: DbColumn }) {
+  const tr = usePhrase();
   const [draft, setDraft] = useState<string | null>(null);
   const save = () => {
     if (draft === null) return;
@@ -410,14 +418,14 @@ function EnumPopover({ table: t, column: c }: { table: DbTable; column: DbColumn
   return (
     <Popover onOpenChange={(open) => !open && save()}>
       <PopoverTrigger asChild>
-        <Button id={`db-${t.id}-${c.id}-enum`} type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" aria-label={`ตัวเลือกของ ${c.name}`}>
+        <Button id={`db-${t.id}-${c.id}-enum`} type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" aria-label={`${tr("ตัวเลือกของ")} ${c.name}`}>
           <Settings2 aria-hidden />
           {c.values?.length ?? 0}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-64 space-y-1">
         <label htmlFor={id} className="text-xs">
-          ตัวเลือก (บรรทัดละ 1 ค่า)
+          {tr("ตัวเลือก (บรรทัดละ 1 ค่า)")}
         </label>
         <textarea
           id={id}

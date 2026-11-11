@@ -388,9 +388,13 @@ export const planErrorText = (message: string) =>
   message.trim().startsWith(MIGRATE_ERROR) ? message.trim() : `${MIGRATE_ERROR}: ${message}`;
 
 /** Error line inside a full-reset confirm that failed (the dialog stays open). */
-export function rebuildErrorText(fail: string, error: string | null | undefined): string {
+export function rebuildErrorText(
+  fail: string,
+  error: string | null | undefined,
+  retryHint = "ลองกดอีกครั้ง หรือกด ยกเลิก",
+): string {
   const d = errorDetail(OPEN_ERROR, error);
-  return d ? `${fail}: ${d}` : `${fail} ลองกดอีกครั้ง หรือกด ยกเลิก`;
+  return d ? `${fail}: ${d}` : `${fail} ${retryHint}`;
 }
 
 /** Nothing lost in any table (same rule as Rust's `lossless`). */

@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRestoreFocus } from "@/lib/modal";
 import { nameSubmit } from "@/lib/new-project";
+import { useLocale } from "@/lib/locale";
+import { usePhrase } from "@/lib/phrases";
 
 type Props = {
   open: boolean;
@@ -26,7 +28,10 @@ export function NewProjectDialog({
   onSubmit,
   busy,
 }: Props) {
-  const [name, setName] = useState("หน้าใหม่");
+  const locale = useLocale();
+  const p = usePhrase();
+  const defaultName = locale === "en" ? "Untitled" : "หน้าใหม่";
+  const [name, setName] = useState(defaultName);
   const [invalid, setInvalid] = useState(false);
   const restoreFocus = useRestoreFocus(open);
   const errId = "project-name-error";
@@ -43,11 +48,11 @@ export function NewProjectDialog({
 
   useEffect(() => {
     if (open) {
-      setName("หน้าใหม่");
+      setName(locale === "en" ? "Untitled" : "หน้าใหม่");
       setInvalid(false);
       unlock();
     }
-  }, [open]);
+  }, [open, locale]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -71,10 +76,10 @@ export function NewProjectDialog({
           }}
         >
           <DialogHeader>
-            <DialogTitle>โปรเจกต์ใหม่</DialogTitle>
+            <DialogTitle>{p("โปรเจกต์ใหม่")}</DialogTitle>
           </DialogHeader>
           <div className="mt-4 space-y-2">
-            <Label htmlFor="project-name">ชื่อโปรเจกต์</Label>
+            <Label htmlFor="project-name">{p("ชื่อโปรเจกต์")}</Label>
             <Input
               id="project-name"
               value={name}
@@ -82,7 +87,7 @@ export function NewProjectDialog({
                 setName(e.currentTarget.value);
                 if (e.currentTarget.value.trim()) setInvalid(false);
               }}
-              placeholder="ชื่อโปรเจกต์"
+              placeholder={p("ชื่อโปรเจกต์")}
               autoFocus
               // Busy: stays focusable (disabled would drop focus to <body>).
               readOnly={locked}
@@ -93,7 +98,7 @@ export function NewProjectDialog({
             />
             {invalid ? (
               <p id={errId} className="text-[11px] text-destructive">
-                กรุณาใส่ชื่อโปรเจกต์
+                {p("กรุณาใส่ชื่อโปรเจกต์")}
               </p>
             ) : null}
           </div>
@@ -105,10 +110,10 @@ export function NewProjectDialog({
               aria-disabled={locked || undefined}
               className="aria-disabled:opacity-50"
             >
-              ยกเลิก
+              {p("ยกเลิก")}
             </Button>
             <Button type="submit" aria-disabled={locked || undefined} className="aria-disabled:opacity-50">
-              สร้าง
+              {p("สร้าง")}
             </Button>
           </DialogFooter>
         </form>

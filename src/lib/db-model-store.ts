@@ -17,6 +17,14 @@ import {
   type DbModel,
 } from "./db-model";
 import { normalizeIdentifier } from "./db-validate";
+import {
+  announceAddedColumn,
+  announceAddedTable,
+  announceMoved,
+  announceRemovedColumn,
+  announceRemovedTable,
+  announceRenamed,
+} from "./announce-i18n";
 
 /**
  * Phase 10 model store. Lives in the lazy database chunk only (§5); nothing
@@ -151,7 +159,7 @@ export const useDbModelStore = create<DbModelState>((set, get) => ({
     const { model, table } = addTable(get().model);
     get().commit(model);
     set({ selectedTableId: table.id });
-    useEditorStore.getState().announce(`เพิ่มตาราง ${table.name} แล้ว`);
+    useEditorStore.getState().announce(announceAddedTable(table.name));
     return table.id;
   },
 
@@ -162,7 +170,7 @@ export const useDbModelStore = create<DbModelState>((set, get) => ({
     const t = get().model.tables.find((x) => x.id === tableId);
     if (!t || t.name === name) return;
     get().commit(updateTable(get().model, tableId, { name }));
-    say(`เปลี่ยนชื่อเป็น ${name} แล้ว`);
+    say(announceRenamed(name));
   },
 
   moveTable: (tableId, delta) => {
@@ -170,7 +178,7 @@ export const useDbModelStore = create<DbModelState>((set, get) => ({
     if (next === get().model) return;
     get().commit(next);
     const i = next.tables.findIndex((t) => t.id === tableId);
-    say(`เลื่อน ${next.tables[i]!.name} ไปลำดับ ${i + 1} จาก ${next.tables.length}`);
+    say(announceMoved(next.tables[i]!.name, i + 1, next.tables.length));
   },
 
   removeTable: (tableId) => {
@@ -178,7 +186,7 @@ export const useDbModelStore = create<DbModelState>((set, get) => ({
     if (!t) return;
     const fks = tableDeleteImpact(get().model, tableId);
     get().commit(removeTableOp(get().model, tableId));
-    say(fks > 0 ? `ลบตาราง ${t.name} และความสัมพันธ์ ${fks} รายการที่อ้างถึงตารางนี้แล้ว` : `ลบตาราง ${t.name} แล้ว`);
+    say(announceRemovedTable(t.name, fks));
   },
 
   addColumn: (tableId) => {
@@ -186,7 +194,7 @@ export const useDbModelStore = create<DbModelState>((set, get) => ({
     const { model, columnId } = addColumnOp(get().model, tableId);
     get().commit(model);
     const c = model.tables.find((t) => t.id === tableId)?.columns.find((x) => x.id === columnId);
-    if (c) say(`เพิ่มคอลัมน์ ${c.name} แล้ว`);
+    if (c) say(announceAddedColumn(c.name));
     return columnId;
   },
 
@@ -195,7 +203,7 @@ export const useDbModelStore = create<DbModelState>((set, get) => ({
     const c = get().model.tables.find((t) => t.id === tableId)?.columns.find((x) => x.id === columnId);
     if (!c || c.name === name) return;
     get().commit(updateColumn(get().model, tableId, columnId, { name }));
-    say(`เปลี่ยนชื่อเป็น ${name} แล้ว`);
+    say(announceRenamed(name));
   },
 
   moveColumn: (tableId, columnId, delta) => {
@@ -204,7 +212,7 @@ export const useDbModelStore = create<DbModelState>((set, get) => ({
     get().commit(next);
     const cols = next.tables.find((t) => t.id === tableId)!.columns;
     const i = cols.findIndex((c) => c.id === columnId);
-    say(`เลื่อน ${cols[i]!.name} ไปลำดับ ${i + 1} จาก ${cols.length}`);
+    say(announceMoved(cols[i]!.name, i + 1, cols.length));
   },
 
   removeColumn: (tableId, columnId) => {
@@ -212,15 +220,7 @@ export const useDbModelStore = create<DbModelState>((set, get) => ({
     if (!c) return;
     const { uniques, foreignKeys } = columnDeleteImpact(get().model, tableId, columnId);
     get().commit(removeColumnOp(get().model, tableId, columnId));
-    say(
-      uniques > 0 && foreignKeys > 0
-        ? `ลบคอลัมน์ ${c.name} พร้อมชุดไม่ซ้ำ ${uniques} ชุดและความสัมพันธ์ ${foreignKeys} รายการที่ใช้คอลัมน์นี้แล้ว`
-        : uniques > 0
-          ? `ลบคอลัมน์ ${c.name} และชุดไม่ซ้ำ ${uniques} ชุดที่ใช้คอลัมน์นี้แล้ว`
-          : foreignKeys > 0
-            ? `ลบคอลัมน์ ${c.name} และความสัมพันธ์ ${foreignKeys} รายการที่ใช้คอลัมน์นี้แล้ว`
-            : `ลบคอลัมน์ ${c.name} แล้ว`,
-    );
+    say(announceRemovedColumn(c.name, uniques, foreignKeys));
   },
 
   reset: () => set({ ...INITIAL }),

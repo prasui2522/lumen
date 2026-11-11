@@ -38,6 +38,10 @@ dist/
 *.AppImage
 *.deb
 *.rpm
+# updater signing private keys (pubkey lives in tauri.conf.json)
+*.key
+!*.key.pub
+src-tauri/*.key
 *.dmg
 *.msi
 *.app/

@@ -58,11 +58,14 @@ import {
   Search,
 } from "lucide-react";
 import {
-  NODE_TYPE_LABEL,
   resolveInsertTarget,
   type PaletteType,
 } from "@/lib/document-ops";
-import { filterPaletteGroups } from "@/lib/palette-meta";
+import { useLocale } from "@/lib/locale";
+import { phraseCount, usePhrase } from "@/lib/phrases";
+import { useKindLabel } from "@/lib/kind-label";
+import { useT, type MessageKey } from "@/lib/messages";
+import { filterPaletteGroups, type PaletteGroup } from "@/lib/palette-meta";
 import { canInsertTemplate, insertPage, insertPaletteNode } from "@/lib/node-actions";
 import { PALETTE_DRAG_MIME, setDragPayload } from "@/lib/drag-session";
 import {
@@ -154,6 +157,23 @@ export function ElementPalette() {
     ? resolveInsertTarget(openDocument, selectedNodeId)
     : null;
 
+  const t = useT();
+  const locale = useLocale();
+  const p = usePhrase();
+  const labelOf = useKindLabel();
+  const groupName = (heading: PaletteGroup) => {
+    const key: Record<PaletteGroup, MessageKey> = {
+      Layout: "groupLayout",
+      "Text & media": "groupText",
+      Forms: "groupForms",
+      Data: "groupData",
+      Navigation: "groupNav",
+      Disclosure: "groupDisclosure",
+      Overlays: "groupOverlays",
+      Feedback: "groupFeedback",
+    };
+    return t(key[heading]);
+  };
   const [query, setQuery] = useState("");
   const collapsed = useEditorStore((s) => s.collapsedPaletteGroups);
   const toggleGroup = useEditorStore((s) => s.togglePaletteGroup);
@@ -176,12 +196,12 @@ export function ElementPalette() {
       return;
     }
     const id = window.setTimeout(() => {
-      const msg = `พบ ${total} รายการ`;
+      const msg = phraseCount(locale, total, "รายการ", "items");
       announced.current = msg;
       useEditorStore.getState().announce(msg);
     }, 400);
     return () => window.clearTimeout(id);
-  }, [searching, total]);
+  }, [searching, total, locale]);
 
   const add = (type: PaletteType) => {
     if (!openDocument || !target) return;
@@ -193,7 +213,7 @@ export function ElementPalette() {
       {/* h-10 caption row = same height/inset as the Style panel header. */}
       <div className="flex h-10 items-center px-1">
         <span className="text-[11px] font-medium text-muted-foreground">
-          เพิ่ม
+          {p("เพิ่ม")}
         </span>
       </div>
       <div className="px-1 pb-1">
@@ -208,8 +228,8 @@ export function ElementPalette() {
               setQuery("");
             }
           }}
-          placeholder="ค้นหาองค์ประกอบ"
-          aria-label="ค้นหาองค์ประกอบ"
+          placeholder={p("ค้นหาองค์ประกอบ")}
+          aria-label={p("ค้นหาองค์ประกอบ")}
           autoComplete="off"
           spellCheck={false}
           className="h-7 w-full rounded-md border border-muted-foreground bg-transparent px-2 text-[11px] text-sidebar-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring [&::-webkit-search-cancel-button]:hidden"
@@ -217,7 +237,7 @@ export function ElementPalette() {
       </div>
       {searching && total === 0 ? (
         <p className="px-2 py-3 text-center text-[11px] text-muted-foreground">
-          ไม่พบองค์ประกอบ
+          {p("ไม่พบองค์ประกอบ")}
         </p>
       ) : null}
       <div className="grid grid-cols-4 gap-1">
@@ -227,17 +247,13 @@ export function ElementPalette() {
             <div key={section.heading} className="col-span-4 grid grid-cols-4 gap-1">
               {searching ? (
                 <div className="col-span-4 px-1 pt-2 text-[11px] font-medium text-muted-foreground">
-                  {section.heading}
+                  {groupName(section.heading)}
                 </div>
               ) : (
                 <button
                   type="button"
                   aria-expanded={open}
-                  aria-label={
-                    open
-                      ? `ยุบกลุ่ม ${section.heading}`
-                      : `ขยายกลุ่ม ${section.heading}`
-                  }
+                  aria-label={`${open ? t("collapseGroup") : t("expandGroup")} ${groupName(section.heading)}`}
                   onClick={() => toggleGroup(section.heading)}
                   className="col-span-4 flex h-7 items-center gap-1 rounded-md px-1 pt-1 text-left text-[11px] font-medium text-muted-foreground outline-none hover:bg-sidebar-accent focus-visible:ring-3 focus-visible:ring-ring"
                 >
@@ -246,13 +262,13 @@ export function ElementPalette() {
                   ) : (
                     <ChevronRight className="size-3 shrink-0" aria-hidden="true" />
                   )}
-                  <span className="min-w-0 truncate">{section.heading}</span>
+                  <span className="min-w-0 truncate">{groupName(section.heading)}</span>
                 </button>
               )}
               {open
                 ? section.types.map((type) => {
           const Icon = ICONS[type];
-          const label = NODE_TYPE_LABEL[type];
+          const label = labelOf(type);
           const enabled = !!target;
           const tile = (
             <button
@@ -262,7 +278,7 @@ export function ElementPalette() {
               disabled={!enabled}
               // Radix tooltips don't fire on disabled buttons → title fallback.
               title={enabled ? undefined : label}
-              aria-label={`เพิ่ม${label}`}
+              aria-label={locale === "en" ? `Add ${label}` : `เพิ่ม${label}`}
               className="flex h-12 flex-col items-center justify-center gap-0.5 rounded-md text-[11px] leading-4 text-sidebar-foreground outline-none ring-transparent transition-shadow hover:bg-sidebar-accent hover:ring-1 hover:ring-ring focus-visible:ring-3 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:ring-transparent"
               onClick={() => add(type)}
               onDragStart={(e) => {
@@ -283,7 +299,7 @@ export function ElementPalette() {
               <TooltipTrigger asChild>{tile}</TooltipTrigger>
               <TooltipContent side="bottom" className="flex flex-col items-start gap-0.5">
                 <span className="font-medium">{label}</span>
-                <span className="opacity-80">คลิกเพื่อแทรก · ลากไปวางบนผืนผ้าใบ</span>
+                <span className="opacity-80">{p("คลิกเพื่อแทรก · ลากไปวางบนผืนผ้าใบ")}</span>
               </TooltipContent>
             </Tooltip>
           );
@@ -302,7 +318,7 @@ export function ElementPalette() {
         aria-expanded={blocksFlyoutOpen}
         onClick={() => setBlocksFlyoutOpen(true)}
       >
-        บล็อก
+        {t("blocks")}
       </button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

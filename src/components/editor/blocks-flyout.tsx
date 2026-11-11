@@ -43,6 +43,9 @@ import { resolveInsertTarget } from "@/lib/document-ops";
 import { useEditorStore } from "@/stores/editor-store";
 import { useProjectsStore } from "@/stores/projects-store";
 import { canInsertTemplate } from "@/lib/node-actions";
+import { phrase, phraseCount, usePhrase } from "@/lib/phrases";
+import { useLocale } from "@/lib/locale";
+import { useT } from "@/lib/messages";
 
 /** T140 */
 export const BLOCKS_SEARCH = "ค้นหาบล็อก";
@@ -170,6 +173,9 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
   const [scrollTop, setScrollTop] = useState(0);
   const [viewH, setViewH] = useState(480);
   const announce = useEditorStore((s) => s.announce);
+  const locale = useLocale();
+  const p = usePhrase();
+  const t = useT();
   const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
   const setSelectedNodeId = useEditorStore((s) => s.setSelectedNodeId);
   const setFocusLayerId = useEditorStore((s) => s.setFocusLayerId);
@@ -240,10 +246,10 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
     if (!open || !cards) return;
     announce(
       filtered.length === 0
-        ? BLOCKS_EMPTY
-        : `พบ ${filtered.length} บล็อก`,
+        ? phrase(locale, BLOCKS_EMPTY)
+        : phraseCount(locale, filtered.length, "บล็อก", "blocks"),
     );
-  }, [open, cards, filtered.length, announce]);
+  }, [open, cards, filtered.length, announce, locale]);
 
   useEffect(() => {
     if (!open) return;
@@ -261,18 +267,18 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
     (blockId: string, position?: InsertBlockPosition) => {
       const doc = useProjectsStore.getState().openDocument;
       if (!doc || !canInsertTemplate(doc)) {
-        announce(BLOCKS_LOCKED);
+        announce(phrase(locale, BLOCKS_LOCKED));
         return;
       }
       const block = resolveBlock(blockId);
       if (!block) {
-        announce(BLOCKS_INVALID);
+        announce(phrase(locale, BLOCKS_INVALID));
         return;
       }
       const sel = useEditorStore.getState().selectedNodeId;
       const result = insertBlock(doc, sel, block, position);
       if (!result) {
-        announce(BLOCKS_INVALID);
+        announce(phrase(locale, BLOCKS_INVALID));
         return;
       }
       useProjectsStore.getState().updateOpenDocument(result.doc, {
@@ -280,10 +286,11 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
       });
       setSelectedNodeId(result.rootId);
       setFocusLayerId(result.rootId);
-      announce(BLOCKS_INSERTED(block.name));
+      const shown = locale === "en" ? (block.nameEn || block.name) : block.name;
+      announce(locale === "en" ? `Inserted block ${shown}` : BLOCKS_INSERTED(shown));
       close();
     },
-    [announce, close, setFocusLayerId, setSelectedNodeId],
+    [announce, close, locale, setFocusLayerId, setSelectedNodeId],
   );
 
   const positionEnd = (): InsertBlockPosition | undefined => {
@@ -334,14 +341,14 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
     >
       <div className="flex h-10 shrink-0 items-center gap-2 border-b border-border px-2">
         <h2 id={titleId} className="min-w-0 flex-1 truncate text-sm font-medium">
-          บล็อก
+          {t("blocks")}
         </h2>
         <Button
           ref={closeBtnRef}
           type="button"
           variant="ghost"
           size="icon-xs"
-          aria-label={BLOCKS_CLOSE}
+          aria-label={p(BLOCKS_CLOSE)}
           onClick={close}
         >
           <X className="size-3.5" />
@@ -349,19 +356,19 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
       </div>
       <div className="border-b border-border p-2">
         <label htmlFor={searchId} className="sr-only">
-          {BLOCKS_SEARCH}
+          {p(BLOCKS_SEARCH)}
         </label>
         <Input
           id={searchId}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={BLOCKS_SEARCH}
+          placeholder={p(BLOCKS_SEARCH)}
           className="h-8 text-xs"
         />
       </div>
       <div className="flex min-h-0 flex-1">
         <nav
-          aria-label="หมวดบล็อก"
+          aria-label={p("หมวดบล็อก")}
           className="scrollbar-thin w-[7.5rem] shrink-0 overflow-auto border-r border-border py-1"
         >
           {BLOCK_CATEGORIES.map((c, i) => {
@@ -371,7 +378,7 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
               <Fragment key={c.id}>
                 {heading ? (
                   <p className="px-2 pt-2 pb-0.5 text-[10px] font-medium text-muted-foreground">
-                    {heading}
+                    {p(heading)}
                   </p>
                 ) : null}
                 <button
@@ -382,7 +389,7 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
                   )}
                   onClick={() => setCategory(c.id)}
                 >
-                  {c.label}
+                  {p(c.label)}
                 </button>
               </Fragment>
             );
@@ -395,7 +402,7 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
         >
           {filtered.length === 0 ? (
             <p className="px-1 py-6 text-center text-xs text-muted-foreground" role="status">
-              {BLOCKS_EMPTY}
+              {p(BLOCKS_EMPTY)}
             </p>
           ) : (
             <div style={{ paddingTop: padTop, paddingBottom: padBot }}>
@@ -435,9 +442,11 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
                     }}
                   >
                     <WireThumb thumb={b.thumb} name={b.name} />
-                    <span className="truncate text-[11px] font-medium">{b.name}</span>
+                    <span className="truncate text-[11px] font-medium">
+                      {locale === "en" ? b.nameEn || b.name : b.name}
+                    </span>
                     <span className="text-[10px] leading-snug text-muted-foreground">
-                      {BLOCKS_HINT}
+                      {p(BLOCKS_HINT)}
                     </span>
                     <div className="flex gap-1">
                       <Button
@@ -450,7 +459,7 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
                           doInsert(b.id);
                         }}
                       >
-                        {BLOCKS_INSERT}
+                        {p(BLOCKS_INSERT)}
                       </Button>
                       {/* Mount menu only for the active card — cuts Radix trees when open. */}
                       {i === active ? (
@@ -462,7 +471,7 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
                               variant="outline"
                               className="h-7 w-7 shrink-0"
                               disabled={locked}
-                              aria-label={BLOCKS_INSERT_OPTIONS}
+                              aria-label={p(BLOCKS_INSERT_OPTIONS)}
                               onClick={(e) => e.stopPropagation()}
                             >
                               <MoreHorizontal className="size-3.5" />
@@ -470,24 +479,24 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="min-w-[12rem]">
                             <DropdownMenuItem onSelect={() => doInsert(b.id, positionEnd())}>
-                              {BLOCKS_INSERT_END}
+                              {p(BLOCKS_INSERT_END)}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onSelect={() => doInsert(b.id, { kind: "page" })}
                             >
-                              {BLOCKS_INSERT_AFTER}
+                              {p(BLOCKS_INSERT_AFTER)}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onSelect={() => {
                                 const pos = positionInto();
                                 if (!pos) {
-                                  announce(BLOCKS_INVALID);
+                                  announce(phrase(locale, BLOCKS_INVALID));
                                   return;
                                 }
                                 doInsert(b.id, pos);
                               }}
                             >
-                              {BLOCKS_INSERT_INTO}
+                              {p(BLOCKS_INSERT_INTO)}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -498,7 +507,7 @@ export function BlocksFlyout({ open, onOpenChange }: BlocksFlyoutProps) {
                           variant="outline"
                           className="h-7 w-7 shrink-0"
                           disabled={locked}
-                          aria-label={BLOCKS_INSERT_OPTIONS}
+                          aria-label={p(BLOCKS_INSERT_OPTIONS)}
                           onClick={(e) => {
                             e.stopPropagation();
                             setActive(i);

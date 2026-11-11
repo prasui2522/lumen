@@ -71,7 +71,11 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { ElementPalette } from "@/components/editor/ElementPalette";
 import { PagesPanel } from "@/components/editor/PagesPanel";
-import { findParent, flattenLayers, NODE_TYPE_LABEL, toggleNodeLocked } from "@/lib/document-ops";
+import { findParent, flattenLayers, toggleNodeLocked } from "@/lib/document-ops";
+import { useDisplayLayerLabel } from "@/lib/layer-display";
+import { useKindLabel } from "@/lib/kind-label";
+import { usePhrase } from "@/lib/phrases";
+import { useT } from "@/lib/messages";
 import { getChildren, isLocked } from "@/schema";
 import {
   canDeleteNode,
@@ -198,6 +202,7 @@ function refocusLayers(e: Event) {
 function LayerMenuItems({ id }: { id: string }) {
   const doc = useProjectsStore((s) => s.openDocument);
   const updateOpenDocument = useProjectsStore((s) => s.updateOpenDocument);
+  const p = usePhrase();
   if (!doc) return null;
   const node = doc.nodes[id];
   const locked = !!node && isLocked(node);
@@ -210,7 +215,7 @@ function LayerMenuItems({ id }: { id: string }) {
       <ContextMenuItem disabled={!canEditText(doc, id)} onSelect={() => {
           pendingEdit = id;
         }}>
-        แก้ไขข้อความ
+        {p("แก้ไขข้อความ")}
         <ContextMenuShortcut>Enter</ContextMenuShortcut>
       </ContextMenuItem>
       <ContextMenuItem
@@ -220,13 +225,13 @@ function LayerMenuItems({ id }: { id: string }) {
           if (next) updateOpenDocument(next);
         }}
       >
-        {locked ? "ปลดล็อก" : "ล็อก"}
+        {locked ? p("ปลดล็อก") : p("ล็อก")}
       </ContextMenuItem>
       <ContextMenuItem disabled={!canMoveNode(doc, id, -1)} onSelect={() => moveNodeAction(id, -1)}>
-        เลื่อนขึ้น
+        {p("เลื่อนขึ้น")}
       </ContextMenuItem>
       <ContextMenuItem disabled={!canMoveNode(doc, id, 1)} onSelect={() => moveNodeAction(id, 1)}>
-        เลื่อนลง
+        {p("เลื่อนลง")}
       </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem
@@ -234,7 +239,7 @@ function LayerMenuItems({ id }: { id: string }) {
         disabled={!canDeleteNode(doc, id)}
         onSelect={() => deleteNodeAction(id, scope())}
       >
-        ลบ
+        {p("ลบ")}
         <ContextMenuShortcut>Delete</ContextMenuShortcut>
       </ContextMenuItem>
     </>
@@ -246,6 +251,10 @@ export function LayersPanel() {
   const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
   const focusLayerId = useEditorStore((s) => s.focusLayerId);
   const setSelectedNodeId = useEditorStore((s) => s.setSelectedNodeId);
+  const showLabel = useDisplayLayerLabel();
+  const kindOf = useKindLabel();
+  const t = useT();
+  const p = usePhrase();
 
   const rows = openDocument ? flattenLayers(openDocument) : [];
   // A saved page always has the page row, so an empty `rows` list never happens.
@@ -340,7 +349,7 @@ export function LayersPanel() {
       <ElementPalette />
       <PagesPanel />
       <div className="flex h-10 shrink-0 items-center px-3">
-        <span className="text-[11px] font-medium text-muted-foreground">เลเยอร์</span>
+        <span className="text-[11px] font-medium text-muted-foreground">{t("layers")}</span>
       </div>
       <div
         ref={listRef}
@@ -348,7 +357,7 @@ export function LayersPanel() {
         tabIndex={-1}
         onKeyDown={onListKeyDown}
         role="listbox"
-        aria-label="เลเยอร์"
+        aria-label={t("layers")}
         className="scrollbar-thin min-h-32 flex-1 overflow-auto px-2 pb-2 outline-none"
       >
         {rows.map((row) => {
@@ -371,7 +380,7 @@ export function LayersPanel() {
                       row.locked && "opacity-60",
                     )}
                     style={{ paddingLeft: 8 + row.depth * INDENT }}
-                    title={NODE_TYPE_LABEL[row.type]}
+                    title={kindOf(row.type)}
                     onClick={() => setSelectedNodeId(row.id)}
                     onContextMenu={(e) => onRowContextMenu(e, row.id)}
                     onKeyDown={onRowKeyDown}
@@ -384,11 +393,11 @@ export function LayersPanel() {
                       />
                     ) : null}
                     <Icon className="size-3.5 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{row.label}</span>
+                    <span className="truncate">{showLabel(row.label, row.type)}</span>
                     {row.locked ? (
                       <>
                         <Lock aria-hidden className="ml-auto size-3 shrink-0 text-muted-foreground" />
-                        <span className="sr-only">(ล็อก)</span>
+                        <span className="sr-only">{p("(ล็อก)")}</span>
                       </>
                     ) : null}
                   </button>
@@ -403,7 +412,7 @@ export function LayersPanel() {
           <Empty className="gap-2 p-3">
             <EmptyHeader>
               <EmptyTitle className="text-xs font-normal text-muted-foreground">
-                ไม่มีเลเยอร์
+                {p("ไม่มีเลเยอร์")}
               </EmptyTitle>
             </EmptyHeader>
             {canInsertTemplate(openDocument) ? (
@@ -414,7 +423,7 @@ export function LayersPanel() {
                 className="h-7 text-[11px]"
                 onClick={() => insertTemplate("hero")}
               >
-                แนะนำ
+                {p("แนะนำ")}
               </Button>
             ) : null}
           </Empty>

@@ -6,7 +6,6 @@ import { ChevronDown, ChevronRight, EyeOff, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
-  NODE_TYPE_LABEL,
   breakpointKeySet,
   isContentLocked,
   nodeDisplayName,
@@ -14,6 +13,10 @@ import {
   type StyleKey,
 } from "@/lib/document-ops";
 import { effectiveSize, type DeviceId } from "@/lib/devices";
+import { useKindLabel } from "@/lib/kind-label";
+import { useDisplayLayerLabel } from "@/lib/layer-display";
+import { phrase, usePhrase } from "@/lib/phrases";
+import { useLocale } from "@/lib/locale";
 import {
   FONT_PRESETS,
   STYLE_SECTIONS,
@@ -176,15 +179,31 @@ function frameNote(
   landscape: boolean,
   customW: number,
   multi: boolean,
+  locale: "th" | "en",
 ): string {
-  if (multi) return "หลายเฟรม — แต่ละเฟรมใช้ความกว้างของตัวเอง";
-  if (preset === "fill") return "เต็มพื้นที่ใช้ความกว้างของเวที ไม่ใช่จุดพักที่เลือก";
+  if (multi) return phrase(locale, "หลายเฟรม — แต่ละเฟรมใช้ความกว้างของตัวเอง");
+  if (preset === "fill") return phrase(locale, "เต็มพื้นที่ใช้ความกว้างของเวที ไม่ใช่จุดพักที่เลือก");
   const size = effectiveSize(preset, landscape, { w: customW, h: 768 });
-  if (!size) return "เต็มพื้นที่ใช้ความกว้างของเวที ไม่ใช่จุดพักที่เลือก";
+  if (!size) return phrase(locale, "เต็มพื้นที่ใช้ความกว้างของเวที ไม่ใช่จุดพักที่เลือก");
   if (preset === "fold-open" || preset === "pixel-fold-open") {
-    return `เฟรมนี้กว้าง ${size.w}px ใช้กฎแท็บเล็ต — จอพับยังไม่ถูกใช้ในพรีวิว`;
+    return locale === "en"
+      ? `This frame is ${size.w}px wide and uses tablet rules — fold is unused in preview`
+      : `เฟรมนี้กว้าง ${size.w}px ใช้กฎแท็บเล็ต — จอพับยังไม่ถูกใช้ในพรีวิว`;
   }
-  return `เฟรมปัจจุบันใช้${SEGMENT_LABEL[widthSegment(size.w)]}`;
+  const seg = phrase(locale, SEGMENT_LABEL[widthSegment(size.w)]);
+  return locale === "en" ? `Current frame uses ${seg}` : `เฟรมปัจจุบันใช้${seg}`;
+}
+
+function PropsHeading() {
+  const p = usePhrase();
+  return (
+    <h3 className="text-xs font-medium text-muted-foreground">{p("คุณสมบัติ")}</h3>
+  );
+}
+
+function PropNote({ text }: { text: string }) {
+  const p = usePhrase();
+  return <p className="px-1 text-[11px] text-muted-foreground">{p(text)}</p>;
 }
 
 export function StylePanel() {
@@ -192,6 +211,7 @@ export function StylePanel() {
   void IconPathsChunk;
   void ChartRenderChunk;
   void CalendarRenderChunk;
+  const p = usePhrase();
   const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
   // Survives selection changes. Does not switch the preview device.
   const [segment, setSegment] = useState<StyleSegment>("desktop");
@@ -220,13 +240,13 @@ export function StylePanel() {
     >
       <div className="flex h-10 shrink-0 items-center px-3">
         <span className="text-[11px] font-medium text-muted-foreground">
-          สไตล์
+          {p("สไตล์")}
         </span>
       </div>
       {!node ? (
         <div className="flex flex-1 items-center justify-center px-4">
           <p className="text-center text-sm text-muted-foreground">
-            เลือกองค์ประกอบเพื่อแก้ไข
+            {p("เลือกองค์ประกอบเพื่อแก้ไข")}
           </p>
         </div>
       ) : (
@@ -257,7 +277,10 @@ function PanelBody({
   const doc = useProjectsStore((s) => s.openDocument);
   const eff = useMemo(() => resolvedStyle(node), [node]);
   const locked = !!doc && isContentLocked(doc, node);
-  const typeLabel = NODE_TYPE_LABEL[node.type];
+  const typeLabel = useKindLabel()(node.type);
+  const showLabel = useDisplayLayerLabel();
+  const p = usePhrase();
+  const locale = useLocale();
   const preset = usePreviewDeviceStore((s) => s.preset);
   const landscape = usePreviewDeviceStore((s) => s.landscape);
   const customW = usePreviewDeviceStore((s) => s.custom.w);
@@ -290,7 +313,7 @@ function PanelBody({
       {locked ? (
         <div className="mb-3 flex min-w-0 items-start gap-1.5 rounded-md border border-border bg-muted/60 px-2 py-1.5 text-xs text-muted-foreground">
           <Lock className="mt-0.5 size-3 shrink-0" aria-hidden />
-          <span className="min-w-0 break-words">องค์ประกอบถูกล็อก ปลดล็อกจากเมนูเลเยอร์หรือเมนูหน้าเพื่อแก้ไข</span>
+          <span className="min-w-0 break-words">{p("องค์ประกอบถูกล็อก ปลดล็อกจากเมนูเลเยอร์หรือเมนูหน้าเพื่อแก้ไข")}</span>
         </div>
       ) : null}
 
@@ -330,11 +353,11 @@ function PanelBody({
         />
         {onState ? (
           <p className="text-[11px] text-muted-foreground" role="note">
-            {STATE_PAINT_ONLY_HINT}
+            {p(STATE_PAINT_ONLY_HINT)}
           </p>
         ) : (
           <p className="text-[11px] text-muted-foreground">
-            {frameNote(preset, landscape, customW, multi)}
+            {frameNote(preset, landscape, customW, multi, locale)}
           </p>
         )}
         {onState && editState && node.states?.[editState] && !locked ? (
@@ -345,21 +368,21 @@ function PanelBody({
             className="h-7 px-1.5 text-[11px]"
             onClick={() => writeClearNodeState(node.id, editState)}
           >
-            {CLEAR_THIS_STATE_LABEL}
+            {p(CLEAR_THIS_STATE_LABEL)}
           </Button>
         ) : null}
         {!offersFocus ? (
           <p className="text-[11px] text-muted-foreground" role="note">
-            โฟกัสด้วยคีย์บอร์ดใช้ได้กับปุ่มที่มีลิงก์ ลิงก์ และช่องกรอกเท่านั้น
+            {p("โฟกัสด้วยคีย์บอร์ดใช้ได้กับปุ่มที่มีลิงก์ ลิงก์ และช่องกรอกเท่านั้น")}
           </p>
         ) : null}
       </div>
 
       <section className="space-y-2 pb-3">
-        <h3 className="text-xs font-medium text-muted-foreground">องค์ประกอบ</h3>
+        <h3 className="text-xs font-medium text-muted-foreground">{p("องค์ประกอบ")}</h3>
         <div>
           <p className="truncate text-sm font-medium">
-            {isRoot ? "หน้า" : nodeDisplayName(node)}
+            {isRoot ? typeLabel : showLabel(nodeDisplayName(node), node.type)}
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {typeLabel}
@@ -367,7 +390,7 @@ function PanelBody({
           </p>
         </div>
         {isRoot ? (
-          <p className="text-xs text-muted-foreground">สไตล์ของหน้าจะใช้กับทั้งหน้า</p>
+          <p className="text-xs text-muted-foreground">{p("สไตล์ของหน้าจะใช้กับทั้งหน้า")}</p>
         ) : null}
         {isRoot ? (
           <FieldRow
@@ -402,7 +425,7 @@ function PanelBody({
         ) : null}
         {!isVisible(node) ? (
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
-            <EyeOff className="size-3" aria-hidden /> ซ่อนอยู่บนผืนผ้าใบ
+            <EyeOff className="size-3" aria-hidden /> {p("ซ่อนอยู่บนผืนผ้าใบ")}
           </p>
         ) : null}
         {node.props.type === "heading" ? (
@@ -425,9 +448,9 @@ function PanelBody({
       </section>
 
       <section className="mb-3 space-y-2">
-        <p className="text-[11px] font-medium text-muted-foreground">เหตุการณ์</p>
+        <p className="text-[11px] font-medium text-muted-foreground">{p("เหตุการณ์")}</p>
         <label className="flex items-center gap-2 text-xs">
-          <span className="w-24 shrink-0">เคอร์เซอร์</span>
+          <span className="w-24 shrink-0">{p("เคอร์เซอร์")}</span>
           <select
             className="h-7 min-w-0 flex-1 rounded-lg border border-input bg-transparent px-2"
             disabled={locked}
@@ -440,7 +463,7 @@ function PanelBody({
               void next;
             }}
           >
-            <option value="">ตามปกติ</option>
+            <option value="">{p("ตามปกติ")}</option>
             {CURSOR_KEYWORDS.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -450,7 +473,7 @@ function PanelBody({
         </label>
         {editState ? null : (
           <label className="flex items-center gap-2 text-xs">
-            <span className="w-24 shrink-0">ขอบไฟวิ่ง</span>
+            <span className="w-24 shrink-0">{p("ขอบไฟวิ่ง")}</span>
             <select
               className="h-7 min-w-0 flex-1 rounded-lg border border-input bg-transparent px-2"
               disabled={locked}
@@ -460,29 +483,29 @@ function PanelBody({
                 writeStyle(node.id, "borderEffect", value, undefined, null);
               }}
             >
-              <option value="">ไม่มี</option>
-              <option value="led">ไฟวิ่งรอบขอบ</option>
+              <option value="">{p("ไม่มี")}</option>
+              <option value="led">{p("ไฟวิ่งรอบขอบ")}</option>
             </select>
           </label>
         )}
         <p className="text-[11px] text-muted-foreground">
-          ชี้เมาส์คือตอนเมาส์อยู่บนชิ้น กดค้างคือตอนกดปุ่มเมาส์ โฟกัสคือตอนเลื่อนด้วยคีย์บอร์ด
+          {p("ชี้เมาส์คือตอนเมาส์อยู่บนชิ้น กดค้างคือตอนกดปุ่มเมาส์ โฟกัสคือตอนเลื่อนด้วยคีย์บอร์ด")}
         </p>
       </section>
 
       {!onState && (node.type === "container" || node.type === "card" || node.type === "section") ? (
         <label className="mb-3 flex items-center gap-2 text-xs">
-          <span className="w-24 shrink-0">ความหนากระจก</span>
+          <span className="w-24 shrink-0">{p("ความหนากระจก")}</span>
           <select
             className="h-7 min-w-0 flex-1 rounded-lg border border-input bg-transparent px-2"
             disabled={locked}
             value={glassLevelOf(node.style)}
             onChange={(e) => writeGlassThickness(node.id, e.target.value as "" | "ultra" | "thin" | "regular" | "thick")}
           >
-            <option value="">ไม่ใช้กระจก</option>
+            <option value="">{p("ไม่ใช้กระจก")}</option>
             {GLASS_LEVELS.map((level) => (
               <option key={level} value={level}>
-                {GLASS_LEVEL_LABEL[level]}
+                {p(GLASS_LEVEL_LABEL[level])}
               </option>
             ))}
           </select>
@@ -579,10 +602,10 @@ function SuggestionsLinesRow({
   );
 }
 
-function errText(e: unknown): string {
+function errText(e: unknown, fallback: string): string {
   if (typeof e === "string" && e.trim()) return e;
   if (e instanceof Error && e.message.trim()) return e.message;
-  return "นำเข้ารูปไม่สำเร็จ";
+  return fallback;
 }
 
 /** Pick a local image. Cancel does not write. A successful pick is one `srcId` write. */
@@ -595,9 +618,11 @@ function ImageFileButton({
   assetId: string;
   locked: boolean;
 }) {
+  const tr = usePhrase();
   const projectId = useProjectsStore((s) => s.openId);
   const [busy, setBusy] = useState(false);
   const hasFile = assetId.trim() !== "";
+  const pickLabel = hasFile ? tr("เปลี่ยนรูป") : tr("เลือกรูป");
   return (
     <FieldRow id="pf-src" label="รูป" overridden={false} locked={locked}>
       <Button
@@ -614,9 +639,9 @@ function ImageFileButton({
           void (async () => {
             try {
               const picked = await open({
-                title: hasFile ? "เปลี่ยนรูป" : "เลือกรูป",
+                title: pickLabel,
                 multiple: false,
-                filters: [{ name: "รูป", extensions: ["jpg", "jpeg", "png", "gif", "webp"] }],
+                filters: [{ name: tr("รูป"), extensions: ["jpg", "jpeg", "png", "gif", "webp"] }],
               });
               // Cancel, or a multi-select we did not ask for: do not dirty.
               if (picked == null || Array.isArray(picked)) return;
@@ -626,20 +651,21 @@ function ImageFileButton({
               });
               writeProp(nodeId, "srcId", imported.id);
             } catch (e) {
-              toast.error(errText(e));
+              toast.error(errText(e, tr("นำเข้ารูปไม่สำเร็จ")));
             } finally {
               setBusy(false);
             }
           })();
         }}
       >
-        {hasFile ? "เปลี่ยนรูป" : "เลือกรูป"}
+        {pickLabel}
       </Button>
     </FieldRow>
   );
 }
 
 function NodePropsSection({ node, locked }: { node: Node; locked: boolean }) {
+  const tr = usePhrase();
   if (isPhase6bType(node.type)) return <Phase6bProps node={node} locked={locked} />;
   const p = node.props;
   if (
@@ -653,7 +679,7 @@ function NodePropsSection({ node, locked }: { node: Node; locked: boolean }) {
   if (p.type === "chart") {
     return (
       <section className="space-y-2 border-t border-sidebar-border py-2">
-        <h3 className="text-xs font-medium text-muted-foreground">คุณสมบัติ</h3>
+        <PropsHeading />
         <ChartPropsEditor
           nodeId={node.id}
           kind={p.kind}
@@ -681,7 +707,7 @@ function NodePropsSection({ node, locked }: { node: Node; locked: boolean }) {
   if (p.type === "command" || p.type === "contextMenu") {
     return (
       <section className="space-y-2 border-t border-sidebar-border py-2">
-        <h3 className="text-xs font-medium text-muted-foreground">คุณสมบัติ</h3>
+        <PropsHeading />
         <StaticItemsEditor
           nodeId={node.id}
           placeholder={p.type === "command" ? p.placeholder : undefined}
@@ -695,7 +721,7 @@ function NodePropsSection({ node, locked }: { node: Node; locked: boolean }) {
   if (p.type === "toast") {
     return (
       <section className="space-y-2 border-t border-sidebar-border py-2">
-        <h3 className="text-xs font-medium text-muted-foreground">คุณสมบัติ</h3>
+        <PropsHeading />
         <FieldRow id="pf-toast-title" label="หัวข้อ" overridden={false} locked={locked}>
           <TextPropField
             id="pf-toast-title"
@@ -714,14 +740,14 @@ function NodePropsSection({ node, locked }: { node: Node; locked: boolean }) {
             onCommit={(v) => writeProp(node.id, "message", v)}
           />
         </FieldRow>
-        <p className="px-1 text-[11px] text-muted-foreground">แบบจัดวาง ไม่เด้งเอง</p>
+        <PropNote text="แบบจัดวาง ไม่เด้งเอง" />
       </section>
     );
   }
   if (p.type === "resizable") {
     return (
       <section className="space-y-2 border-t border-sidebar-border py-2">
-        <h3 className="text-xs font-medium text-muted-foreground">คุณสมบัติ</h3>
+        <PropsHeading />
         <FieldRow id="pf-split" label="ความกว้างช่องแรก" overridden={false} locked={locked}>
           <TextPropField
             id="pf-split"
@@ -734,7 +760,7 @@ function NodePropsSection({ node, locked }: { node: Node; locked: boolean }) {
             }}
           />
         </FieldRow>
-        <p className="px-1 text-[11px] text-muted-foreground">แบบจัดวาง เส้นแบ่งไม่ลากได้</p>
+        <PropNote text="แบบจัดวาง เส้นแบ่งไม่ลากได้" />
       </section>
     );
   }
@@ -754,7 +780,7 @@ function NodePropsSection({ node, locked }: { node: Node; locked: boolean }) {
   }
   return (
     <section className="space-y-2 border-t border-sidebar-border py-2">
-      <h3 className="text-xs font-medium text-muted-foreground">คุณสมบัติ</h3>
+      <PropsHeading />
       {p.type === "button" ? (
         <Suspense fallback={<div className="h-7" />}>
           <ButtonLinkField
@@ -811,7 +837,7 @@ function NodePropsSection({ node, locked }: { node: Node; locked: boolean }) {
             <TextPropField
               id="pf-placeholder"
               value={p.placeholder}
-              placeholder="พิมพ์ที่นี่"
+              placeholder={tr("พิมพ์ที่นี่")}
               disabled={locked}
               onCommit={(v) => writeProp(node.id, "placeholder", v)}
             />
@@ -990,7 +1016,7 @@ function StaticItemsEditor({
           onBlur={commit}
         />
       </FieldRow>
-      <p className="px-1 text-[11px] text-muted-foreground">{note}</p>
+      <PropNote text={note} />
     </>
   );
 }
@@ -1077,10 +1103,11 @@ function IconPropsEditor({
   label?: string;
   locked: boolean;
 }) {
+  const tr = usePhrase();
   return (
     <>
       <FieldRow id="pf-icon-name" label="ชื่อไอคอน" overridden={false} locked={locked} stacked>
-        <Suspense fallback={<p className="text-[11px] text-muted-foreground">กำลังโหลดไอคอน…</p>}>
+        <Suspense fallback={<p className="text-[11px] text-muted-foreground">{tr("กำลังโหลดไอคอน…")}</p>}>
           <IconPicker
             value={name}
             disabled={locked}
@@ -1119,6 +1146,7 @@ function TablePropsEditor({
   striped: boolean;
   locked: boolean;
 }) {
+  const tr = usePhrase();
   const [open, setOpen] = useState(false);
   const mounted = useMountedOnce(open);
   const tableEditBtn = useRef<HTMLButtonElement>(null);
@@ -1134,13 +1162,13 @@ function TablePropsEditor({
           ref={tableEditBtn}
           onClick={() => setOpen(true)}
         >
-          แก้ไขตาราง
+          {tr("แก้ไขตาราง")}
         </Button>
       </FieldRow>
       <p className="text-[11px] text-muted-foreground">
-        {columns.length} คอลัมน์ · {rows.length} แถว
-        {headerRow ? " · มีหัวตาราง" : ""}
-        {striped ? " · สลับสี" : ""}
+        {columns.length} {tr("คอลัมน์")} · {rows.length} {tr("แถว")}
+        {headerRow ? tr(" · มีหัวตาราง") : ""}
+        {striped ? tr(" · สลับสี") : ""}
         {caption?.trim() ? ` · ${caption.trim()}` : ""}
       </p>
       {mounted ? (
@@ -1179,9 +1207,10 @@ function ChartPropsEditor({
   caption?: string;
   locked: boolean;
 }) {
+  const tr = usePhrase();
   const [open, setOpen] = useState(false);
   const mounted = useMountedOnce(open);
-  const kindLabel = kind === "line" ? "เส้น" : kind === "area" ? "พื้นที่" : "แท่ง";
+  const kindLabel = tr(kind === "line" ? "เส้น" : kind === "area" ? "พื้นที่" : "แท่ง");
   return (
     <>
       <FieldRow id="pf-chart-edit" label="กราฟ" overridden={false} locked={locked}>
@@ -1193,11 +1222,11 @@ function ChartPropsEditor({
           disabled={locked}
           onClick={() => setOpen(true)}
         >
-          ข้อมูลกราฟ
+          {tr("ข้อมูลกราฟ")}
         </Button>
       </FieldRow>
       <p className="text-[11px] text-muted-foreground">
-        {kindLabel} · {categories.length} หมวด · {series.length} ชุด
+        {kindLabel} · {categories.length} {tr("หมวด")} · {series.length} {tr("ชุด")}
         {caption?.trim() ? ` · ${caption.trim()}` : ""}
       </p>
       {mounted ? (
@@ -1238,7 +1267,7 @@ function CalendarPropsEditor({
 }) {
   return (
     <section className="space-y-2 border-t border-sidebar-border py-2">
-      <h3 className="text-xs font-medium text-muted-foreground">คุณสมบัติ</h3>
+      <PropsHeading />
       <FieldRow id="pf-cal-era" label="ปี พ.ศ." overridden={false} locked={locked}>
         <SegmentedField
           id="pf-cal-era"
@@ -1315,10 +1344,8 @@ function CarouselPropsEditor({
 }) {
   return (
     <section className="space-y-2 border-t border-sidebar-border py-2">
-      <h3 className="text-xs font-medium text-muted-foreground">คุณสมบัติ</h3>
-      <p className="text-[11px] text-muted-foreground">
-        เลื่อนด้วยการปัดหรือปุ่มลูกศร ไม่มีปุ่มถัดไปหรือเล่นอัตโนมัติ
-      </p>
+      <PropsHeading />
+      <PropNote text="เลื่อนด้วยการปัดหรือปุ่มลูกศร ไม่มีปุ่มถัดไปหรือเล่นอัตโนมัติ" />
       <FieldRow id="pf-slides-per-view" label="จำนวนสไลด์ต่อหน้า" overridden={false} locked={locked}>
         <NumberField
           id="pf-slides-per-view"
@@ -1335,16 +1362,17 @@ function CarouselPropsEditor({
 
 /** Phase 11 A2.5: the non-style props of badge / separator / spinner / aspectRatio / scrollArea (T10, T11, T12, T73, T74). */
 function A2Props({ node, locked }: { node: Node; locked: boolean }) {
+  const tr = usePhrase();
   const p = node.props;
   return (
     <section className="space-y-2 border-t border-sidebar-border py-2">
-      <h3 className="text-xs font-medium text-muted-foreground">คุณสมบัติ</h3>
+      <PropsHeading />
       {p.type === "badge" ? (
         <FieldRow id="pf-badge-label" label="ข้อความ" overridden={false} locked={locked}>
           <TextPropField
             id="pf-badge-label"
             value={p.label}
-            placeholder="ป้าย"
+            placeholder={tr("ป้าย")}
             disabled={locked}
             onCommit={(v) => writeProp(node.id, "label", v)}
           />
@@ -1406,7 +1434,7 @@ function A2Props({ node, locked }: { node: Node; locked: boolean }) {
             />
           </FieldRow>
           {node.style.height === undefined && node.style.minHeight === undefined ? (
-            <p className="text-[11px] text-muted-foreground">ตั้งความสูงเพื่อให้เลื่อนได้</p>
+            <p className="text-[11px] text-muted-foreground">{tr("ตั้งความสูงเพื่อให้เลื่อนได้")}</p>
           ) : null}
         </>
       ) : null}
@@ -1436,6 +1464,7 @@ const MotionSection = memo(function MotionSection({
   node: Node;
   locked: boolean;
 }) {
+  const p = usePhrase();
   const collapsed = useEditorStore((s) => !!s.collapsedStyleSections["motion"]);
   const toggle = useEditorStore((s) => s.toggleStyleSection);
   const overridden = !!node.motion?.entrance;
@@ -1464,17 +1493,17 @@ const MotionSection = memo(function MotionSection({
                 : "size-1.5 shrink-0 rounded-full bg-transparent"
             }
           />
-          การเคลื่อนไหว
+          {p("การเคลื่อนไหว")}
         </button>
         {overridden && !locked ? (
           <Button type="button" variant="ghost" size="xs" onClick={reset}>
-            รีเซ็ต
+            {p("รีเซ็ต")}
           </Button>
         ) : null}
       </div>
       {collapsed ? null : (
         <div id={bodyId} className="mt-1">
-          <Suspense fallback={<p className="text-[11px] text-muted-foreground">กำลังโหลด…</p>}>
+          <Suspense fallback={<p className="text-[11px] text-muted-foreground">{p("กำลังโหลด…")}</p>}>
             <MotionPanel node={node} locked={locked} />
           </Suspense>
         </div>
@@ -1494,6 +1523,7 @@ const EffectsSection = memo(function EffectsSection({
   segment: StyleSegment;
   editState?: NodeStateName | null;
 }) {
+  const tr = usePhrase();
   const collapsed = useEditorStore((s) => !!s.collapsedStyleSections["effects"]);
   const toggle = useEditorStore((s) => s.toggleStyleSection);
   const bp = editState || segment === "desktop" ? undefined : segment;
@@ -1663,17 +1693,17 @@ const EffectsSection = memo(function EffectsSection({
                 : "size-1.5 shrink-0 rounded-full bg-transparent"
             }
           />
-          เอฟเฟกต์
+          {tr("เอฟเฟกต์")}
         </button>
         {overridden && !locked ? (
           <Button type="button" variant="ghost" size="xs" onClick={resetSection}>
-            {onBreakpoint ? "ใช้ค่าหลัก" : "รีเซ็ต"}
+            {onBreakpoint ? tr("ใช้ค่าหลัก") : tr("รีเซ็ต")}
           </Button>
         ) : null}
       </div>
       {collapsed ? null : (
         <div id={bodyId} className="mt-1 space-y-2">
-          <Suspense fallback={<p className="text-[11px] text-muted-foreground">กำลังโหลด…</p>}>
+          <Suspense fallback={<p className="text-[11px] text-muted-foreground">{tr("กำลังโหลด…")}</p>}>
             <ShadowSubGroup
               nodeId={node.id}
               layers={layers}
@@ -1745,6 +1775,7 @@ const StyleSection = memo(function StyleSection({
   segment,
   editState = null,
 }: SectionProps) {
+  const p = usePhrase();
   const collapsed = useEditorStore((s) => !!s.collapsedStyleSections[id]);
   const toggle = useEditorStore((s) => s.toggleStyleSection);
   const bp = editState || segment === "desktop" ? undefined : segment;
@@ -1818,7 +1849,7 @@ const StyleSection = memo(function StyleSection({
           onClick={() => toggle(id)}
         >
           {collapsed ? <ChevronRight className="size-3.5" /> : <ChevronDown className="size-3.5" />}
-          {label}
+          {p(label)}
         </button>
         {(overridden.length > 0 || extrasOverridden) && !locked ? (
           <Button
@@ -1827,7 +1858,7 @@ const StyleSection = memo(function StyleSection({
             size="xs"
             onClick={id === "border" ? resetBorderAll : resetSection}
           >
-            รีเซ็ต
+            {p("รีเซ็ต")}
           </Button>
         ) : null}
       </div>
@@ -1849,7 +1880,7 @@ const StyleSection = memo(function StyleSection({
           ))}
           {borderOff ? (
             <p className="text-[11px] text-muted-foreground">
-              เลือกเส้นทึบ เส้นประ หรือจุด เพื่อแสดงเส้นขอบ
+              {p("เลือกเส้นทึบ เส้นประ หรือจุด เพื่อแสดงเส้นขอบ")}
             </p>
           ) : null}
           {id === "border" && !editState ? (
@@ -1863,7 +1894,7 @@ const StyleSection = memo(function StyleSection({
           ) : null}
           {inherits ? (
             <p className="text-[11px] text-muted-foreground">
-              ค่าที่ตั้งจะส่งต่อให้องค์ประกอบด้านใน
+              {p("ค่าที่ตั้งจะส่งต่อให้องค์ประกอบด้านใน")}
             </p>
           ) : null}
         </div>

@@ -38,6 +38,8 @@ import {
 } from "@/lib/site-json-edit";
 import { siteJsonComplete } from "@/lib/site-json-hint";
 import { themedSpecs } from "@/lib/code-view-colors";
+import { peekLocale } from "@/lib/locale";
+import { phrase, usePhrase } from "@/lib/phrases";
 import { useProjectsStore } from "@/stores/projects-store";
 import { useEditorStore } from "@/stores/editor-store";
 
@@ -56,11 +58,12 @@ const KINDS_CSS = "src/styles/kinds.css";
 const SITE_CSS = "src/styles/site.css";
 
 function thaiSearchPanel(view: EditorViewType): Panel {
+  const locale = peekLocale();
   const wrap = document.createElement("div");
   wrap.className = "flex items-center gap-1 border-b border-border bg-muted/40 px-2 py-1";
   const input = document.createElement("input");
-  input.placeholder = "ค้นหา";
-  input.setAttribute("aria-label", "ค้นหาในโค้ด");
+  input.placeholder = phrase(locale, "ค้นหา");
+  input.setAttribute("aria-label", phrase(locale, "ค้นหาในโค้ด"));
   input.className = "h-6 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs";
   const btn = (label: string, run: () => void) => {
     const el = document.createElement("button");
@@ -84,15 +87,15 @@ function thaiSearchPanel(view: EditorViewType): Panel {
   });
   wrap.append(
     input,
-    btn("ก่อนหน้า", () => {
+    btn(phrase(locale, "ก่อนหน้า"), () => {
       apply();
       findPrevious(view);
     }),
-    btn("ถัดไป", () => {
+    btn(phrase(locale, "ถัดไป"), () => {
       apply();
       findNext(view);
     }),
-    btn("ปิด", () => closeSearchPanel(view)),
+    btn(phrase(locale, "ปิด"), () => closeSearchPanel(view)),
   );
   return { dom: wrap, top: true };
 }
@@ -122,6 +125,7 @@ function innermostId(
 }
 
 export function CodeView() {
+  const p = usePhrase();
   const projectId = useProjectsStore((s) => s.openId);
   const doc = useProjectsStore((s) => s.openDocument);
   const announce = useEditorStore((s) => s.announce);
@@ -225,7 +229,9 @@ export function CodeView() {
     } catch (e: unknown) {
       const raw = e instanceof Error ? e.message : String(e);
       const msg =
-        raw.startsWith("JSON") || raw.includes("เอกสารไม่ถูกต้อง") ? raw : `JSON ไม่ถูกต้อง: ${raw}`;
+        raw.startsWith("JSON") || raw.includes("เอกสารไม่ถูกต้อง") || raw.includes("Invalid")
+          ? raw
+          : `${phrase(peekLocale(), "JSON ไม่ถูกต้อง")}: ${raw}`;
       setJsonError(msg);
       return msg;
     }
@@ -370,12 +376,12 @@ export function CodeView() {
     if (!entry?.text) return;
     try {
       await navigator.clipboard.writeText(entry.text);
-      announce("คัดลอกโค้ดแล้ว");
+      announce(phrase(peekLocale(), "คัดลอกโค้ดแล้ว"));
       setCopied(true);
       window.clearTimeout(copiedTimer.current);
       copiedTimer.current = window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      announce("คัดลอกไม่สำเร็จ");
+      announce(phrase(peekLocale(), "คัดลอกไม่สำเร็จ"));
     }
   };
 
@@ -384,7 +390,7 @@ export function CodeView() {
     void invoke("open_project_folder", { projectId }).catch(() => {
       const path = dest ?? lastExportDest(projectId);
       if (!path) {
-        announce("ยังไม่มีโฟลเดอร์โปรเจกต์ — บันทึกก่อน");
+        announce(phrase(peekLocale(), "ยังไม่มีโฟลเดอร์โปรเจกต์ — บันทึกก่อน"));
         return;
       }
       void invoke("open_export_folder", { destPath: path }).catch((e: unknown) => {
@@ -398,19 +404,19 @@ export function CodeView() {
   return (
     <div
       role="region"
-      aria-label="โค้ดโปรเจกต์ (Project code)"
+      aria-label={p("โค้ดโปรเจกต์ (Project code)")}
       tabIndex={-1}
       data-kbd-pane="code"
       className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden bg-background"
     >
       <nav
-        aria-label="ไฟล์ในโปรเจกต์"
+        aria-label={p("ไฟล์ในโปรเจกต์")}
         className="scrollbar-thin flex w-56 shrink-0 flex-col overflow-auto border-r border-border bg-sidebar py-1 text-[11px]"
       >
         {!files && !error ? (
           <div className="flex items-center gap-2 px-2 py-3 text-muted-foreground">
             <Spinner className="size-3.5" aria-hidden />
-            กำลังโหลด…
+            {p("กำลังโหลด…")}
           </div>
         ) : null}
         {error ? (
@@ -455,7 +461,7 @@ export function CodeView() {
               <button
                 type="button"
                 className="px-1 text-muted-foreground hover:text-foreground"
-                aria-label={`ปิด ${path}`}
+                aria-label={`${p("ปิด")} ${path}`}
                 onClick={() => closeTab(path)}
               >
                 <X className="size-3" aria-hidden />
@@ -465,7 +471,7 @@ export function CodeView() {
         </div>
         {overrides.length > 0 ? (
           <p role="status" className="border-b border-border bg-muted/50 px-2 py-1 text-[11px] text-muted-foreground">
-            หน้าออกแบบตามข้อมูลหน้า โค้ดเทมเพลตเป็นของโปรเจกต์
+            {p("หน้าออกแบบตามข้อมูลหน้า โค้ดเทมเพลตเป็นของโปรเจกต์")}
             {overrides.includes(SITE_CSS) ? (
               <Button
                 type="button"
@@ -475,11 +481,11 @@ export function CodeView() {
                 onClick={() => {
                   if (!projectId || !doc) return;
                   void invoke("regenerate_site_css", { projectId, document: doc }).then(() => {
-                    setOverrides((prev) => prev.filter((p) => p !== SITE_CSS));
+                    setOverrides((prev) => prev.filter((path) => path !== SITE_CSS));
                   });
                 }}
               >
-                สร้าง CSS ใหม่
+                {p("สร้าง CSS ใหม่")}
               </Button>
             ) : null}
           </p>
@@ -495,7 +501,7 @@ export function CodeView() {
           ) : null}
           {copied ? (
             <span role="status" className="text-[11px] text-muted-foreground">
-              คัดลอกโค้ดแล้ว
+              {p("คัดลอกโค้ดแล้ว")}
             </span>
           ) : null}
           <Button
@@ -505,17 +511,17 @@ export function CodeView() {
             disabled={!entry?.text}
             onClick={() => void copy()}
           >
-            คัดลอกโค้ด
+            {p("คัดลอกโค้ด")}
           </Button>
           <Button
             type="button"
             size="xs"
             variant="outline"
             disabled={folderDisabled}
-            title={folderDisabled ? "ยังไม่ได้ส่งออกโปรเจกต์" : undefined}
+            title={folderDisabled ? p("ยังไม่ได้ส่งออกโปรเจกต์") : undefined}
             onClick={openFolder}
           >
-            เปิดโฟลเดอร์
+            {p("เปิดโฟลเดอร์")}
           </Button>
           <Button
             type="button"
@@ -524,17 +530,17 @@ export function CodeView() {
             aria-pressed={wrap}
             onClick={() => setWrap((w) => !w)}
           >
-            ขึ้นบรรทัดใหม่
+            {p("ขึ้นบรรทัดใหม่")}
           </Button>
         </div>
         <div className="relative min-h-0 flex-1">
           {entry?.binary ? (
             <p className="p-4 text-sm text-muted-foreground">
-              ไฟล์ไบนารี — ดูชื่อในรายการเท่านั้น
+              {p("ไฟล์ไบนารี — ดูชื่อในรายการเท่านั้น")}
             </p>
           ) : entry && entry.text == null ? (
             <p className="p-4 text-sm text-muted-foreground">
-              ไฟล์ใหญ่เกิน 2 MB — เปิดเป็นข้อความธรรมดาหลังส่งออก
+              {p("ไฟล์ใหญ่เกิน 2 MB — เปิดเป็นข้อความธรรมดาหลังส่งออก")}
             </p>
           ) : (
             <div ref={hostRef} className="absolute inset-0" />

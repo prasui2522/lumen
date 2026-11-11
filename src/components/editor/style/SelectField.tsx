@@ -5,6 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { usePhrase } from "@/lib/phrases";
 import { cn } from "@/lib/utils";
 
 export type SelectOption = {
@@ -61,6 +62,7 @@ export function SelectField({
   grow = true,
   onCloseAutoFocus,
 }: Props) {
+  const p = usePhrase();
   return (
     <Select
       value={toItem(value)}
@@ -93,7 +95,7 @@ export function SelectField({
                 : undefined
             }
           >
-            {o.label}
+            {p(o.label)}
           </SelectItem>
         ))}
       </SelectContent>

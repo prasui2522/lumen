@@ -24,6 +24,9 @@ import type { StylePreset } from "@/lib/presets-registry";
 import { capturePresetFromNode } from "@/lib/preset-capture";
 import { libraryDelete, libraryPut } from "@/lib/library-api";
 import { useEditorStore } from "@/stores/editor-store";
+import { toastIpcError } from "@/lib/ipc-error-i18n";
+import { peekLocale } from "@/lib/locale";
+import { usePhrase } from "@/lib/phrases";
 import { toast } from "@/lib/toast";
 
 /** T122 */
@@ -48,6 +51,7 @@ export function PresetSaveDialog({
   node: Node;
   onSaved: () => void;
 }) {
+  const tr = usePhrase();
   const [name, setName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const announce = useEditorStore((s) => s.announce);
@@ -59,16 +63,16 @@ export function PresetSaveDialog({
   const commit = async () => {
     const preset = capturePresetFromNode(node, name);
     if (!preset) {
-      toast.error("ไม่มีสไตล์ที่จะบันทึก");
+      toast.error(toastIpcError("ไม่มีสไตล์ที่จะบันทึก"));
       return;
     }
     try {
       await libraryPut(preset.id, preset.name, JSON.stringify(preset));
-      announce(PRESET_SAVED_MSG);
+      announce(toastIpcError(PRESET_SAVED_MSG));
       onOpenChange(false);
       onSaved();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(toastIpcError(e instanceof Error ? e.message : String(e)));
     }
   };
 
@@ -82,10 +86,10 @@ export function PresetSaveDialog({
         }}
       >
         <DialogHeader>
-          <DialogTitle>{PRESET_SAVE_LABEL}</DialogTitle>
+          <DialogTitle>{tr(PRESET_SAVE_LABEL)}</DialogTitle>
         </DialogHeader>
         <label className="text-xs text-muted-foreground" htmlFor="preset-save-name">
-          {PRESET_NAME_LABEL}
+          {tr(PRESET_NAME_LABEL)}
         </label>
         <Input
           ref={inputRef}
@@ -102,10 +106,10 @@ export function PresetSaveDialog({
         />
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            ยกเลิก
+            {tr("ยกเลิก")}
           </Button>
           <Button type="button" onClick={() => void commit()} disabled={!name.trim()}>
-            บันทึก
+            {tr("บันทึก")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -122,6 +126,7 @@ export function PresetDeleteDialog({
   onOpenChange: (v: boolean) => void;
   onDeleted: () => void;
 }) {
+  const tr = usePhrase();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const announce = useEditorStore((s) => s.announce);
 
@@ -129,13 +134,19 @@ export function PresetDeleteDialog({
     if (!target) return;
     try {
       await libraryDelete(target.id);
-      announce(PRESET_DELETED_MSG);
+      announce(toastIpcError(PRESET_DELETED_MSG));
       onOpenChange(false);
       onDeleted();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(toastIpcError(e instanceof Error ? e.message : String(e)));
     }
   };
+
+  const deleteTitle = target
+    ? peekLocale() === "en"
+      ? `Delete preset ${target.nameEn || target.name}?`
+      : PRESET_DELETE_CONFIRM(target.name)
+    : "";
 
   return (
     <AlertDialog
@@ -151,11 +162,9 @@ export function PresetDeleteDialog({
         }}
       >
         <AlertDialogHeader>
-          <AlertDialogTitle>
-            {target ? PRESET_DELETE_CONFIRM(target.name) : ""}
-          </AlertDialogTitle>
+          <AlertDialogTitle>{deleteTitle}</AlertDialogTitle>
           <AlertDialogDescription>
-            การลบเอาพรีเซ็ตออกจากเครื่องนี้เท่านั้น องค์ประกอบที่ใช้ไปแล้วไม่เปลี่ยน
+            {tr("การลบเอาพรีเซ็ตออกจากเครื่องนี้เท่านั้น องค์ประกอบที่ใช้ไปแล้วไม่เปลี่ยน")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -165,10 +174,10 @@ export function PresetDeleteDialog({
             variant="outline"
             onClick={() => onOpenChange(false)}
           >
-            ยกเลิก
+            {tr("ยกเลิก")}
           </Button>
           <Button type="button" variant="destructive" onClick={() => void commit()}>
-            ลบ
+            {tr("ลบ")}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

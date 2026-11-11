@@ -8,10 +8,14 @@ import {
   sidecarStart,
   useSidecarStatus,
 } from "@/lib/preview-sidecar";
+import { toastIpcError } from "@/lib/ipc-error-i18n";
+import { phrase, usePhrase } from "@/lib/phrases";
+import { peekLocale } from "@/lib/locale";
 
 export function ViteRunButton() {
   const st = useSidecarStatus();
   const announce = useEditorStore((s) => s.announce);
+  const p = usePhrase();
   const running = st.state === "running" || st.state === "starting";
 
   const onClick = async () => {
@@ -22,7 +26,7 @@ export function ViteRunButton() {
       markHmrWritten();
     } catch (e) {
       const st = parseStartError(e);
-      announce(st.error ?? "เริ่มเครื่องมือแสดงตัวอย่างไม่สำเร็จ");
+      announce(st.error ? toastIpcError(st.error) : phrase(peekLocale(), "สร้างตัวอย่างไม่ได้"));
       publishSidecar(st);
     }
   };
@@ -34,9 +38,9 @@ export function ViteRunButton() {
       variant={running ? "secondary" : "outline"}
       disabled={running}
       onClick={() => void onClick()}
-      aria-label="รันด้วย Vite (Run with Vite)"
+      aria-label={p("รันด้วย Vite")}
     >
-      {running ? "กำลังรันด้วย Vite" : "รันด้วย Vite"}
+      {running ? p("กำลังรันด้วย Vite") : p("รันด้วย Vite")}
     </Button>
   );
 }

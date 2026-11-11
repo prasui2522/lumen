@@ -18,6 +18,11 @@ import { addPage, ensurePages, openPageIdOf, switchToPage } from "@/lib/project-
 import { loadBlocksRegistry } from "@/lib/blocks-registry";
 import type { StyleBlock } from "@/lib/block-format";
 import { PAGES } from "@/lib/pages";
+import { setLocale, useLocale } from "@/lib/locale";
+import { useKindLabel } from "@/lib/kind-label";
+import { useT } from "@/lib/messages";
+import { useDisplayLayerLabel } from "@/lib/layer-display";
+import { usePhrase } from "@/lib/phrases";
 import { setThemePref, useTheme, type ThemePref } from "@/lib/theme";
 import { Kbd } from "@/components/ui/kbd";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -36,12 +41,6 @@ type Props = {
   onExport: () => void;
   onBack: () => void;
 };
-
-const THEMES: { pref: ThemePref; label: string }[] = [
-  { pref: "system", label: "ธีม: ตามระบบ" },
-  { pref: "light", label: "ธีม: สว่าง" },
-  { pref: "dark", label: "ธีม: มืด" },
-];
 
 /**
  * Ctrl/Cmd+K command palette (UI-REFRESH S8). cmdk is imported only here, so
@@ -62,6 +61,11 @@ export function CommandPalette({ open, query, onQueryChange, onOpenChange, onSav
   const dbExport = useEditorStore((s) => s.dbExport);
   const sidebar = useEditorStore((s) => s.isSidebarOpen);
   const theme = useTheme();
+  const locale = useLocale();
+  const tr = useT();
+  const p = usePhrase();
+  const labelOf = useKindLabel();
+  const showLabel = useDisplayLayerLabel();
   const canInsert = !!doc && resolveInsertTarget(doc, selected) !== null;
   const layers = doc ? flattenLayers(doc) : [];
   const [registryBlocks, setRegistryBlocks] = useState<StyleBlock[] | null>(null);
@@ -113,30 +117,30 @@ export function CommandPalette({ open, query, onQueryChange, onOpenChange, onSav
           restoreFocus(e);
         }}
       >
-        <DialogTitle className="sr-only">คำสั่ง</DialogTitle>
-        <DialogDescription className="sr-only">ค้นหาคำสั่งหรือเลเยอร์</DialogDescription>
-        <Command label="คำสั่ง" className="flex flex-col">
+        <DialogTitle className="sr-only">{p("คำสั่ง")}</DialogTitle>
+        <DialogDescription className="sr-only">{p("ค้นหาคำสั่งหรือเลเยอร์")}</DialogDescription>
+        <Command label={p("คำสั่ง")} className="flex flex-col">
           <Command.Input
             ref={inputRef}
-            placeholder="ค้นหาคำสั่งหรือเลเยอร์…"
+            placeholder={p("ค้นหาคำสั่งหรือเลเยอร์…")}
             value={query}
             onValueChange={onQueryChange}
             className="h-10 border-b border-border bg-transparent px-3 text-sm outline-none placeholder:text-muted-foreground"
           />
           <Command.List className="scrollbar-thin max-h-80 overflow-auto p-1">
             <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
-              ไม่พบคำสั่ง
+              {p("ไม่พบคำสั่ง")}
             </Command.Empty>
-            <Command.Group heading="คำสั่ง" className={groupCls}>
+            <Command.Group heading={tr("commands")} className={groupCls}>
               <Item value="save" keywords={["บันทึก", "save"]} onSelect={() => run(onSave)}>
-                บันทึก
+                {tr("save")}
               </Item>
               <Item value="export" keywords={["ส่งออก", "export"]} onSelect={() => run(onExport)}>
-                ส่งออก
+                {tr("export")}
               </Item>
               {inDb && dbExport ? (
                 <Item value="db-export-sql" keywords={["ส่งออกโครงสร้างฐานข้อมูล", "sql", "schema", "export"]} onSelect={() => run(dbExport)}>
-                  ส่งออกโครงสร้างฐานข้อมูล (.sql)
+                  {p("ส่งออกโครงสร้างฐานข้อมูล (.sql)")}
                 </Item>
               ) : null}
               <Item
@@ -144,31 +148,31 @@ export function CommandPalette({ open, query, onQueryChange, onOpenChange, onSav
                 keywords={["ตัวอย่าง", "mode", "preview"]}
                 onSelect={() => run(() => useEditorStore.getState().setMode("preview"))}
               >
-                โหมดตัวอย่าง
+                {p("โหมดตัวอย่าง")}
               </Item>
               <Item
                 value="mode-split"
                 keywords={["แยก", "split", "mode"]}
                 onSelect={() => run(() => useEditorStore.getState().setMode("split"))}
               >
-                โหมดแยก
+                {p("โหมดแยก")}
               </Item>
               <Item
                 value="mode-code"
                 keywords={["โค้ด", "code", "mode"]}
                 onSelect={() => run(() => useEditorStore.getState().setMode("code"))}
               >
-                โหมดโค้ด
+                {p("โหมดโค้ด")}
               </Item>
               <Item
                 value="mode-design"
                 keywords={["ออกแบบ", "design", "mode"]}
                 onSelect={() => run(() => useEditorStore.getState().setMode("design"))}
               >
-                โหมดออกแบบ
+                {p("โหมดออกแบบ")}
               </Item>
               <Item value="back" keywords={["กลับ", "projects", "back"]} onSelect={() => run(onBack)}>
-                กลับไปรายการโปรเจกต์
+                {tr("backToProjects")}
               </Item>
               <Item
                 value="undo"
@@ -176,7 +180,7 @@ export function CommandPalette({ open, query, onQueryChange, onOpenChange, onSav
                 disabled={inDb && !modelHistory?.canUndo}
                 onSelect={() => run(() => (inDb ? modelHistory?.undo() : void undo()))}
               >
-                เลิกทำ
+                {tr("undo")}
                 <Hint>
                   <Kbd>Ctrl</Kbd>
                   <Kbd>Z</Kbd>
@@ -188,7 +192,7 @@ export function CommandPalette({ open, query, onQueryChange, onOpenChange, onSav
                 disabled={inDb && !modelHistory?.canRedo}
                 onSelect={() => run(() => (inDb ? modelHistory?.redo() : void redo()))}
               >
-                ทำซ้ำ
+                {tr("redo")}
                 <Hint>
                   <Kbd>Ctrl</Kbd>
                   <Kbd>Shift</Kbd>
@@ -205,7 +209,7 @@ export function CommandPalette({ open, query, onQueryChange, onOpenChange, onSav
                 { heading: "เค้าโครงและสถานะ", types: PALETTE_TYPES.slice(PALETTE_TYPES.indexOf("card")) },
               ] as const
             ).map((section) => (
-              <Command.Group key={section.heading} heading={section.heading} className={groupCls}>
+              <Command.Group key={section.heading} heading={p(section.heading)} className={groupCls}>
                 {section.types.map((type) => (
                   <Item
                     key={type}
@@ -214,12 +218,12 @@ export function CommandPalette({ open, query, onQueryChange, onOpenChange, onSav
                     disabled={!canInsert}
                     onSelect={() => run(() => void insertPaletteNode(type))}
                   >
-                    {NODE_TYPE_LABEL[type]}
+                    {labelOf(type)}
                   </Item>
                 ))}
               </Command.Group>
             ))}
-            <Command.Group heading="บล็อก" className={groupCls}>
+            <Command.Group heading={tr("blocks")} className={groupCls}>
               {(registryBlocks ?? []).map((b) => (
                 <Item
                   key={b.id}
@@ -256,7 +260,7 @@ export function CommandPalette({ open, query, onQueryChange, onOpenChange, onSav
                 </Item>
               ))}
             </Command.Group>
-            <Command.Group heading="หน้า" className={groupCls}>
+            <Command.Group heading={tr("pages")} className={groupCls}>
               {(doc ? ensurePages(doc).pages! : []).map((p) => (
                 <Item
                   key={p.id}
@@ -297,11 +301,11 @@ export function CommandPalette({ open, query, onQueryChange, onOpenChange, onSav
                   })
                 }
               >
-                เพิ่มหน้า
+                {tr("addPage")}
               </Item>
             </Command.Group>
             {layers.length > 0 ? (
-              <Command.Group heading="เลเยอร์" className={groupCls}>
+              <Command.Group heading={tr("layers")} className={groupCls}>
                 {layers.map((row) => (
                   <Item
                     key={row.id}
@@ -309,35 +313,51 @@ export function CommandPalette({ open, query, onQueryChange, onOpenChange, onSav
                     keywords={[row.label, NODE_TYPE_LABEL[row.type], row.type, "layer"]}
                     onSelect={() => run(() => useEditorStore.getState().setSelectedNodeId(row.id))}
                   >
-                    <span className="truncate">{row.label}</span>
+                    <span className="truncate">{showLabel(row.label, row.type)}</span>
                     <span className="ml-auto pl-2 text-[11px] text-muted-foreground">
-                      {NODE_TYPE_LABEL[row.type]}
+                      {labelOf(row.type)}
                     </span>
                   </Item>
                 ))}
               </Command.Group>
             ) : null}
-            <Command.Group heading="มุมมอง" className={groupCls}>
+            <Command.Group heading={tr("view")} className={groupCls}>
               <Item
                 value="sidebar"
                 keywords={["แผงเลเยอร์", "layers", "sidebar"]}
                 onSelect={() => run(() => useEditorStore.getState().toggleSidebar())}
               >
-                แผงเลเยอร์
+                {p("แผงเลเยอร์")}
                 <span className="ml-auto text-[11px] text-muted-foreground">
-                  {sidebar ? "แสดงอยู่" : "ซ่อนอยู่"}
+                  {sidebar ? p("แสดงอยู่") : p("ซ่อนอยู่")}
                 </span>
               </Item>
-              {THEMES.map((t) => (
+              {(["system", "light", "dark"] as ThemePref[]).map((pref) => {
+                const label = pref === "light" ? tr("themeLight") : pref === "dark" ? tr("themeDark") : tr("themeSystem");
+                return (
+                  <Item
+                    key={pref}
+                    value={`theme-${pref}`}
+                    keywords={[label, pref, "theme", "dark", "light", "ธีม"]}
+                    onSelect={() => run(() => setThemePref(pref))}
+                  >
+                    {label}
+                    {theme.pref === pref ? (
+                      <span className="ml-auto text-[11px] text-muted-foreground">{p("ใช้อยู่")}</span>
+                    ) : null}
+                  </Item>
+                );
+              })}
+              {(["th", "en"] as const).map((code) => (
                 <Item
-                  key={t.pref}
-                  value={`theme-${t.pref}`}
-                  keywords={[t.label, t.pref, "theme", "dark", "light"]}
-                  onSelect={() => run(() => setThemePref(t.pref))}
+                  key={code}
+                  value={`lang-${code}`}
+                  keywords={["ภาษา", "language", "thai", "english", "ไทย", "TH", "EN"]}
+                  onSelect={() => run(() => setLocale(code))}
                 >
-                  {t.label}
-                  {theme.pref === t.pref ? (
-                    <span className="ml-auto text-[11px] text-muted-foreground">ใช้อยู่</span>
+                  {code.toUpperCase()} · {code === "th" ? tr("languageThai") : tr("languageEnglish")}
+                  {locale === code ? (
+                    <span className="ml-auto text-[11px] text-muted-foreground">{p("ใช้อยู่")}</span>
                   ) : null}
                 </Item>
               ))}

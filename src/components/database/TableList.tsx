@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { DbTable } from "@/lib/db-model";
 import { useDbModelStore } from "@/lib/db-model-store";
+import { usePhrase } from "@/lib/phrases";
 
 type Props = {
   tables: DbTable[];
@@ -30,6 +31,7 @@ type Props = {
  * Enter/click opens), a `…` menu per row, `+` = เพิ่มตาราง.
  */
 export function TableList({ tables, selectedId, withIssues, modelIssue, onAdd, onRename, addRef, listRef }: Props) {
+  const p = usePhrase();
   const [active, setActive] = useState<string | null>(null);
   const activeId = tables.some((t) => t.id === active) ? active : (selectedId ?? tables[0]?.id ?? null);
   /** Where focus goes when a menu closes (rename → name field, delete → neighbour). */
@@ -45,10 +47,10 @@ export function TableList({ tables, selectedId, withIssues, modelIssue, onAdd, o
 
 
   return (
-    <aside aria-label="ตาราง" className="flex w-60 shrink-0 flex-col border-r border-border bg-background">
+    <aside aria-label={p("ตาราง")} className="flex w-60 shrink-0 flex-col border-r border-border bg-background">
       <div className="flex h-10 shrink-0 items-center justify-between px-3">
-        <h2 className="text-sm font-medium">ตาราง</h2>
-        <Button ref={addRef} type="button" variant="ghost" size="icon-sm" aria-label="เพิ่มตาราง" onClick={onAdd}>
+        <h2 className="text-sm font-medium">{p("ตาราง")}</h2>
+        <Button ref={addRef} type="button" variant="ghost" size="icon-sm" aria-label={p("เพิ่มตาราง")} onClick={onAdd}>
           <Plus aria-hidden />
         </Button>
       </div>
@@ -80,7 +82,7 @@ export function TableList({ tables, selectedId, withIssues, modelIssue, onAdd, o
                 <span className="truncate font-mono text-xs">{t.name || "—"}</span>
                 {t.label ? <span className="truncate text-xs text-muted-foreground">{t.label}</span> : null}
                 {withIssues.has(t.id) ? (
-                  <span className="ml-auto size-1.5 shrink-0 rounded-full bg-destructive" aria-label="มีปัญหา" role="img" />
+                  <span className="ml-auto size-1.5 shrink-0 rounded-full bg-destructive" aria-label={p("มีปัญหา")} role="img" />
                 ) : null}
               </button>
               </TooltipTrigger>
@@ -94,7 +96,7 @@ export function TableList({ tables, selectedId, withIssues, modelIssue, onAdd, o
                     variant="ghost"
                     size="icon-sm"
                     tabIndex={tab}
-                    aria-label={`ตัวเลือกของตาราง ${t.name}`}
+                    aria-label={`${p("ตัวเลือกของตาราง")} ${t.name}`}
                     className="shrink-0"
                   >
                     <MoreHorizontal aria-hidden />
@@ -111,12 +113,12 @@ export function TableList({ tables, selectedId, withIssues, modelIssue, onAdd, o
                     }
                   }}
                 >
-                  <DropdownMenuItem onSelect={() => (afterMenu.current = () => onRename(t.id))}>เปลี่ยนชื่อ</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => (afterMenu.current = () => onRename(t.id))}>{p("เปลี่ยนชื่อ")}</DropdownMenuItem>
                   <DropdownMenuItem disabled={i === 0} onSelect={() => useDbModelStore.getState().moveTable(t.id, -1)}>
-                    เลื่อนขึ้น
+                    {p("เลื่อนขึ้น")}
                   </DropdownMenuItem>
                   <DropdownMenuItem disabled={i === tables.length - 1} onSelect={() => useDbModelStore.getState().moveTable(t.id, 1)}>
-                    เลื่อนลง
+                    {p("เลื่อนลง")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -134,7 +136,7 @@ export function TableList({ tables, selectedId, withIssues, modelIssue, onAdd, o
                       };
                     }}
                   >
-                    ลบตาราง
+                    {p("ลบตาราง")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

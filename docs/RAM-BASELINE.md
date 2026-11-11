@@ -52,6 +52,18 @@ Full median-of-4 still optional polish; this fair pair already clears the gate. 
 
 Raw logs: `agent-tools/p11/b10-ram/raw.jsonl`.
 
+### Re-measured 2026-11-10 (committed release profile)
+
+Same harness and fixtures. `cargo build --release --features tauri/custom-protocol` with `CARGO_PROFILE_RELEASE_LTO=true` and `CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1` (the committed `[profile.release]`). Fresh process per project, software-GL Xvfb `:88`, settle 12 s, median of 5 samples @ 2 s. One fair pair, not a median of 4 runs. Real-GPU compositing was not measured.
+
+| Point | RSS | PSS | Notes |
+|---|---|---|---|
+| Control: 50 plain containers | 471.4 | **223.7** | `lto control editor settled` |
+| Heavy: 50 × 3-layer shadow + 6 backdrop-filter | 479.7 | **229.7** | `lto heavy editor settled` |
+| Δ (heavy − control) | +8.3 | **+6.0** | **pass** (≤ +8 MB PSS) |
+
+Raw log: `agent-tools/p11/b10-ram/raw-lto.jsonl`.
+
 ## Phase 11 C — presets picker (C8)
 
 **Provisional PSS budget (§5.1 C / C8):** opening the preset picker adds ≤ **+1 MB PSS** vs control; ≤ 12 live DOM thumbnails; no images/canvas/network.

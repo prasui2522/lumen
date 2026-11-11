@@ -16,6 +16,8 @@ import {
 import { libraryList, presetsFromLibraryItems } from "@/lib/library-api";
 import { writeApplyPreset } from "@/components/editor/style/write";
 import { useEditorStore } from "@/stores/editor-store";
+import { peekLocale } from "@/lib/locale";
+import { usePhrase } from "@/lib/phrases";
 import { cn } from "@/lib/utils";
 import { lazyNamed } from "@/lib/lazy";
 
@@ -79,6 +81,7 @@ function PresetThumb({ preset }: { preset: StylePreset }) {
 }
 
 export function PresetPicker({ node, locked }: PresetPickerProps) {
+  const tr = usePhrase();
   const [open, setOpen] = useState(false);
   const [builtIns, setBuiltIns] = useState<StylePreset[] | null>(null);
   const [mine, setMine] = useState<StylePreset[]>([]);
@@ -142,10 +145,11 @@ export function PresetPicker({ node, locked }: PresetPickerProps) {
   const apply = (preset: StylePreset) => {
     if (locked) return;
     if (!writeApplyPreset(node.id, preset)) {
-      announce(PRESET_REFUSED);
+      announce(tr(PRESET_REFUSED));
       return;
     }
-    announce(PRESET_APPLIED_MSG(preset.name));
+    const name = peekLocale() === "en" ? preset.nameEn || preset.name : preset.name;
+    announce(peekLocale() === "en" ? `Applied preset ${name}` : PRESET_APPLIED_MSG(name));
     setOpen(false);
     requestAnimationFrame(() => triggerRef.current?.focus());
   };
@@ -188,7 +192,7 @@ export function PresetPicker({ node, locked }: PresetPickerProps) {
               disabled={locked}
               aria-haspopup="dialog"
             >
-              {PRESET_BUTTON_LABEL}
+              {tr(PRESET_BUTTON_LABEL)}
             </Button>
           </PopoverTrigger>
           <PopoverContent
@@ -200,26 +204,26 @@ export function PresetPicker({ node, locked }: PresetPickerProps) {
             }}
           >
             <label htmlFor={searchId} className="sr-only">
-              {PRESET_SEARCH_LABEL}
+              {tr(PRESET_SEARCH_LABEL)}
             </label>
             <Input
               id={searchId}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={PRESET_SEARCH_LABEL}
+              placeholder={tr(PRESET_SEARCH_LABEL)}
               className="mb-2 h-7 text-xs"
               onKeyDown={onListKeyDown}
             />
             <div
               id={listId}
               role="listbox"
-              aria-label={PRESET_BUTTON_LABEL}
+              aria-label={tr(PRESET_BUTTON_LABEL)}
               className="max-h-64 space-y-1 overflow-auto"
               onKeyDown={onListKeyDown}
             >
               {flat.length === 0 ? (
                 <p className="px-1 py-2 text-[11px] text-muted-foreground" role="status">
-                  {PRESET_EMPTY}
+                  {tr(PRESET_EMPTY)}
                 </p>
               ) : (
                 flat.map((row, i) =>
@@ -241,12 +245,12 @@ export function PresetPicker({ node, locked }: PresetPickerProps) {
                       >
                         {i === 0 || !flat[i - 1]?.mine ? (
                           <span className="mb-1 block text-[10px] font-medium text-muted-foreground">
-                            {PRESET_MINE}
+                            {tr(PRESET_MINE)}
                           </span>
                         ) : null}
                         <PresetThumb preset={row.preset} />
                         <span className="mt-1 block truncate text-xs font-medium">
-                          {row.preset.name}
+                          {peekLocale() === "en" ? row.preset.nameEn || row.preset.name : row.preset.name}
                         </span>
                       </button>
                       <Button
@@ -256,7 +260,7 @@ export function PresetPicker({ node, locked }: PresetPickerProps) {
                         className="h-6 shrink-0 px-1 text-[10px] text-muted-foreground"
                         onClick={() => setDeleteTarget(row.preset)}
                       >
-                        ลบ
+                        {tr("ลบ")}
                       </Button>
                     </div>
                   ) : (
@@ -273,7 +277,9 @@ export function PresetPicker({ node, locked }: PresetPickerProps) {
                       onClick={() => apply(row.preset)}
                     >
                       <PresetThumb preset={row.preset} />
-                      <span className="truncate text-xs font-medium">{row.preset.name}</span>
+                      <span className="truncate text-xs font-medium">
+                        {peekLocale() === "en" ? row.preset.nameEn || row.preset.name : row.preset.name}
+                      </span>
                       {row.preset.note ? (
                         <span className="text-[10px] leading-snug text-muted-foreground">
                           {row.preset.note}
@@ -286,7 +292,7 @@ export function PresetPicker({ node, locked }: PresetPickerProps) {
             </div>
             {flat.length > 0 && mineFiltered.length === 0 ? (
               <p className="mt-2 border-t border-border pt-1.5 text-[10px] text-muted-foreground">
-                {PRESET_MINE}: ยังไม่มี
+                {tr(PRESET_MINE)}: {tr("ยังไม่มี")}
               </p>
             ) : null}
           </PopoverContent>
@@ -300,7 +306,7 @@ export function PresetPicker({ node, locked }: PresetPickerProps) {
           disabled={locked}
           onClick={() => setSaveOpen(true)}
         >
-          {PRESET_SAVE_LABEL}
+          {tr(PRESET_SAVE_LABEL)}
         </Button>
       </div>
 

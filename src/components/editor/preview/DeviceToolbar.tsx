@@ -61,6 +61,7 @@ import { useEditorStore } from "@/stores/editor-store";
 import { useProjectsStore } from "@/stores/projects-store";
 import { isDocumentEmpty } from "@/components/editor/node-view";
 import { ViteRunButton } from "@/components/editor/preview/ViteRunButton";
+import { usePhrase } from "@/lib/phrases";
 
 const ICONS: Record<DeviceIcon, ComponentType<{ className?: string }>> = {
   fill: Maximize,
@@ -84,10 +85,12 @@ const ROTATE_HINT = "ใช้ได้กับแท็บเล็ต มื�
 /** Select row: icon + label are the ItemText (shown in the trigger, used for Thai typeahead); size sits outside it. */
 function DeviceItem({ dev }: { dev: DevicePreset }) {
   const Icon = ICONS[dev.icon];
+  const p = usePhrase();
+  const label = p(dev.label);
   return (
     <SelectPrimitive.Item
       value={dev.id}
-      textValue={dev.label}
+      textValue={label}
       data-slot="select-item"
       className="relative flex w-full cursor-pointer items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50"
     >
@@ -98,7 +101,7 @@ function DeviceItem({ dev }: { dev: DevicePreset }) {
       </span>
       <SelectPrimitive.ItemText>
         <Icon className="size-4 shrink-0 text-muted-foreground" />
-        {dev.label}
+        {label}
       </SelectPrimitive.ItemText>
       {dev.w ? (
         <span className="ml-auto pl-3 text-xs text-muted-foreground tabular-nums">
@@ -126,6 +129,7 @@ function CustomSizeInputs({
   disabled: boolean;
   wRef: React.RefObject<HTMLInputElement | null>;
 }) {
+  const p = usePhrase();
   const w = usePreviewDeviceStore((s) => s.custom.w);
   const h = usePreviewDeviceStore((s) => s.custom.h);
   const setCustom = usePreviewDeviceStore((s) => s.setCustom);
@@ -161,7 +165,7 @@ function CustomSizeInputs({
         max={3840}
         step={1}
         disabled={disabled}
-        aria-label={axis === "w" ? "ความกว้าง (px)" : "ความสูง (px)"}
+        aria-label={axis === "w" ? p("ความกว้าง (px)") : p("ความสูง (px)")}
         value={value}
         onChange={(e) => set(e.currentTarget.value)}
         onBlur={(e) => commit(axis, e.currentTarget.value)}
@@ -196,24 +200,26 @@ function CustomSizeInputs({
  * String selector: re-renders only when the open page or its name changes.
  */
 function OpenPageName({ compact }: { compact: boolean }) {
+  const p = usePhrase();
   const name = useProjectsStore((s) => {
     const d = s.openDocument;
     if (!d) return null;
     const pages = d.pages;
-    if (!pages || pages.length === 0) return "หน้าแรก";
+    if (!pages || pages.length === 0) return "__home__";
     return (pages.find((p) => p.root === d.root) ?? pages[0]).name;
   });
   if (!name) return null;
+  const shown = name === "__home__" ? p("หน้าแรก") : name;
   return (
     <span
       className={cn(
         "shrink-0 truncate text-xs text-muted-foreground",
         compact ? "max-w-24" : "max-w-40",
       )}
-      title={name}
+      title={shown}
     >
-      <span className="sr-only">หน้า </span>
-      {name}
+      <span className="sr-only">{p("หน้า")} </span>
+      {shown}
     </span>
   );
 }
@@ -234,6 +240,7 @@ function ZoomReadout() {
  * ตัวเลือกตัวอย่าง menu.
  */
 export function DeviceToolbar({ compact }: { compact: boolean }) {
+  const p = usePhrase();
   const preset = usePreviewDeviceStore((s) => s.preset);
   const landscape = usePreviewDeviceStore((s) => s.landscape);
   const customW = usePreviewDeviceStore((s) => s.custom.w);
@@ -297,7 +304,7 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
         {pagePerfToolbar}
       </span>
     ) : null}
-    <div className="flex shrink-0 items-center gap-1.5" role="group" aria-label="อุปกรณ์ตัวอย่าง">
+    <div className="flex shrink-0 items-center gap-1.5" role="group" aria-label={p("อุปกรณ์ตัวอย่าง")}>
       {multi ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -307,17 +314,19 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
               size="sm"
               disabled={disabled}
               className="w-[150px] justify-between font-normal"
-              aria-label="เลือกอุปกรณ์ (สูงสุด 3)"
+              aria-label={p("เลือกอุปกรณ์ (สูงสุด 3)")}
             >
               <span className="flex items-center gap-1.5">
                 <Columns3 className="size-4 text-muted-foreground" />
-                {multiSet.length} อุปกรณ์
+                {multiSet.length} {p("อุปกรณ์")}
               </span>
               <ChevronDown className="size-4 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="min-w-56">
-            <DropdownMenuLabel>เลือกอุปกรณ์ (สูงสุด {MULTI_MAX})</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              {p("เลือกอุปกรณ์ (สูงสุด 3)").replace("3", String(MULTI_MAX))}
+            </DropdownMenuLabel>
             {MULTI_DEVICES.map((d) => {
               const checked = multiSet.includes(d.id);
               const Icon = ICONS[d.icon];
@@ -328,7 +337,7 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
                   disabled={checked && multiSet.length === 1}
                   onCheckedChange={() => {
                     if (!checked && multiSet.length >= MULTI_MAX) {
-                      useEditorStore.getState().announce("แสดงได้สูงสุด 3 อุปกรณ์พร้อมกัน");
+                      useEditorStore.getState().announce(p("แสดงได้สูงสุด 3 อุปกรณ์พร้อมกัน"));
                       return;
                     }
                     toggleMultiDevice(d.id);
@@ -336,7 +345,7 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
                   onSelect={(e) => e.preventDefault()}
                 >
                   <Icon className="size-4 text-muted-foreground" />
-                  {d.label}
+                  {p(d.label)}
                   <span className="ml-auto pl-3 text-xs text-muted-foreground tabular-nums">
                     {d.w}×{d.h}
                   </span>
@@ -347,7 +356,7 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
         </DropdownMenu>
       ) : (
         <Select value={preset} onValueChange={(v) => setPreset(v as DeviceId)} disabled={disabled}>
-          <SelectTrigger size="sm" className="w-[150px]" aria-label="อุปกรณ์">
+          <SelectTrigger size="sm" className="w-[150px]" aria-label={p("อุปกรณ์")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -356,7 +365,7 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
               return (
                 <SelectGroup key={g.id}>
                   {g.id === "custom" && gi > 0 ? <SelectSeparator /> : null}
-                  {g.label ? <SelectLabel>{g.label}</SelectLabel> : null}
+                  {g.label ? <SelectLabel>{p(g.label)}</SelectLabel> : null}
                   {items.map((d) => (
                     <DeviceItem key={d.id} dev={d} />
                   ))}
@@ -378,16 +387,16 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
             startCustom(size);
           }}
           className="rounded-sm px-1 text-xs text-muted-foreground tabular-nums outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-          aria-label={`ขนาด ${size.w} × ${size.h} — กำหนดเอง`}
+          aria-label={`${p("ขนาด")} ${size.w} × ${size.h} — ${p("กำหนดเอง")}`}
         >
           {size.w} × {size.h}
         </button>
       ) : null}
 
-      <IconTip label={rotatable ? (rotated ? "แนวตั้ง" : "แนวนอน") : ROTATE_HINT}>
+      <IconTip label={rotatable ? (rotated ? p("แนวตั้ง") : p("แนวนอน")) : p(ROTATE_HINT)}>
         <Toggle
           size="sm"
-          aria-label="หมุนจอ"
+          aria-label={p("หมุนจอ")}
           pressed={rotatable && rotated}
           onPressedChange={rotate}
           disabled={disabled}
@@ -403,18 +412,18 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
         {/* Zoom % stays visible in the compact bar (the controls move into the menu). */}
         <ZoomReadout />
         <DropdownMenu>
-          <IconTip label="ตัวเลือกตัวอย่าง">
+          <IconTip label={p("ตัวเลือกตัวอย่าง")}>
             <DropdownMenuTrigger asChild>
-              <Button type="button" variant="ghost" size="icon-sm" disabled={disabled} aria-label="ตัวเลือกตัวอย่าง">
+              <Button type="button" variant="ghost" size="icon-sm" disabled={disabled} aria-label={p("ตัวเลือกตัวอย่าง")}>
                 <SlidersHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
           </IconTip>
           <DropdownMenuContent align="end" className="min-w-48">
-            <DropdownMenuLabel>การย่อขยาย</DropdownMenuLabel>
+            <DropdownMenuLabel>{p("การย่อขยาย")}</DropdownMenuLabel>
             <DropdownMenuRadioGroup value={zoom} onValueChange={onZoom}>
               <DropdownMenuRadioItem value="fit" disabled={fill}>
-                พอดี
+                {p("พอดี")}
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="100" disabled={fill}>
                 100%
@@ -423,11 +432,11 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
             <DropdownMenuSeparator />
             {showHinge ? (
               <DropdownMenuCheckboxItem checked={hinge} onCheckedChange={(c) => setHinge(c === true)}>
-                แสดงแนวพับ
+                {p("แสดงแนวพับ")}
               </DropdownMenuCheckboxItem>
             ) : null}
             <DropdownMenuCheckboxItem checked={multi} onCheckedChange={(c) => setMulti(c === true)}>
-              หลายอุปกรณ์
+              {p("หลายอุปกรณ์")}
             </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -441,7 +450,7 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
             value={zoom}
             onValueChange={onZoom}
             disabled={disabled || fill}
-            aria-label="การย่อขยาย"
+            aria-label={p("การย่อขยาย")}
             className="rounded-lg bg-muted p-0.5"
           >
             {(["fit", "100"] as const).map((z) => (
@@ -450,16 +459,16 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
                 value={z}
                 className="h-6 rounded-md! px-2 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground focus-visible:ring-2 data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
               >
-                {z === "fit" ? "พอดี" : "100%"}
+                {z === "fit" ? p("พอดี") : "100%"}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
           <ZoomReadout />
           {showHinge ? (
-            <IconTip label="แสดงแนวพับ">
+            <IconTip label={p("แสดงแนวพับ")}>
               <Toggle
                 size="sm"
-                aria-label="แสดงแนวพับ"
+                aria-label={p("แสดงแนวพับ")}
                 pressed={hinge}
                 onPressedChange={setHinge}
                 disabled={disabled}
@@ -468,10 +477,10 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
               </Toggle>
             </IconTip>
           ) : null}
-          <IconTip label="หลายอุปกรณ์">
+          <IconTip label={p("หลายอุปกรณ์")}>
             <Toggle
               size="sm"
-              aria-label="หลายอุปกรณ์"
+              aria-label={p("หลายอุปกรณ์")}
               pressed={multi}
               onPressedChange={setMulti}
               disabled={disabled}

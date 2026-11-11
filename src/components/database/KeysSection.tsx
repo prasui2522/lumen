@@ -21,6 +21,7 @@ import {
 } from "@/lib/db-model";
 import { useDbModelStore } from "@/lib/db-model-store";
 import { keyColumnNames, MISSING_TABLE, withDetail } from "@/lib/db-problems";
+import { usePhrase } from "@/lib/phrases";
 import type { IssueLookup } from "./TableEditor";
 
 const commit = (f: (m: DbModel) => DbModel) => {
@@ -31,6 +32,7 @@ const names = keyColumnNames;
 
 /** `ไม่ซ้ำ` and `ความสัมพันธ์` (§5, step 4). */
 export function KeysSection({ table: t, tables, base, issue }: { table: DbTable; tables: DbTable[]; base: string; issue: IssueLookup }) {
+  const tr = usePhrase();
   /** Dialog stays mounted while closing so Radix's close-autofocus runs; `n` resets its state per open. */
   const [fkDialog, setFkDialog] = useState<{ initial: DbForeignKey | null; open: boolean; n: number } | null>(null);
   const opener = useRef<HTMLElement | null>(null);
@@ -50,34 +52,34 @@ export function KeysSection({ table: t, tables, base, issue }: { table: DbTable;
       <section aria-labelledby={`${base}-uq-h`}>
         <div className="flex items-center gap-2">
           <h3 id={`${base}-uq-h`} className="text-sm font-medium">
-            ไม่ซ้ำ
+            {tr("ไม่ซ้ำ")}
           </h3>
           <ColumnPicker
             table={t}
             initial={[]}
-            title="เพิ่มชุดคอลัมน์ที่ไม่ซ้ำ"
+            title={tr("เพิ่มชุดคอลัมน์ที่ไม่ซ้ำ")}
             onDone={(cols) => cols.length > 0 && commit((m) => addUnique(m, t.id, cols).model)}
             trigger={
-              <Button id={`${base}-uq-add`} type="button" variant="outline" size="sm" className="h-7 text-xs" aria-label="เพิ่มชุดไม่ซ้ำ">
+              <Button id={`${base}-uq-add`} type="button" variant="outline" size="sm" className="h-7 text-xs" aria-label={tr("เพิ่มชุดไม่ซ้ำ")}>
                 <Plus aria-hidden />
-                เพิ่ม
+                {tr("เพิ่ม")}
               </Button>
             }
           />
         </div>
         {t.uniques.length === 0 ? (
-          <p className="mt-1 text-xs text-muted-foreground">ยังไม่มี</p>
+          <p className="mt-1 text-xs text-muted-foreground">{tr("ยังไม่มี")}</p>
         ) : (
           <ul className="mt-1 grid gap-1">
             {t.uniques.map((u) => {
               const err = issue(null, `unique:${u.id}`);
               return (
                 <li key={u.id} className="flex items-center gap-2 text-xs">
-                  <span className="font-mono">{names(t, u.columns) || "—"}</span>
+                  <span className="font-mono">{(names(t, u.columns) || "—").split(", ").map((n) => tr(n)).join(", ")}</span>
                   <ColumnPicker
                     table={t}
                     initial={u.columns}
-                    title="แก้ไขชุดคอลัมน์ที่ไม่ซ้ำ"
+                    title={tr("แก้ไขชุดคอลัมน์ที่ไม่ซ้ำ")}
                     onDone={(cols) => commit((m) => setUniqueColumns(m, t.id, u.id, cols))}
                     trigger={
                       <Button
@@ -85,7 +87,7 @@ export function KeysSection({ table: t, tables, base, issue }: { table: DbTable;
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        aria-label={withDetail("แก้ไขไม่ซ้ำ", names(t, u.columns))}
+                        aria-label={withDetail(tr("แก้ไขไม่ซ้ำ"), names(t, u.columns))}
                         aria-invalid={err ? true : undefined}
                         aria-describedby={err ? `${base}-uq-${u.id}-err` : undefined}
                       >
@@ -93,7 +95,7 @@ export function KeysSection({ table: t, tables, base, issue }: { table: DbTable;
                       </Button>
                     }
                   />
-                  <Button type="button" variant="ghost" size="icon-sm" aria-label={withDetail("ลบไม่ซ้ำ", names(t, u.columns))} onClick={() => {
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label={withDetail(tr("ลบไม่ซ้ำ"), names(t, u.columns))} onClick={() => {
                       const next = neighbour(t.uniques, u.id);
                       commit((m) => removeUnique(m, t.id, u.id));
                       focusLater(next ? `${base}-uq-${next.id}` : `${base}-uq-add`);
@@ -115,7 +117,7 @@ export function KeysSection({ table: t, tables, base, issue }: { table: DbTable;
       <section aria-labelledby={`${base}-fk-h`}>
         <div className="flex items-center gap-2">
           <h3 id={`${base}-fk-h`} className="text-sm font-medium">
-            ความสัมพันธ์
+            {tr("ความสัมพันธ์")}
           </h3>
           <Button
             id={`${base}-fk-add`}
@@ -123,38 +125,44 @@ export function KeysSection({ table: t, tables, base, issue }: { table: DbTable;
             variant="outline"
             size="sm"
             className="h-7 text-xs"
-            aria-label="เพิ่มความสัมพันธ์"
+            aria-label={tr("เพิ่มความสัมพันธ์")}
             onClick={(e) => openFk(null, e.currentTarget)}
           >
             <Plus aria-hidden />
-            เพิ่ม
+            {tr("เพิ่ม")}
           </Button>
         </div>
         {t.foreignKeys.length === 0 ? (
-          <p className="mt-1 text-xs text-muted-foreground">ยังไม่มี</p>
+          <p className="mt-1 text-xs text-muted-foreground">{tr("ยังไม่มี")}</p>
         ) : (
           <ul className="mt-1 grid gap-1">
             {t.foreignKeys.map((fk) => {
               const rt = tables.find((x) => x.id === fk.refTableId);
-              const text = `${names(t, fk.columns) || "—"} → ${rt ? `${rt.name}.${names(rt, fk.refColumns) || "—"}` : MISSING_TABLE}`;
+              const local = (names(t, fk.columns) || "—").split(", ").map((n) => tr(n)).join(", ");
+              const remote = rt
+                ? `${rt.name}.${(names(rt, fk.refColumns) || "—").split(", ").map((n) => tr(n)).join(", ")}`
+                : tr(MISSING_TABLE);
+              const text = `${local} → ${remote}`;
               const err = issue(null, `foreignKey:${fk.id}`);
               return (
                 <li key={fk.id} className="flex flex-wrap items-center gap-2 text-xs">
                   <span className="font-mono">{text}</span>
-                  <span className="text-muted-foreground">เมื่อลบแถวปลายทาง: {ON_DELETE_LABELS[fk.onDelete]}</span>
+                  <span className="text-muted-foreground">
+                    {tr("เมื่อลบแถวปลายทาง:")} {tr(ON_DELETE_LABELS[fk.onDelete])}
+                  </span>
                   <Button
                     id={`${base}-fk-${fk.id}`}
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`แก้ไขความสัมพันธ์ ${text}`}
+                    aria-label={`${tr("แก้ไขความสัมพันธ์")} ${text}`}
                     aria-invalid={err ? true : undefined}
                     aria-describedby={err ? `${base}-fk-${fk.id}-err` : undefined}
                     onClick={(e) => openFk(fk, e.currentTarget)}
                   >
                     <Pencil aria-hidden />
                   </Button>
-                  <Button type="button" variant="ghost" size="icon-sm" aria-label={`ลบความสัมพันธ์ ${text}`} onClick={() => {
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label={`${tr("ลบความสัมพันธ์")} ${text}`} onClick={() => {
                     const next = neighbour(t.foreignKeys, fk.id);
                     commit((m) => removeForeignKey(m, t.id, fk.id));
                     focusLater(next ? `${base}-fk-${next.id}` : `${base}-fk-add`);
@@ -271,6 +279,7 @@ function ForeignKeyDialog({
   onClose: () => void;
   onClosed: () => void;
 }) {
+  const tr = usePhrase();
   const [refTableId, setRefTableId] = useState(initial?.refTableId ?? "");
   const rt = tables.find((x) => x.id === refTableId) ?? null;
   const options = rt ? keyOptions(rt) : [];
@@ -315,11 +324,13 @@ function ForeignKeyDialog({
         }}
       >
         <DialogHeader>
-          <DialogTitle>{initial ? "แก้ไขความสัมพันธ์" : "เพิ่มความสัมพันธ์"}</DialogTitle>
-          <DialogDescription>ตาราง {t.name} อ้างอิงแถวในตารางปลายทาง</DialogDescription>
+          <DialogTitle>{initial ? tr("แก้ไขความสัมพันธ์") : tr("เพิ่มความสัมพันธ์")}</DialogTitle>
+          <DialogDescription>
+            {tr("ตาราง")} {t.name} {tr("อ้างอิงแถวในตารางปลายทาง")}
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
-          <Field label="ตารางปลายทาง" htmlFor={`${id}-rt`}>
+          <Field label={tr("ตารางปลายทาง")} htmlFor={`${id}-rt`}>
             <Select
               value={refTableId}
               onValueChange={(v) => {
@@ -330,7 +341,7 @@ function ForeignKeyDialog({
               }}
             >
               <SelectTrigger id={`${id}-rt`} size="sm" className="w-full text-xs">
-                <SelectValue placeholder="เลือกตาราง" />
+                <SelectValue placeholder={tr("เลือกตาราง")} />
               </SelectTrigger>
               <SelectContent>
                 {tables.map((x) => (
@@ -342,9 +353,9 @@ function ForeignKeyDialog({
             </Select>
           </Field>
           {rt ? (
-            <Field label="คอลัมน์ปลายทาง" htmlFor={`${id}-key`}>
+            <Field label={tr("คอลัมน์ปลายทาง")} htmlFor={`${id}-key`}>
               {options.length === 0 ? (
-                <p className="text-xs text-destructive">ตารางนี้ยังไม่มีคีย์หลักหรือชุดไม่ซ้ำ</p>
+                <p className="text-xs text-destructive">{tr("ตารางนี้ยังไม่มีคีย์หลักหรือชุดไม่ซ้ำ")}</p>
               ) : (
                 <Select
                   value={keyId}
@@ -360,7 +371,7 @@ function ForeignKeyDialog({
                     {options.map((o) => (
                       <SelectItem key={o.id} value={o.id} className="text-xs">
                         {names(rt, o.columns)}
-                        {o.id === "pk" ? " (คีย์หลัก)" : " (ไม่ซ้ำ)"}
+                        {o.id === "pk" ? tr(" (คีย์หลัก)") : tr(" (ไม่ซ้ำ)")}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -373,13 +384,15 @@ function ForeignKeyDialog({
                 const ref = rt.columns.find((c) => c.id === r)!;
                 const local = compatibleColumns(t, ref);
                 return (
-                  <Field key={r} label={`คอลัมน์ (คู่กับ ${ref.name})`} htmlFor={`${id}-c-${r}`}>
+                  <Field key={r} label={`${tr("คอลัมน์")} (${tr("คู่กับ")} ${ref.name})`} htmlFor={`${id}-c-${r}`}>
                     {local.length === 0 ? (
-                      <p className="text-xs text-destructive">ไม่มีคอลัมน์ชนิดเดียวกับ {ref.name}</p>
+                      <p className="text-xs text-destructive">
+                        {tr("ไม่มีคอลัมน์ชนิดเดียวกับ")} {ref.name}
+                      </p>
                     ) : (
                       <Select value={pairs[r] ?? ""} onValueChange={(v) => setPairs((p) => ({ ...p, [r]: v }))}>
                         <SelectTrigger id={`${id}-c-${r}`} size="sm" className="w-full text-xs">
-                          <SelectValue placeholder="เลือกคอลัมน์" />
+                          <SelectValue placeholder={tr("เลือกคอลัมน์")} />
                         </SelectTrigger>
                         <SelectContent>
                           {local.map((c) => (
@@ -394,7 +407,7 @@ function ForeignKeyDialog({
                 );
               })
             : null}
-          <Field label="เมื่อลบแถวปลายทาง" htmlFor={`${id}-od`}>
+          <Field label={tr("เมื่อลบแถวปลายทาง")} htmlFor={`${id}-od`}>
             <Select value={onDelete} onValueChange={(v) => setOnDelete(v as DbForeignKey["onDelete"])}>
               <SelectTrigger id={`${id}-od`} size="sm" className="w-full text-xs">
                 <SelectValue />
@@ -402,7 +415,7 @@ function ForeignKeyDialog({
               <SelectContent>
                 {(Object.keys(ON_DELETE_LABELS) as DbForeignKey["onDelete"][]).map((k) => (
                   <SelectItem key={k} value={k} className="text-xs">
-                    {ON_DELETE_LABELS[k]}
+                    {tr(ON_DELETE_LABELS[k])}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -411,10 +424,10 @@ function ForeignKeyDialog({
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
-            ยกเลิก
+            {tr("ยกเลิก")}
           </Button>
           <Button type="button" disabled={!complete} onClick={save}>
-            บันทึก
+            {tr("บันทึก")}
           </Button>
         </DialogFooter>
       </DialogContent>

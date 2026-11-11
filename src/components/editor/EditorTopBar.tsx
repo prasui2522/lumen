@@ -7,7 +7,9 @@ import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EditorMenubar } from "@/components/editor/EditorMenubar";
 import { ModeSwitch } from "@/components/editor/ModeSwitch";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useT } from "@/lib/messages";
 import { lazyNamed } from "@/lib/lazy";
 import { useEditorStore } from "@/stores/editor-store";
 import { commitProjectTitle } from "@/lib/project-title";
@@ -73,6 +75,7 @@ export function EditorTopBar({
   paletteQuery,
   onPalette,
 }: Props) {
+  const t = useT();
   const mode = useEditorStore((s) => s.mode);
   const isSidebarOpen = useEditorStore((s) => s.isSidebarOpen);
   const toggleSidebar = useEditorStore((s) => s.toggleSidebar);
@@ -120,7 +123,7 @@ export function EditorTopBar({
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label="แสดง/ซ่อนแผงเลเยอร์"
+              aria-label={t("toggleLayers")}
               aria-pressed={isSidebarOpen}
               disabled={mode !== "design"}
               onClick={toggleSidebar}
@@ -128,7 +131,7 @@ export function EditorTopBar({
               <PanelLeft className="size-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>แสดง/ซ่อนแผงเลเยอร์</TooltipContent>
+          <TooltipContent>{t("toggleLayers")}</TooltipContent>
         </Tooltip>
         <VSep />
         <div className="shrink-0">
@@ -151,10 +154,10 @@ export function EditorTopBar({
               variant="ghost"
               size="sm"
               onClick={onBack}
-              aria-label="กลับไปรายการโปรเจกต์"
+              aria-label={t("backToProjects")}
               className="shrink-0 text-muted-foreground hover:text-foreground"
             >
-              โปรเจกต์
+              {t("projects")}
             </Button>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           </>
@@ -173,17 +176,17 @@ export function EditorTopBar({
                 e.currentTarget.blur();
               }
             }}
-            placeholder="ไม่มีชื่อ"
+            placeholder={t("untitled")}
             data-project-title=""
             className="h-7 min-w-0 max-w-xs flex-1 border-transparent bg-transparent px-2 text-sm font-medium shadow-none focus-visible:border-ring"
-            aria-label="ชื่อโปรเจกต์"
+            aria-label={t("projectName")}
           />
         ) : (
           <span
             className="h-7 min-w-0 max-w-xs flex-1 truncate px-2 text-sm font-medium leading-7"
             title={draft}
           >
-            {draft || "ไม่มีชื่อ"}
+            {draft || t("untitled")}
           </span>
         )}
       </div>
@@ -226,14 +229,15 @@ export function EditorTopBar({
             if (!(e.nativeEvent as InputEvent).isComposing) onPalette(v);
           }}
           onCompositionEnd={(e) => onPalette(e.currentTarget.value)}
-          placeholder="ค้นหา…"
-          aria-label="ค้นหาคำสั่ง"
+          placeholder={t("searchPlaceholder")}
+          aria-label={t("searchCommands")}
           className="h-7 w-full pl-7 text-sm"
         />
       </div>
       <Suspense fallback={null}>
         <AboutMenu />
       </Suspense>
+      <LanguageToggle />
       <ThemeToggle />
       <ModeSwitch disabled={modeDisabled} />
       <Tooltip>
@@ -251,15 +255,15 @@ export function EditorTopBar({
             ) : (
               <Download className="size-4" data-icon="inline-start" />
             )}
-            ส่งออก
+            {t("export")}
           </Button>
         </TooltipTrigger>
-        <TooltipContent>ส่งออกเป็นไฟล์ zip (index.html + styles.css)</TooltipContent>
+        <TooltipContent>{t("exportTip")}</TooltipContent>
       </Tooltip>
       {isSaving ? (
         <Button type="button" variant="default" size="sm" disabled aria-busy>
           <Spinner className="size-4" aria-hidden data-icon="inline-start" />
-          กำลังบันทึก…
+          {t("saving")}
         </Button>
       ) : dirty ? (
         <Button type="button" variant="default" size="sm" disabled={saving} onClick={onSave}>
@@ -268,12 +272,12 @@ export function EditorTopBar({
             aria-hidden
             data-icon="inline-start"
           />
-          บันทึก
+          {t("save")}
         </Button>
       ) : (
         <Button type="button" variant="ghost" size="sm" disabled>
           <Check className="size-4" data-icon="inline-start" />
-          บันทึกแล้ว
+          {t("saved")}
         </Button>
       )}
     </header>

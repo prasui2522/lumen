@@ -68,6 +68,14 @@ export function shouldPollPss(state: SidecarPhase): boolean {
 }
 
 /**
+ * Preview may show the Vite frame only after a fresh status read says it is
+ * running. A remembered port from before the idle stop must not open wbpreview.
+ */
+export function viteFrameAllowed(checked: boolean, status: SidecarStatus): boolean {
+  return checked && status.state === "running" && status.port != null;
+}
+
+/**
  * Release Linux/macOS uses `tauri://` (a secure origin). An iframe to
  * `http://127.0.0.1` is mixed content and never loads. Bridge through the
  * `wbpreview` custom protocol in that case; keep 127.0.0.1 in `tauri dev`.

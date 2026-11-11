@@ -9,12 +9,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useT, type MessageKey } from "@/lib/messages";
 import { setThemePref, useTheme, type ThemePref } from "@/lib/theme";
 
-const ITEMS: { pref: ThemePref; label: string }[] = [
-  { pref: "system", label: "ตามระบบ" },
-  { pref: "light", label: "สว่าง" },
-  { pref: "dark", label: "มืด" },
+const ITEMS: { pref: ThemePref; key: MessageKey }[] = [
+  { pref: "system", key: "themeSystemShort" },
+  { pref: "light", key: "themeLightShort" },
+  { pref: "dark", key: "themeDarkShort" },
 ];
 
 /**
@@ -23,7 +24,8 @@ const ITEMS: { pref: ThemePref; label: string }[] = [
  */
 export function ThemeToggle() {
   const { pref } = useTheme();
-  const current = ITEMS.find((t) => t.pref === pref) ?? ITEMS[0];
+  const t = useT();
+  const current = ITEMS.find((item) => item.pref === pref) ?? ITEMS[0];
   const Icon = pref === "dark" ? Moon : pref === "light" ? Sun : Monitor;
 
   return (
@@ -31,24 +33,24 @@ export function ThemeToggle() {
       <Tooltip>
         <TooltipTrigger asChild>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="ghost" size="icon-sm" aria-label={`ธีม: ${current.label}`}>
+            <Button type="button" variant="ghost" size="icon-sm" aria-label={`${t("theme")}: ${t(current.key)}`}>
               <Icon className="size-4" />
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
-        <TooltipContent>ธีม: {current.label}</TooltipContent>
+        <TooltipContent>{t(current.key)}</TooltipContent>
       </Tooltip>
       <DropdownMenuContent align="end" className="min-w-36">
-        <DropdownMenuLabel>ธีม</DropdownMenuLabel>
+        <DropdownMenuLabel>{t("theme")}</DropdownMenuLabel>
         <DropdownMenuRadioGroup
           value={pref}
           onValueChange={(v) => {
             if (v === "system" || v === "light" || v === "dark") setThemePref(v);
           }}
         >
-          {ITEMS.map((t) => (
-            <DropdownMenuRadioItem key={t.pref} value={t.pref}>
-              {t.label}
+          {ITEMS.map((item) => (
+            <DropdownMenuRadioItem key={item.pref} value={item.pref}>
+              {t(item.key)}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

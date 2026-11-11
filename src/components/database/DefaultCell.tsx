@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { setColumnDefault, todayLocal, type DbColumn, type DbDefault, type DbTable } from "@/lib/db-model";
 import { useDbModelStore } from "@/lib/db-model-store";
+import { usePhrase } from "@/lib/phrases";
 import { DbTextField } from "./DbTextField";
 
 const NONE = "__none";
@@ -20,6 +21,7 @@ type Props = { table: DbTable; column: DbColumn; id: string; error: string | nul
  * identity take no default.
  */
 export function DefaultCell({ table: t, column: c, id, error }: Props) {
+  const tr = usePhrase();
   /** กำหนดวันที่ picked: the Select's close-autofocus goes to the date field instead of the trigger. */
   const focusDate = useRef(false);
   const def = c.default;
@@ -37,7 +39,7 @@ export function DefaultCell({ table: t, column: c, id, error }: Props) {
     return (
       <div>
         <span className="text-xs text-muted-foreground" id={id}>
-          {c.type === "identity" ? "อัตโนมัติ" : "—"}
+          {c.type === "identity" ? tr("อัตโนมัติ") : "—"}
         </span>
         {errLine}
       </div>
@@ -48,24 +50,24 @@ export function DefaultCell({ table: t, column: c, id, error }: Props) {
   const choices: { value: string; label: string; def: DbDefault | undefined }[] | null =
     c.type === "boolean"
       ? [
-          { value: NONE, label: "ไม่มี", def: undefined },
-          { value: "true", label: "จริง", def: { kind: "literal", value: true } },
-          { value: "false", label: "เท็จ", def: { kind: "literal", value: false } },
+          { value: NONE, label: tr("ไม่มี"), def: undefined },
+          { value: "true", label: tr("จริง"), def: { kind: "literal", value: true } },
+          { value: "false", label: tr("เท็จ"), def: { kind: "literal", value: false } },
         ]
       : c.type === "enum"
         ? [
-            { value: NONE, label: "ไม่มี", def: undefined },
+            { value: NONE, label: tr("ไม่มี"), def: undefined },
             ...(c.values ?? []).map((v) => ({ value: `v:${v}`, label: v, def: { kind: "literal", value: v } as DbDefault })),
           ]
         : c.type === "timestamptz"
           ? [
-              { value: NONE, label: "ไม่มี", def: undefined },
-              { value: "now", label: "เวลาปัจจุบัน", def: { kind: "now" } },
+              { value: NONE, label: tr("ไม่มี"), def: undefined },
+              { value: "now", label: tr("เวลาปัจจุบัน"), def: { kind: "now" } },
             ]
           : c.type === "uuid"
             ? [
-                { value: NONE, label: "ไม่มี", def: undefined },
-                { value: "uuid", label: "รหัสใหม่", def: { kind: "uuid" } },
+                { value: NONE, label: tr("ไม่มี"), def: undefined },
+                { value: "uuid", label: tr("รหัสใหม่"), def: { kind: "uuid" } },
               ]
             : null;
 
@@ -86,13 +88,13 @@ export function DefaultCell({ table: t, column: c, id, error }: Props) {
           value={known ? cur : "__stale"}
           onValueChange={(v) => commitDefault(t, c, choices.find((x) => x.value === v)?.def)}
         >
-          <SelectTrigger id={id} size="sm" className="h-7 w-full min-w-0 text-xs" aria-label={`ค่าเริ่มต้นของ ${c.name}`} {...errProps}>
+          <SelectTrigger id={id} size="sm" className="h-7 w-full min-w-0 text-xs" aria-label={`${tr("ค่าเริ่มต้นของ")} ${c.name}`} {...errProps}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {!known ? (
               <SelectItem value="__stale" className="text-xs" disabled>
-                {def && def.kind === "literal" ? String(def.value) : "ไม่ถูกต้อง"}
+                {def && def.kind === "literal" ? String(def.value) : tr("ไม่ถูกต้อง")}
               </SelectItem>
             ) : null}
             {choices.map((x) => (
@@ -112,10 +114,10 @@ export function DefaultCell({ table: t, column: c, id, error }: Props) {
   const field = (
     <DbTextField
       id={c.type === "date" ? `${id}-value` : id}
-      label={`ค่าเริ่มต้นของ ${c.name}`}
+      label={`${tr("ค่าเริ่มต้นของ")} ${c.name}`}
       value={literal}
       mono={c.type !== "text"}
-      placeholder={c.type === "date" ? "YYYY-MM-DD" : c.type === "text" ? "ไม่มี" : "ไม่มี"}
+      placeholder={tr("ไม่มี")}
       error={error}
       onCommit={(v) => commitDefault(t, c, v === "" ? undefined : { kind: "literal", value: v })}
     />
@@ -131,7 +133,7 @@ export function DefaultCell({ table: t, column: c, id, error }: Props) {
           focusDate.current = v === LITERAL;
         }}
       >
-        <SelectTrigger id={id} size="sm" className="h-7 w-full min-w-0 text-xs" aria-label={`ค่าเริ่มต้นของ ${c.name}`} {...(cur === LITERAL ? {} : errProps)}>
+        <SelectTrigger id={id} size="sm" className="h-7 w-full min-w-0 text-xs" aria-label={`${tr("ค่าเริ่มต้นของ")} ${c.name}`} {...(cur === LITERAL ? {} : errProps)}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent
@@ -142,9 +144,9 @@ export function DefaultCell({ table: t, column: c, id, error }: Props) {
             document.getElementById(`${id}-value`)?.focus();
           }}
         >
-          <SelectItem value={NONE} className="text-xs">ไม่มี</SelectItem>
-          <SelectItem value="today" className="text-xs">วันนี้</SelectItem>
-          <SelectItem value={LITERAL} className="text-xs">กำหนดวันที่</SelectItem>
+          <SelectItem value={NONE} className="text-xs">{tr("ไม่มี")}</SelectItem>
+          <SelectItem value="today" className="text-xs">{tr("วันนี้")}</SelectItem>
+          <SelectItem value={LITERAL} className="text-xs">{tr("กำหนดวันที่")}</SelectItem>
         </SelectContent>
       </Select>
       {cur === LITERAL ? field : errLine}

@@ -1,6 +1,8 @@
 import { Suspense, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { toastIpcError } from "@/lib/ipc-error-i18n";
+import { usePhrase } from "@/lib/phrases";
 import { toast } from "@/lib/toast";
 import { Minus, Plus } from "lucide-react";
 import type { LabelHrefItem, LabelTextItem, MenubarMenu, Node } from "@/schema";
@@ -130,6 +132,7 @@ function LabelTextPairsEditor({
   addLabel?: string;
   rowLabel?: string;
 }) {
+  const tr = usePhrase();
   const replace = (next: LabelTextItem[]) =>
     commit(nodeId, { kind: "labelTextItems", value: next.slice(0, MAX_SELECT_OPTIONS) });
   return (
@@ -176,7 +179,7 @@ function LabelTextPairsEditor({
         onClick={() => replace([...items, { label: `${rowLabel} ${items.length + 1}`, text: "Content" }])}
       >
         <Plus className="size-3.5" />
-        {addLabel}
+        {tr(addLabel)}
       </Button>
     </div>
   );
@@ -192,6 +195,7 @@ function HrefPairsEditor({
   items: readonly LabelHrefItem[];
   locked: boolean;
 }) {
+  const tr = usePhrase();
   const replace = (next: LabelHrefItem[]) =>
     commit(nodeId, { kind: "labelHrefItems", value: next.slice(0, MAX_SELECT_OPTIONS) });
   return (
@@ -239,7 +243,7 @@ function HrefPairsEditor({
         onClick={() => replace([...items, { label: "รายการ", href: "" }])}
       >
         <Plus className="size-3.5" />
-        เพิ่มรายการ
+        {tr("เพิ่มรายการ")}
       </Button>
     </div>
   );
@@ -256,6 +260,7 @@ function MenubarEditor({
   menus: readonly MenubarMenu[];
   locked: boolean;
 }) {
+  const tr = usePhrase();
   const replace = (next: MenubarMenu[]) =>
     commit(nodeId, { kind: "menubarMenus", value: next.slice(0, MAX_SELECT_OPTIONS) });
   const setMenu = (i: number, menu: MenubarMenu) => {
@@ -356,7 +361,7 @@ function MenubarEditor({
             }
           >
             <Plus className="size-3.5" />
-            เพิ่มรายการในเมนู
+            {tr("เพิ่มรายการในเมนู")}
           </Button>
         </div>
       ))}
@@ -374,16 +379,18 @@ function MenubarEditor({
         }
       >
         <Plus className="size-3.5" />
-        เพิ่มเมนู
+        {tr("เพิ่มเมนู")}
       </Button>
     </div>
   );
 }
 
 function AvatarFile({ nodeId, assetId, locked }: { nodeId: string; assetId: string; locked: boolean }) {
+  const tr = usePhrase();
   const projectId = useProjectsStore((s) => s.openId);
   const [busy, setBusy] = useState(false);
   const hasFile = assetId.trim() !== "";
+  const pickLabel = hasFile ? tr("เปลี่ยนรูป") : tr("เลือกรูป");
   return (
     <FieldRow id="pf-avatar" label="รูป" overridden={false} locked={locked}>
       <Button id="pf-avatar" type="button" variant="outline" size="sm" className="h-7 w-full text-[11px]" disabled={locked || busy || !projectId} aria-busy={busy}
@@ -392,19 +399,19 @@ function AvatarFile({ nodeId, assetId, locked }: { nodeId: string; assetId: stri
           setBusy(true);
           void (async () => {
             try {
-              const picked = await open({ title: hasFile ? "เปลี่ยนรูป" : "เลือกรูป", multiple: false, filters: [{ name: "รูป", extensions: ["jpg", "jpeg", "png", "gif", "webp"] }] });
+              const picked = await open({ title: pickLabel, multiple: false, filters: [{ name: tr("รูป"), extensions: ["jpg", "jpeg", "png", "gif", "webp"] }] });
               if (picked == null || Array.isArray(picked)) return;
               const imported = await invoke<{ id: string }>("import_image", { projectId, path: picked });
               writeProp(nodeId, "srcId", imported.id);
             } catch (e) {
               const msg = e instanceof Error && e.message.trim() ? e.message : "นำเข้ารูปไม่สำเร็จ";
-              toast.error(msg);
+              toast.error(toastIpcError(msg));
             } finally {
               setBusy(false);
             }
           })();
         }}
-      >{hasFile ? "เปลี่ยนรูป" : "เลือกรูป"}</Button>
+      >{pickLabel}</Button>
     </FieldRow>
   );
 }

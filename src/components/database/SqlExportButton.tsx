@@ -3,6 +3,7 @@ import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { runSqlExport, useSqlExportStore } from "@/lib/db-export";
+import { usePhrase } from "@/lib/phrases";
 
 /**
  * `ส่งออก .sql` (§9, mode level). Never `disabled` while busy (that drops focus
@@ -11,6 +12,7 @@ import { runSqlExport, useSqlExportStore } from "@/lib/db-export";
  */
 export function SqlExportButton() {
   const busy = useSqlExportStore((s) => s.busy);
+  const p = usePhrase();
   const ref = useRef<HTMLButtonElement>(null);
   return (
     <Button
@@ -27,7 +29,7 @@ export function SqlExportButton() {
       }}
     >
       {busy ? <Spinner className="size-3.5" aria-hidden /> : <Download aria-hidden />}
-      {busy ? "กำลังส่งออก…" : "ส่งออก .sql"}
+      {busy ? p("กำลังส่งออก…") : p("ส่งออก .sql")}
     </Button>
   );
 }

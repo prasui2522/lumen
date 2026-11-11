@@ -13,6 +13,7 @@ import {
   type PagePerfWarning,
   type PagePerfWarningKind,
 } from "@/lib/page-perf";
+import { displayPerfWarning } from "@/lib/announce-i18n";
 import { useEditorStore } from "@/stores/editor-store";
 
 const announcedByPage = new Map<string, Set<PagePerfWarningKind>>();
@@ -53,7 +54,7 @@ export function evaluatePagePerf(doc: PageDocument | null | undefined): {
   for (const w of warnings) {
     if (announced.has(w.kind)) continue;
     announced.add(w.kind);
-    announce(w.message);
+    announce(displayPerfWarning(w.message));
   }
   return { stats, warnings, toolbar };
 }

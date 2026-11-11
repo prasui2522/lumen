@@ -18,6 +18,7 @@ import {
 import { FieldRow, fieldLabelId } from "@/components/editor/style/FieldRow";
 import { TextPropField } from "@/components/editor/style/TextPropField";
 import { writeTableEditorCommit } from "@/components/editor/style/write";
+import { toastIpcError } from "@/lib/ipc-error-i18n";
 import { toast } from "@/lib/toast";
 import {
   TABLE_FULL_MESSAGE,
@@ -128,7 +129,7 @@ export function TableEditor({
     setGrid((g) => {
       const next = addTableColumn(g, `คอลัมน์ ${g.columns.length + 1}`);
       if (!next) {
-        queueMicrotask(() => toast.error(TABLE_FULL_MESSAGE));
+        queueMicrotask(() => toast.error(toastIpcError(TABLE_FULL_MESSAGE)));
         return g;
       }
       queueMicrotask(() => queueFocus(-1, next.columns.length - 1));
@@ -141,7 +142,7 @@ export function TableEditor({
     setGrid((g) => {
       const next = addTableRow(g);
       if (!next) {
-        queueMicrotask(() => toast.error(TABLE_FULL_MESSAGE));
+        queueMicrotask(() => toast.error(toastIpcError(TABLE_FULL_MESSAGE)));
         return g;
       }
       queueMicrotask(() => queueFocus(next.rows.length - 1, 0));
@@ -177,7 +178,7 @@ export function TableEditor({
     setGrid((g) => {
       const startRow = r < 0 ? 0 : r;
       const { grid: next, refusedCols } = pasteTsvAt(g, startRow, c, text);
-      if (refusedCols) queueMicrotask(() => toast.error(TABLE_FULL_MESSAGE));
+      if (refusedCols) queueMicrotask(() => toast.error(toastIpcError(TABLE_FULL_MESSAGE)));
       return next;
     });
   };

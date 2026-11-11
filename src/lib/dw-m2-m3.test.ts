@@ -14,12 +14,14 @@ describe("DW-M2 EditorMenubar", () => {
       join(ROOT, "src/components/editor/EditorMenubar.tsx"),
       "utf8",
     );
-    expect(src).toContain("ไฟล์");
-    expect(src).toContain("แก้ไข");
-    expect(src).toContain("มุมมอง");
+    expect(src).toContain('t("file")');
+    expect(src).toContain('t("edit")');
+    expect(src).toContain('t("view")');
     expect(src).toContain("onSave");
     expect(src).toContain("onExport");
-    expect(src).toContain("undo()");
+    expect(src).toContain("doUndo");
+    expect(src).toContain("Undo2");
+    expect(src).toContain("Redo2");
     expect(src).toContain('goMode("code")');
   });
 
@@ -42,7 +44,7 @@ describe("DW-M3 Code mode", () => {
       "utf8",
     );
     expect(mode).toContain('value="code"');
-    expect(mode).toContain("โค้ด");
+    expect(mode).toContain('t("code")');
 
     const page = readFileSync(join(ROOT, "src/pages/EditorPage.tsx"), "utf8");
     expect(page).toContain('import("@/components/editor/code-view")');
@@ -56,9 +58,9 @@ describe("DW-M3 Code mode", () => {
     );
     expect(src).toContain('invoke<ExportListEntry[]>("list_export_files"');
     expect(src).toContain("EditorState.readOnly.of(true)");
-    expect(src).toContain("คัดลอกโค้ด");
-    expect(src).toContain("เปิดโฟลเดอร์");
-    expect(src).toContain('aria-label="โค้ดโปรเจกต์ (Project code)"');
+    expect(src).toContain('p("คัดลอกโค้ด")');
+    expect(src).toContain('p("เปิดโฟลเดอร์")');
+    expect(src).toContain('p("โค้ดโปรเจกต์ (Project code)")');
   });
 
   test("code-view chunk ≤ 170 kB gz when dist present", () => {

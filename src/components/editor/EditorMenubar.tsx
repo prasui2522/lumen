@@ -3,6 +3,8 @@
  * Same actions as the command palette; no new business logic.
  */
 import type { ReactNode } from "react";
+import { Redo2, Undo2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import {
   Menubar,
@@ -13,7 +15,10 @@ import {
   MenubarShortcut,
   MenubarTrigger,
 } from "@/components/ui/menubar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { redo, undo } from "@/lib/history";
+import { setLocale, useLocale, type Locale } from "@/lib/locale";
+import { useT } from "@/lib/messages";
 import { setThemePref, useTheme, type ThemePref } from "@/lib/theme";
 import { useEditorStore, type EditorMode } from "@/stores/editor-store";
 
@@ -28,11 +33,7 @@ export type EditorMenubarProps = {
   modeDisabled?: boolean;
 };
 
-const THEMES: { pref: ThemePref; label: string }[] = [
-  { pref: "system", label: "ธีม: ตามระบบ" },
-  { pref: "light", label: "ธีม: สว่าง" },
-  { pref: "dark", label: "ธีม: มืด" },
-];
+const THEME_PREFS: ThemePref[] = ["system", "light", "dark"];
 
 function Shortcut({ children }: { children: ReactNode }) {
   return (
@@ -56,8 +57,18 @@ export function EditorMenubar({
   const sidebar = useEditorStore((s) => s.isSidebarOpen);
   const toggleSidebar = useEditorStore((s) => s.toggleSidebar);
   const modelHistory = useEditorStore((s) => s.modelHistory);
+  const pastLen = useEditorStore((s) => s.past.length);
+  const futureLen = useEditorStore((s) => s.future.length);
   const inDb = mode === "database";
+  const canUndo = inDb ? !!modelHistory?.canUndo : pastLen > 0;
+  const canRedo = inDb ? !!modelHistory?.canRedo : futureLen > 0;
+  const doUndo = () => (inDb ? modelHistory?.undo() : void undo());
+  const doRedo = () => (inDb ? modelHistory?.redo() : void redo());
   const theme = useTheme();
+  const locale = useLocale();
+  const t = useT();
+  const themeLabel = (pref: ThemePref) =>
+    pref === "light" ? t("themeLight") : pref === "dark" ? t("themeDark") : t("themeSystem");
 
   const goMode = (next: EditorMode) => {
     if (modeDisabled || next === mode) return;
@@ -65,49 +76,44 @@ export function EditorMenubar({
   };
 
   return (
+    <div className="flex items-center gap-0.5">
     <Menubar
       className="h-7 border-transparent bg-transparent p-0 shadow-none"
-      aria-label="แถบเมนู"
+      aria-label={t("menubar")}
     >
       <MenubarMenu>
-        <MenubarTrigger className="h-7 px-2 text-xs font-medium">ไฟล์</MenubarTrigger>
+        <MenubarTrigger className="h-7 px-2 text-xs font-medium">{t("file")}</MenubarTrigger>
         <MenubarContent align="start" className="min-w-48">
           <MenubarItem disabled={saveDisabled} onSelect={() => onSave()}>
-            บันทึก
+            {t("save")}
             <Shortcut>
               <Kbd>Ctrl</Kbd>
               <Kbd>S</Kbd>
             </Shortcut>
           </MenubarItem>
           <MenubarItem disabled={exportDisabled} onSelect={() => onExport()}>
-            ส่งออก
+            {t("export")}
           </MenubarItem>
           <MenubarItem disabled={!onOpenSite} onSelect={() => onOpenSite?.()}>
-            เปิดโฟลเดอร์โปรเจกต์
+            {t("openFolder")}
           </MenubarItem>
           <MenubarSeparator />
-          <MenubarItem onSelect={() => onBack()}>กลับไปรายการโปรเจกต์</MenubarItem>
+          <MenubarItem onSelect={() => onBack()}>{t("backToProjects")}</MenubarItem>
         </MenubarContent>
       </MenubarMenu>
 
       <MenubarMenu>
-        <MenubarTrigger className="h-7 px-2 text-xs font-medium">แก้ไข</MenubarTrigger>
+        <MenubarTrigger className="h-7 px-2 text-xs font-medium">{t("edit")}</MenubarTrigger>
         <MenubarContent align="start" className="min-w-48">
-          <MenubarItem
-            disabled={inDb && !modelHistory?.canUndo}
-            onSelect={() => (inDb ? modelHistory?.undo() : void undo())}
-          >
-            เลิกทำ
+          <MenubarItem disabled={!canUndo} onSelect={() => doUndo()}>
+            {t("undo")}
             <Shortcut>
               <Kbd>Ctrl</Kbd>
               <Kbd>Z</Kbd>
             </Shortcut>
           </MenubarItem>
-          <MenubarItem
-            disabled={inDb && !modelHistory?.canRedo}
-            onSelect={() => (inDb ? modelHistory?.redo() : void redo())}
-          >
-            ทำซ้ำ
+          <MenubarItem disabled={!canRedo} onSelect={() => doRedo()}>
+            {t("redo")}
             <Shortcut>
               <Kbd>Ctrl</Kbd>
               <Kbd>Shift</Kbd>
@@ -118,26 +124,26 @@ export function EditorMenubar({
       </MenubarMenu>
 
       <MenubarMenu>
-        <MenubarTrigger className="h-7 px-2 text-xs font-medium">มุมมอง</MenubarTrigger>
+        <MenubarTrigger className="h-7 px-2 text-xs font-medium">{t("view")}</MenubarTrigger>
         <MenubarContent align="start" className="min-w-52">
           <MenubarItem disabled={modeDisabled} onSelect={() => goMode("design")}>
-            ออกแบบ
+            {t("design")}
             {mode === "design" ? <MenubarShortcut>✓</MenubarShortcut> : null}
           </MenubarItem>
           <MenubarItem disabled={modeDisabled} onSelect={() => goMode("split")}>
-            แยก
+            {t("split")}
             {mode === "split" ? <MenubarShortcut>✓</MenubarShortcut> : null}
           </MenubarItem>
           <MenubarItem disabled={modeDisabled} onSelect={() => goMode("code")}>
-            โค้ด
+            {t("code")}
             {mode === "code" ? <MenubarShortcut>✓</MenubarShortcut> : null}
           </MenubarItem>
           <MenubarItem disabled={modeDisabled} onSelect={() => goMode("preview")}>
-            ตัวอย่าง
+            {t("preview")}
             {mode === "preview" ? <MenubarShortcut>✓</MenubarShortcut> : null}
           </MenubarItem>
           <MenubarItem disabled={modeDisabled} onSelect={() => goMode("database")}>
-            ฐานข้อมูล
+            {t("database")}
             {mode === "database" ? <MenubarShortcut>✓</MenubarShortcut> : null}
           </MenubarItem>
           <MenubarSeparator />
@@ -145,17 +151,58 @@ export function EditorMenubar({
             disabled={mode !== "design"}
             onSelect={() => toggleSidebar()}
           >
-            {sidebar ? "ซ่อนแผงเลเยอร์" : "แสดงแผงเลเยอร์"}
+            {sidebar ? t("hideLayers") : t("showLayers")}
           </MenubarItem>
           <MenubarSeparator />
-          {THEMES.map((t) => (
-            <MenubarItem key={t.pref} onSelect={() => setThemePref(t.pref)}>
-              {t.label}
-              {theme.pref === t.pref ? <MenubarShortcut>✓</MenubarShortcut> : null}
+          {THEME_PREFS.map((pref) => (
+            <MenubarItem key={pref} onSelect={() => setThemePref(pref)}>
+              {themeLabel(pref)}
+              {theme.pref === pref ? <MenubarShortcut>✓</MenubarShortcut> : null}
+            </MenubarItem>
+          ))}
+          <MenubarSeparator />
+          {(["th", "en"] as Locale[]).map((code) => (
+            <MenubarItem key={code} onSelect={() => setLocale(code)}>
+              {code === "th" ? t("languageThai") : t("languageEnglish")}
+              {locale === code ? <MenubarShortcut>✓</MenubarShortcut> : null}
             </MenubarItem>
           ))}
         </MenubarContent>
       </MenubarMenu>
     </Menubar>
+    <span className="mx-0.5 inline-flex h-4 shrink-0 items-stretch" aria-hidden>
+      <span className="w-px bg-border" />
+    </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          disabled={!canUndo}
+          aria-label={t("undo")}
+          onClick={() => doUndo()}
+        >
+          <Undo2 className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{t("undo")}</TooltipContent>
+    </Tooltip>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          disabled={!canRedo}
+          aria-label={t("redo")}
+          onClick={() => doRedo()}
+        >
+          <Redo2 className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{t("redo")}</TooltipContent>
+    </Tooltip>
+    </div>
   );
 }

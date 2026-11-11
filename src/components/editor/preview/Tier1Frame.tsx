@@ -20,6 +20,7 @@ export type Tier1FrameProps = {
   onRoute?: (path: string) => void;
   onExternal?: (href: string) => void;
   onSelect?: (id: string | null) => void;
+  onBoxes?: (boxes: { id: string; x: number; y: number; w: number; h: number }[]) => void;
   /** Runtime did not answer in time (missing build, blocked script) → caller falls back. */
   onTimeout?: () => void;
 };
@@ -41,12 +42,13 @@ export function Tier1Frame({
   onRoute,
   onExternal,
   onSelect,
+  onBoxes,
   onTimeout,
 }: Tier1FrameProps) {
   const ref = useRef<HTMLIFrameElement | null>(null);
   const ready = useRef(false);
-  const latest = useRef({ payload, path, onHeight, onRoute, onExternal, onSelect, onTimeout });
-  latest.current = { payload, path, onHeight, onRoute, onExternal, onSelect, onTimeout };
+  const latest = useRef({ payload, path, onHeight, onRoute, onExternal, onSelect, onBoxes, onTimeout });
+  latest.current = { payload, path, onHeight, onRoute, onExternal, onSelect, onBoxes, onTimeout };
   const lastSentPath = useRef<string | null>(null);
 
   const send = (m: AppToFrame) => {
@@ -81,6 +83,9 @@ export function Tier1Frame({
           break;
         case "wb:select":
           latest.current.onSelect?.(m.id);
+          break;
+        case "wb:boxes":
+          latest.current.onBoxes?.(m.boxes);
           break;
       }
     };

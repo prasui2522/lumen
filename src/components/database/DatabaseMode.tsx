@@ -23,6 +23,10 @@ import { SqlExportButton } from "./SqlExportButton";
 import { TableList } from "./TableList";
 import { TableEditor, type IssueLookup } from "./TableEditor";
 import { tableProblems } from "@/lib/db-problems";
+import { phraseIssue } from "@/lib/db-issue-i18n";
+import { phraseIpcError } from "@/lib/ipc-error-i18n";
+import { useLocale } from "@/lib/locale";
+import { usePhrase } from "@/lib/phrases";
 
 /**
  * `ฐานข้อมูล` mode (PHASE-10-SPEC §5). Lazy chunk, loaded on the first switch
@@ -30,6 +34,8 @@ import { tableProblems } from "@/lib/db-problems";
  * (TS mirror), and the model's own undo history (§8).
  */
 export function DatabaseMode() {
+  const p = usePhrase();
+  const locale = useLocale();
   const openId = useProjectsStore((s) => s.openId);
   const status = useDbModelStore((s) => s.status);
   const error = useDbModelStore((s) => s.error);
@@ -104,10 +110,14 @@ export function DatabaseMode() {
     return m;
   }, [issues]);
   const withIssues = useMemo(() => new Set(issues.flatMap((x) => (x.tableId ? [x.tableId] : []))), [issues]);
-  const modelIssue = issues.find((x) => !x.tableId && x.field === "model" && tables.length > 0)?.message ?? null;
+  const modelIssueRaw = issues.find((x) => !x.tableId && x.field === "model" && tables.length > 0)?.message ?? null;
+  const modelIssue = modelIssueRaw ? phraseIssue(locale, modelIssueRaw) : null;
 
   const selected = tables.find((t) => t.id === selectedId) ?? tables[0] ?? null;
-  const issue: IssueLookup = (columnId, field) => byKey.get(`${selected?.id ?? ""}|${columnId ?? ""}|${field}`) ?? null;
+  const issue: IssueLookup = (columnId, field) => {
+    const msg = byKey.get(`${selected?.id ?? ""}|${columnId ?? ""}|${field}`) ?? null;
+    return msg ? phraseIssue(locale, msg) : null;
+  };
   const tableIssues = useMemo(() => (selected ? tableProblems(selected, issues) : []), [issues, selected]);
 
   const onAdd = () => {
@@ -126,9 +136,9 @@ export function DatabaseMode() {
     return (
       <div className="flex flex-1 items-start justify-center p-6">
         <Alert variant="destructive" className="max-w-md">
-          <AlertTitle>อ่านโครงสร้างไม่ได้</AlertTitle>
+          <AlertTitle>{p("อ่านโครงสร้างไม่ได้")}</AlertTitle>
           <AlertDescription>
-            <p>{error}</p>
+            <p>{error ? phraseIpcError(locale, error) : null}</p>
             <Button
               type="button"
               variant="outline"
@@ -139,7 +149,7 @@ export function DatabaseMode() {
                 void useDbModelStore.getState().reload();
               }}
             >
-              ลองอีกครั้ง
+              {p("ลองอีกครั้ง")}
             </Button>
           </AlertDescription>
         </Alert>
@@ -151,7 +161,7 @@ export function DatabaseMode() {
     return (
       <div role="status" className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
         <Spinner className="size-4" aria-hidden />
-        กำลังโหลดฐานข้อมูล…
+        {p("กำลังโหลดฐานข้อมูล…")}
       </div>
     );
   }
@@ -166,13 +176,13 @@ export function DatabaseMode() {
             <EmptyMedia variant="icon">
               <Database aria-hidden />
             </EmptyMedia>
-            <EmptyTitle>ยังไม่มีตาราง</EmptyTitle>
-            <EmptyDescription>เพิ่มตารางแรกเพื่อเริ่มออกแบบฐานข้อมูล</EmptyDescription>
+            <EmptyTitle>{p("ยังไม่มีตาราง")}</EmptyTitle>
+            <EmptyDescription>{p("เพิ่มตารางแรกเพื่อเริ่มออกแบบฐานข้อมูล")}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Button ref={addRef} data-db-add-table type="button" onClick={onAdd}>
               <Plus aria-hidden />
-              เพิ่มตาราง
+              {p("เพิ่มตาราง")}
             </Button>
           </EmptyContent>
         </Empty>

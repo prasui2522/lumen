@@ -1,5 +1,6 @@
 import { Code2, Columns2, Database, Eye, PenLine } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useT } from "@/lib/messages";
 import { useEditorStore, type EditorMode } from "@/stores/editor-store";
 
 type Props = {
@@ -14,6 +15,7 @@ const ITEM =
  * Radix ToggleGroup type="single" → one Tab stop, ←/→ to move.
  */
 export function ModeSwitch({ disabled }: Props) {
+  const t = useT();
   const mode = useEditorStore((s) => s.mode);
   const setMode = useEditorStore((s) => s.setMode);
 
@@ -30,29 +32,29 @@ export function ModeSwitch({ disabled }: Props) {
       value={mode}
       onValueChange={(v) => v && select(v as EditorMode)}
       disabled={disabled}
-      aria-label="โหมดแก้ไข"
+      aria-label={t("editMode")}
       data-kbd-pane="mode"
       className="gap-0.5 rounded-lg bg-muted p-0.5"
     >
       <ToggleGroupItem value="design" className={`${ITEM} rounded-md!`}>
         <PenLine className="size-3.5" aria-hidden />
-        <span>ออกแบบ</span>
+        <span>{t("design")}</span>
       </ToggleGroupItem>
       <ToggleGroupItem value="split" className={`${ITEM} rounded-md!`}>
         <Columns2 className="size-3.5" aria-hidden />
-        <span>แยก</span>
+        <span>{t("split")}</span>
       </ToggleGroupItem>
       <ToggleGroupItem value="code" className={`${ITEM} rounded-md!`}>
         <Code2 className="size-3.5" aria-hidden />
-        <span>โค้ด</span>
+        <span>{t("code")}</span>
       </ToggleGroupItem>
       <ToggleGroupItem value="preview" className={`${ITEM} rounded-md!`}>
         <Eye className="size-3.5" aria-hidden />
-        <span>ตัวอย่าง</span>
+        <span>{t("preview")}</span>
       </ToggleGroupItem>
       <ToggleGroupItem value="database" className={`${ITEM} rounded-md!`}>
         <Database className="size-3.5" aria-hidden />
-        <span>ฐานข้อมูล</span>
+        <span>{t("database")}</span>
       </ToggleGroupItem>
     </ToggleGroup>
   );

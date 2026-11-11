@@ -17,6 +17,7 @@ import {
 import type { StyleBlock } from "@/lib/block-format";
 import { buildPage, type PageId } from "@/lib/pages";
 import { getChildren, type NodeId, type PageDocument } from "@/schema";
+import { announceInsertedBlock } from "@/lib/announce-i18n";
 import { useEditorStore } from "@/stores/editor-store";
 import { useProjectsStore } from "@/stores/projects-store";
 
@@ -163,7 +164,7 @@ export function insertRegistryStyleBlock(block: StyleBlock): boolean {
   const ed = useEditorStore.getState();
   ed.setSelectedNodeId(result.rootId);
   ed.setFocusLayerId(result.rootId);
-  ed.announce(`แทรกบล็อก ${block.name} แล้ว`);
+  ed.announce(announceInsertedBlock(block.name));
   return true;
 }
 

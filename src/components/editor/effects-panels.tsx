@@ -33,6 +33,10 @@ import {
   removeGradientStop,
 } from "@/lib/gradient-ops";
 import { gradientToCss } from "@/lib/style-css";
+import { displayPerfWarning } from "@/lib/announce-i18n";
+import { phraseIpcError, toastIpcError } from "@/lib/ipc-error-i18n";
+import { useLocale } from "@/lib/locale";
+import { usePhrase } from "@/lib/phrases";
 import { toast } from "@/lib/toast";
 import type {
   BackdropFilterValue,
@@ -127,6 +131,7 @@ function BlurSlider({
   disabled: boolean;
   onCommit: (n: number) => void;
 }) {
+  const tr = usePhrase();
   const [draft, setDraft] = useState<number | null>(null);
   const dragging = useRef(false);
   const draftRef = useRef<number | null>(null);
@@ -178,7 +183,7 @@ function BlurSlider({
       </SliderPrimitive.Track>
       <SliderPrimitive.Thumb
         data-slot="slider-thumb"
-        aria-label="เบลอ"
+        aria-label={tr("เบลอ")}
         id={id}
         onBlur={finish}
         className="relative block size-3 shrink-0 rounded-full border border-ring bg-white ring-ring/50 focus-visible:ring-ring transition-[color,box-shadow] select-none after:absolute after:-inset-2 hover:ring-3 focus-visible:ring-2 focus-visible:outline-hidden active:ring-3 disabled:pointer-events-none"
@@ -212,9 +217,10 @@ function ShadowLayerCard({
   onFocused: () => void;
   onRemove: (index: number) => void;
 }) {
+  const tr = usePhrase();
   const removeRef = useRef<HTMLButtonElement>(null);
   const n = index + 1;
-  const title = `เงาชั้นที่ ${n}`;
+  const title = `${tr("เงาชั้นที่")} ${n}`;
 
   useEffect(() => {
     if (focusRequest === index) {
@@ -241,7 +247,7 @@ function ShadowLayerCard({
             size="xs"
             className="size-6 px-0"
             disabled={locked || index === 0}
-            aria-label="เลื่อนชั้นขึ้น"
+            aria-label={tr("เลื่อนชั้นขึ้น")}
             onClick={() => write(moveShadowLayer(layers, index, -1))}
           >
             <ChevronUp className="size-3.5" />
@@ -252,7 +258,7 @@ function ShadowLayerCard({
             size="xs"
             className="size-6 px-0"
             disabled={locked || index >= total - 1}
-            aria-label="เลื่อนชั้นลง"
+            aria-label={tr("เลื่อนชั้นลง")}
             onClick={() => write(moveShadowLayer(layers, index, 1))}
           >
             <ChevronDown className="size-3.5" />
@@ -264,7 +270,7 @@ function ShadowLayerCard({
             size="xs"
             className="size-6 px-0 text-destructive"
             disabled={locked}
-            aria-label="ลบเงา"
+            aria-label={tr("ลบเงา")}
             onClick={() => onRemove(index)}
           >
             <Trash2 className="size-3.5" />
@@ -364,6 +370,7 @@ export function ShadowEditor({
   onReset,
   resetLabel,
 }: ShadowEditorProps) {
+  const tr = usePhrase();
   const layers = layersProp ?? [];
   const [focusAfterRemove, setFocusAfterRemove] = useState<number | null>(null);
   const shadowWarn = useEditorStore((s) =>
@@ -373,7 +380,7 @@ export function ShadowEditor({
   const handleAdd = () => {
     const next = addShadowLayer(layers);
     if (!next) {
-      toast.error(BOX_SHADOW_MAX_MSG);
+      toast.error(toastIpcError(BOX_SHADOW_MAX_MSG));
       return;
     }
     commitLayers(nodeId, next, bp, state);
@@ -389,12 +396,12 @@ export function ShadowEditor({
     <div className="space-y-2" data-effects-panel="shadow">
       <div className="flex items-center justify-between gap-1">
         <span className="text-[11px] text-muted-foreground">
-          {layers.length > 0 ? `${layers.length}/6 ชั้น` : "ยังไม่มีเงา"}
+          {layers.length > 0 ? `${layers.length}/6 ${tr("ชั้น")}` : tr("ยังไม่มีเงา")}
         </span>
         <div className="flex items-center gap-1">
           {overridden && onReset && !locked ? (
             <Button type="button" variant="ghost" size="xs" onClick={onReset}>
-              {resetLabel ?? "คืนค่าเริ่มต้น"}
+              {tr(resetLabel ?? "คืนค่าเริ่มต้น")}
             </Button>
           ) : null}
           <Button
@@ -402,18 +409,18 @@ export function ShadowEditor({
             variant="outline"
             size="xs"
             disabled={locked}
-            aria-label="เพิ่มเงา"
+            aria-label={tr("เพิ่มเงา")}
             onClick={handleAdd}
           >
             <Plus className="size-3.5" />
-            เพิ่มเงา
+            {tr("เพิ่มเงา")}
           </Button>
         </div>
       </div>
 
       {shadowWarn ? (
         <p className="text-[11px] text-amber-700 dark:text-amber-400" role="status">
-          {shadowWarn.message}
+          {displayPerfWarning(shadowWarn.message)}
         </p>
       ) : null}
 
@@ -439,6 +446,7 @@ export function ShadowEditor({
 
 /** Collapsible เงา sub-group used by StylePanel EffectsSection. */
 export function ShadowSubGroup(props: ShadowEditorProps) {
+  const tr = usePhrase();
   const [open, setOpen] = useState(false);
   const bodyId = "fx-shadow-body";
   return (
@@ -461,7 +469,7 @@ export function ShadowSubGroup(props: ShadowEditorProps) {
             props.overridden ? "bg-primary" : "bg-transparent",
           )}
         />
-        เงา
+        {tr("เงา")}
       </button>
       {open ? (
         <div id={bodyId} className="border-t border-sidebar-border/80 px-2 py-2">
@@ -531,9 +539,10 @@ function GradientStopCard({
   onPatch: (p: Partial<GradientStop>) => void;
   onRemove: (index: number) => void;
 }) {
+  const tr = usePhrase();
   const removeRef = useRef<HTMLButtonElement>(null);
   const n = index + 1;
-  const title = `จุดสี ${n}`;
+  const title = `${tr("จุดสี")} ${n}`;
 
   useEffect(() => {
     if (focusRequest === index) {
@@ -557,7 +566,7 @@ function GradientStopCard({
           size="xs"
           className="size-6 px-0 text-destructive"
           disabled={locked || total <= GRADIENT_MIN_STOPS}
-          aria-label="ลบจุดสี"
+          aria-label={tr("ลบจุดสี")}
           onClick={() => onRemove(index)}
         >
           <Trash2 className="size-3.5" />
@@ -601,6 +610,8 @@ export function GradientEditor({
   onReset,
   resetLabel,
 }: GradientEditorProps) {
+  const tr = usePhrase();
+  const locale = useLocale();
   const bothSet = background !== undefined && text !== undefined;
   const mode = activeGradientMode(background, text);
   const textFill = mode === "text";
@@ -634,7 +645,7 @@ export function GradientEditor({
 
   const handleTextFill = (checked: boolean) => {
     if (bothSet) {
-      toast.error(GRADIENT_EXCLUSIVE_MSG);
+      toast.error(toastIpcError(GRADIENT_EXCLUSIVE_MSG));
     }
     const base = ensure();
     write(base, checked);
@@ -644,7 +655,7 @@ export function GradientEditor({
     const base = ensure();
     const nextStops = addGradientStop(base.stops ?? []);
     if (!nextStops) {
-      toast.error(`ใช้จุดสีได้สูงสุด ${GRADIENT_MAX_STOPS} จุด`);
+      toast.error(toastIpcError(`ใช้จุดสีได้สูงสุด ${GRADIENT_MAX_STOPS} จุด`));
       return;
     }
     write(patchGradient(base, { stops: nextStops }));
@@ -678,12 +689,12 @@ export function GradientEditor({
     <div className="space-y-2" data-effects-panel="gradient">
       <div className="flex items-center justify-between gap-1">
         <span className="text-[11px] text-muted-foreground">
-          {value ? `${stops.length}/${GRADIENT_MAX_STOPS} จุดสี` : "ยังไม่มีไล่สี"}
+          {value ? `${stops.length}/${GRADIENT_MAX_STOPS} ${tr("จุดสี")}` : tr("ยังไม่มีไล่สี")}
         </span>
         <div className="flex items-center gap-1">
           {overridden && onReset && !locked ? (
             <Button type="button" variant="ghost" size="xs" onClick={onReset}>
-              {resetLabel ?? "คืนค่าเริ่มต้น"}
+              {tr(resetLabel ?? "คืนค่าเริ่มต้น")}
             </Button>
           ) : null}
           {!value ? (
@@ -692,11 +703,11 @@ export function GradientEditor({
               variant="outline"
               size="xs"
               disabled={locked}
-              aria-label="เพิ่มไล่สี"
+              aria-label={tr("เพิ่มไล่สี")}
               onClick={handleEnable}
             >
               <Plus className="size-3.5" />
-              ไล่สี
+              {tr("ไล่สี")}
             </Button>
           ) : (
             <Button
@@ -706,7 +717,7 @@ export function GradientEditor({
               disabled={locked}
               onClick={handleClear}
             >
-              ล้าง
+              {tr("ล้าง")}
             </Button>
           )}
         </div>
@@ -714,7 +725,7 @@ export function GradientEditor({
 
       {bothSet ? (
         <p className="text-[11px] text-amber-700 dark:text-amber-400" role="status">
-          {GRADIENT_EXCLUSIVE_MSG}
+          {phraseIpcError(locale, GRADIENT_EXCLUSIVE_MSG)}
         </p>
       ) : null}
 
@@ -771,13 +782,13 @@ export function GradientEditor({
           </FieldRow>
 
           <div className="flex items-center justify-between gap-1 pt-1">
-            <span className="text-[11px] text-muted-foreground">จุดสี</span>
+            <span className="text-[11px] text-muted-foreground">{tr("จุดสี")}</span>
             <Button
               type="button"
               variant="outline"
               size="xs"
               disabled={locked || stops.length >= GRADIENT_MAX_STOPS}
-              aria-label="เพิ่มจุดสี"
+              aria-label={tr("เพิ่มจุดสี")}
               onClick={handleAdd}
             >
               <Plus className="size-3.5" />
@@ -812,6 +823,7 @@ export function GradientEditor({
 
 /** Collapsible ไล่สี sub-group used by StylePanel EffectsSection. */
 export function GradientSubGroup(props: GradientEditorProps) {
+  const tr = usePhrase();
   const [open, setOpen] = useState(false);
   const bodyId = "fx-gradient-body";
   return (
@@ -834,7 +846,7 @@ export function GradientSubGroup(props: GradientEditorProps) {
             props.overridden ? "bg-primary" : "bg-transparent",
           )}
         />
-        ไล่สี
+        {tr("ไล่สี")}
       </button>
       {open ? (
         <div id={bodyId} className="border-t border-sidebar-border/80 px-2 py-2">
@@ -856,6 +868,7 @@ function EffectsCollapse({
   bodyId: string;
   children: ReactNode;
 }) {
+  const tr = usePhrase();
   const [open, setOpen] = useState(false);
   return (
     <div className="rounded-md border border-sidebar-border/80">
@@ -877,7 +890,7 @@ function EffectsCollapse({
             overridden ? "bg-primary" : "bg-transparent",
           )}
         />
-        {title}
+        {tr(title)}
       </button>
       {open ? (
         <div id={bodyId} className="border-t border-sidebar-border/80 px-2 py-2">
@@ -913,6 +926,7 @@ export function TransformEditor({
   resetLabel,
   inlineHint,
 }: TransformEditorProps) {
+  const tr = usePhrase();
   const v = value ?? {};
   const write = (next: TransformValue | undefined) => {
     writeStyle(
@@ -928,18 +942,18 @@ export function TransformEditor({
   return (
     <div className="space-y-2" data-effects-panel="transform">
       <div className="flex items-center justify-between gap-1">
-        <span className="text-[11px] text-muted-foreground">การแปลง</span>
+        <span className="text-[11px] text-muted-foreground">{tr("การแปลง")}</span>
         <div className="flex items-center gap-1">
           {overridden && onReset && !locked ? (
             <Button type="button" variant="ghost" size="xs" onClick={onReset}>
-              {resetLabel ?? "คืนค่าเริ่มต้น"}
+              {tr(resetLabel ?? "คืนค่าเริ่มต้น")}
             </Button>
           ) : null}
         </div>
       </div>
       {inlineHint ? (
         <p className="text-[11px] text-muted-foreground" role="note">
-          องค์ประกอบแบบอินไลน์จะถูกส่งออกเป็นอินไลน์บล็อกเพื่อให้การแปลงทำงาน
+          {tr("องค์ประกอบแบบอินไลน์จะถูกส่งออกเป็นอินไลน์บล็อกเพื่อให้การแปลงทำงาน")}
         </p>
       ) : null}
       <FieldRow id="fx-tf-tx" label="เลื่อนแนวนอน" overridden={false} locked={locked}>
@@ -1060,6 +1074,7 @@ export function TransitionEditor({
   onReset,
   resetLabel,
 }: TransitionEditorProps) {
+  const tr = usePhrase();
   const v = value ?? { property: "paint" as const };
   const write = (next: TransitionValue | undefined) => {
     writeStyle(
@@ -1075,15 +1090,15 @@ export function TransitionEditor({
   return (
     <div className="space-y-2" data-effects-panel="transition">
       <div className="flex items-center justify-between gap-1">
-        <span className="text-[11px] text-muted-foreground">การเปลี่ยนผ่าน</span>
+        <span className="text-[11px] text-muted-foreground">{tr("การเปลี่ยนผ่าน")}</span>
         {overridden && onReset && !locked ? (
           <Button type="button" variant="ghost" size="xs" onClick={onReset}>
-            {resetLabel ?? "คืนค่าเริ่มต้น"}
+            {tr(resetLabel ?? "คืนค่าเริ่มต้น")}
           </Button>
         ) : null}
       </div>
       <p className="text-[11px] text-muted-foreground" role="note">
-        ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหวจะไม่เห็นการเลื่อนย้ายและการเปลี่ยนผ่าน
+        {tr("ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหวจะไม่เห็นการเลื่อนย้ายและการเปลี่ยนผ่าน")}
       </p>
       <FieldRow id="fx-tr-dur" label="ระยะเวลา" overridden={false} locked={locked}>
         <NumberField
@@ -1158,6 +1173,7 @@ export function FilterEditor({
   onReset,
   resetLabel,
 }: FilterEditorProps) {
+  const tr = usePhrase();
   const f = filter ?? {};
   const b = backdrop ?? {};
   const writeFilter = (next: FilterValue | undefined) => {
@@ -1180,16 +1196,16 @@ export function FilterEditor({
   return (
     <div className="space-y-2" data-effects-panel="filter">
       <div className="flex items-center justify-between gap-1">
-        <span className="text-[11px] text-muted-foreground">ฟิลเตอร์</span>
+        <span className="text-[11px] text-muted-foreground">{tr("ฟิลเตอร์")}</span>
         {overridden && onReset && !locked ? (
           <Button type="button" variant="ghost" size="xs" onClick={onReset}>
-            {resetLabel ?? "คืนค่าเริ่มต้น"}
+            {tr(resetLabel ?? "คืนค่าเริ่มต้น")}
           </Button>
         ) : null}
       </div>
       {blurWarn ? (
         <p className="text-[11px] text-amber-700 dark:text-amber-400" role="status" data-perf-warn="blur">
-          {blurWarn.message}
+          {displayPerfWarning(blurWarn.message)}
         </p>
       ) : blurCount > 0 ? (
         <p className="text-[11px] text-muted-foreground">

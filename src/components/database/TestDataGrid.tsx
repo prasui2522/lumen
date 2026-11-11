@@ -26,6 +26,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DB_TYPE_LABELS, type DbColumn, type DbTable } from "@/lib/db-model";
+import { displayOpenErrorText, displayRangeLabel, phraseIpcError } from "@/lib/ipc-error-i18n";
+import { useLocale } from "@/lib/locale";
+import { usePhrase } from "@/lib/phrases";
 import { useDbModelStore } from "@/lib/db-model-store";
 import { useProjectsStore } from "@/stores/projects-store";
 import { useEditorStore } from "@/stores/editor-store";
@@ -51,7 +54,6 @@ import {
   rebuildErrorText,
   newRowTarget,
   pagerFocus,
-  rangeLabel,
   readOnlyColumn,
   updateCell,
   useTestDataStore,
@@ -187,6 +189,8 @@ const REBUILD_TEXT: Record<Rebuild, { title: string; text: string; action: strin
 };
 
 export function TestDataGrid({ table }: { table: DbTable }) {
+  const tr = usePhrase();
+  const locale = useLocale();
   const projectId = useProjectsStore((s) => s.openId);
   const model = useDbModelStore((s) => s.model);
   const status = useTestDataStore((s) => s.status);
@@ -223,13 +227,13 @@ export function TestDataGrid({ table }: { table: DbTable }) {
     // Lossless applies with no dialog; the remounted grid then takes focus.
     updateFocus.confirmed();
     const r = await useTestDataStore.getState().update(model);
-    if (r === "applied") announce("อัปเดตข้อมูลทดสอบแล้ว");
+    if (r === "applied") announce(tr("อัปเดตข้อมูลทดสอบแล้ว"));
     else if (r === "error") updateFocus.failed();
     else updateFocus.clear(); // confirm: the plan dialog's own focus rule takes over
   };
   const applyPlan = async () => {
     updateFocus.confirmed();
-    if (await useTestDataStore.getState().applyPlan()) announce("อัปเดตข้อมูลทดสอบแล้ว");
+    if (await useTestDataStore.getState().applyPlan()) announce(tr("อัปเดตข้อมูลทดสอบแล้ว"));
     else updateFocus.failed();
   };
 
@@ -243,13 +247,15 @@ export function TestDataGrid({ table }: { table: DbTable }) {
     setRebuilding(false);
     if (ok) {
       setConfirm(null);
-      announce(REBUILD_TEXT[what].done);
+      announce(tr(REBUILD_TEXT[what].done));
       return;
     }
     // Failed: the confirm stays open with the error; closing it goes back to the
     // opener, or ลองอีกครั้ง when the file is closed (the grid / banner is gone).
     confirmFocus.clear();
-    setRebuildErr(rebuildErrorText(REBUILD_TEXT[what].fail, useTestDataStore.getState().error));
+    setRebuildErr(
+      rebuildErrorText(tr(REBUILD_TEXT[what].fail), useTestDataStore.getState().error, tr("ลองกดอีกครั้ง หรือกด ยกเลิก")),
+    );
   };
   const closeConfirm = () => {
     if (rebuilding) return;
@@ -279,7 +285,7 @@ export function TestDataGrid({ table }: { table: DbTable }) {
     );
   else if (status === "error")
     body = (
-      <Banner title="เปิดข้อมูลทดสอบไม่ได้" text={openErrorText(error)} destructive>
+      <Banner title={tr("เปิดข้อมูลทดสอบไม่ได้")} text={displayOpenErrorText(locale, openErrorText(error))} destructive>
         <Button
           data-tg-retry
           type="button"
@@ -292,21 +298,21 @@ export function TestDataGrid({ table }: { table: DbTable }) {
             void useTestDataStore.getState().open(projectId, model);
           }}
         >
-          ลองอีกครั้ง
+          {tr("ลองอีกครั้ง")}
         </Button>
       </Banner>
     );
   else if (status === "invalid_model")
     body = (
-      <Banner title="แก้ปัญหาในโครงสร้างก่อน" text="ข้อมูลทดสอบใช้ได้เมื่อโครงสร้างไม่มีปัญหา">
+      <Banner title={tr("แก้ปัญหาในโครงสร้างก่อน")} text={tr("ข้อมูลทดสอบใช้ได้เมื่อโครงสร้างไม่มีปัญหา")}>
         <Button type="button" size="sm" variant="outline" onClick={() => useTestDataStore.getState().setTab("structure")}>
-          ไปที่โครงสร้าง
+          {tr("ไปที่โครงสร้าง")}
         </Button>
       </Banner>
     );
   else if (status === "stale")
     body = (
-      <Banner title="โครงสร้างเปลี่ยนแล้ว" text="อัปเดตข้อมูลทดสอบให้ตรงกับโครงสร้างใหม่ก่อนแก้ไข" alert={false}>
+      <Banner title={tr("โครงสร้างเปลี่ยนแล้ว")} text={tr("อัปเดตข้อมูลทดสอบให้ตรงกับโครงสร้างใหม่ก่อนแก้ไข")} alert={false}>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             ref={updateFocus.trigger}
@@ -317,7 +323,7 @@ export function TestDataGrid({ table }: { table: DbTable }) {
             onClick={() => void update()}
           >
             {planning ? <Spinner className="size-3.5" aria-hidden /> : null}
-            {planning ? "กำลังอัปเดตข้อมูลทดสอบ…" : "อัปเดตข้อมูลทดสอบ"}
+            {planning ? tr("กำลังอัปเดตข้อมูลทดสอบ…") : tr("อัปเดตข้อมูลทดสอบ")}
           </Button>
           <Button
             ref={confirmFocus.trigger}
@@ -327,21 +333,21 @@ export function TestDataGrid({ table }: { table: DbTable }) {
             aria-disabled={planning || undefined}
             onClick={() => !planning && setConfirm("stale")}
           >
-            ล้างข้อมูลทดสอบ
+            {tr("ล้างข้อมูลทดสอบ")}
           </Button>
         </div>
         {planErr ? (
           <p id="tg-plan-err" role="alert" className="mt-2 text-xs text-destructive">
-            {planErr.expired ? "แผนหมดอายุ กด อัปเดตข้อมูลทดสอบ เพื่อตรวจสอบใหม่" : planErrorText(planErr.message)}
+            {planErr.expired ? tr("แผนหมดอายุ กด อัปเดตข้อมูลทดสอบ เพื่อตรวจสอบใหม่") : phraseIpcError(locale, planErrorText(planErr.message))}
           </p>
         ) : null}
       </Banner>
     );
   else if (status === "corrupt")
     body = (
-      <Banner title="ไฟล์ข้อมูลทดสอบเสียหาย" text="สร้างไฟล์ใหม่จากโครงสร้างปัจจุบัน ข้อมูลทดสอบเดิมจะหายไป" destructive>
+      <Banner title={tr("ไฟล์ข้อมูลทดสอบเสียหาย")} text={tr("สร้างไฟล์ใหม่จากโครงสร้างปัจจุบัน ข้อมูลทดสอบเดิมจะหายไป")} destructive>
         <Button ref={confirmFocus.trigger} type="button" size="sm" variant="outline" onClick={() => setConfirm("corrupt")}>
-          สร้างใหม่
+          {tr("สร้างใหม่")}
         </Button>
       </Banner>
     );
@@ -354,25 +360,25 @@ export function TestDataGrid({ table }: { table: DbTable }) {
         <AlertDialogContent onCloseAutoFocus={confirmFocus.onCloseAutoFocus}>
           <FocusHandoff to={confirmFocus.target} />
           <AlertDialogHeader>
-            <AlertDialogTitle>{REBUILD_TEXT[kind].title}</AlertDialogTitle>
+            <AlertDialogTitle>{tr(REBUILD_TEXT[kind].title)}</AlertDialogTitle>
             <AlertDialogDescription>
               {kind === "stale" ? (
                 <>
-                  <strong className="font-semibold text-foreground">แถวข้อมูลทดสอบทั้งหมดในทุกตารางจะถูกลบ</strong>{" "}
-                  แล้วสร้างตารางใหม่ตามโครงสร้างปัจจุบัน ลบแล้วกู้คืนไม่ได้ ถ้าอยากเก็บแถวที่ยังใช้ได้ ให้กด อัปเดตข้อมูลทดสอบ แทน
+                  <strong className="font-semibold text-foreground">{tr("แถวข้อมูลทดสอบทั้งหมดในทุกตารางจะถูกลบ")}</strong>{" "}
+                  {tr("แล้วสร้างตารางใหม่ตามโครงสร้างปัจจุบัน ลบแล้วกู้คืนไม่ได้ ถ้าอยากเก็บแถวที่ยังใช้ได้ ให้กด อัปเดตข้อมูลทดสอบ แทน")}
                 </>
               ) : (
-                REBUILD_TEXT[kind].text
+                tr(REBUILD_TEXT[kind].text)
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {rebuildErr ? (
             <p id="tg-rebuild-err" role="alert" className="text-sm text-destructive">
-              {rebuildErr}
+              {phraseIpcError(locale, rebuildErr)}
             </p>
           ) : null}
           <AlertDialogFooter>
-            <AlertDialogCancel aria-disabled={rebuilding || undefined}>ยกเลิก</AlertDialogCancel>
+            <AlertDialogCancel aria-disabled={rebuilding || undefined}>{tr("ยกเลิก")}</AlertDialogCancel>
             <AlertDialogAction
               ref={rebuildAction}
               variant="destructive"
@@ -384,7 +390,7 @@ export function TestDataGrid({ table }: { table: DbTable }) {
               }}
             >
               {rebuilding ? <Spinner className="size-3.5" aria-hidden /> : null}
-              {REBUILD_TEXT[kind].action}
+              {tr(REBUILD_TEXT[kind].action)}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -394,22 +400,22 @@ export function TestDataGrid({ table }: { table: DbTable }) {
         <AlertDialogContent onCloseAutoFocus={updateFocus.onCloseAutoFocus} className="flex max-h-[85vh] flex-col">
           <FocusHandoff to={updateFocus.target} />
           <AlertDialogHeader className="shrink-0">
-            <AlertDialogTitle>ข้อมูลทดสอบบางส่วนจะหายไป</AlertDialogTitle>
+            <AlertDialogTitle>{tr("ข้อมูลทดสอบบางส่วนจะหายไป")}</AlertDialogTitle>
             <AlertDialogDescription>
-              แถวหรือค่าที่ใช้กับโครงสร้างใหม่ไม่ได้จะถูกลบ ส่วนที่เหลือจะเก็บไว้ ลบแล้วกู้คืนไม่ได้
+              {tr("แถวหรือค่าที่ใช้กับโครงสร้างใหม่ไม่ได้จะถูกลบ ส่วนที่เหลือจะเก็บไว้ ลบแล้วกู้คืนไม่ได้")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <ul
-            aria-label="สิ่งที่จะหายไป"
+            aria-label={tr("สิ่งที่จะหายไป")}
             tabIndex={0}
             className="min-h-0 list-disc overflow-y-auto rounded-md border border-border py-2 pr-3 pl-7 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {plan ? planLines(plan, labelLookup(plan.model, appliedModel, savedModel)).map((l) => <li key={l}>{l}</li>) : null}
+            {plan ? planLines(plan, labelLookup(plan.model, appliedModel, savedModel)).map((l) => <li key={l}>{phraseIpcError(locale, l)}</li>) : null}
           </ul>
           <AlertDialogFooter>
-            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+            <AlertDialogCancel>{tr("ยกเลิก")}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={() => void applyPlan()}>
-              อัปเดตตามนี้
+              {tr("อัปเดตตามนี้")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -420,6 +426,7 @@ export function TestDataGrid({ table }: { table: DbTable }) {
 
 /** The spinner while the file opens; holds focus when ลองอีกครั้ง went away under it. */
 function Opening() {
+  const tr = usePhrase();
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const a = document.activeElement;
@@ -428,7 +435,7 @@ function Opening() {
   return (
     <div ref={ref} tabIndex={-1} role="status" className="flex items-center gap-2 p-6 text-sm text-muted-foreground outline-none">
       <Spinner className="size-4" aria-hidden />
-      กำลังเปิดข้อมูลทดสอบ…
+      {tr("กำลังเปิดข้อมูลทดสอบ…")}
     </div>
   );
 }
@@ -470,6 +477,8 @@ function Grid({
   resetRef: React.RefObject<HTMLButtonElement | null>;
   onReset: () => void;
 }) {
+  const tr = usePhrase();
+  const locale = useLocale();
   const cols = table.columns;
   const ncols = cols.length + 1; // + row-header checkbox column
   const base = `tg-${table.id}`;
@@ -607,7 +616,7 @@ function Grid({
     const c = cols[p.col - 1];
     if (!c || !rows[p.row]) return;
     if (readOnlyColumn(c)) {
-      setErr({ message: errorLine(offset + p.row + 1, `แก้ไม่ได้ เป็นลำดับอัตโนมัติ: ${c.name}`), pos: p });
+      setErr({ message: errorLine(offset + p.row + 1, `${tr("แก้ไม่ได้ เป็นลำดับอัตโนมัติ:")} ${c.name}`), pos: p });
       return;
     }
     const v = valueOf(p.row, c);
@@ -630,7 +639,7 @@ function Grid({
     if (e.key === "Delete" && c && rows[p.row]) {
       e.preventDefault();
       if (readOnlyColumn(c)) return startEdit(p);
-      if (!c.nullable) return setErr({ message: errorLine(offset + p.row + 1, `ต้องมีค่า: ${c.name}`), pos: p });
+      if (!c.nullable) return setErr({ message: errorLine(offset + p.row + 1, `${tr("ต้องมีค่า:")} ${c.name}`), pos: p });
       return void commit(null, "stay", p);
     }
     const m = gridMove(e.key, e.ctrlKey || e.metaKey, p, rows.length, ncols, {
@@ -658,7 +667,7 @@ function Grid({
       const { deleted } = await deleteRows(table.id, ids);
       setSelected(new Set());
       setErr(null);
-      announce(`ลบ ${deleted} แถวแล้ว`);
+      announce(`${tr("ลบ")} ${deleted} ${tr("แถวแล้ว")}`);
       await load(offset, active);
     } catch (e) {
       setErr({ message: String(e), pos: null });
@@ -673,7 +682,7 @@ function Grid({
       <div className="flex flex-wrap items-center gap-2">
         <Button ref={addBtn} data-add-row type="button" size="sm" onClick={() => setAdding(true)}>
           <Plus aria-hidden />
-          เพิ่มแถว
+          {tr("เพิ่มแถว")}
         </Button>
         <Button
           type="button"
@@ -683,13 +692,13 @@ function Grid({
           onClick={() => setAskDelete(true)}
         >
           <Trash2 aria-hidden />
-          ลบแถว{selected.size > 0 ? ` (${selected.size})` : ""}
+          {tr("ลบแถว")}{selected.size > 0 ? ` (${selected.size})` : ""}
         </Button>
         <Button ref={resetRef} type="button" size="sm" variant="ghost" onClick={onReset}>
-          ล้างข้อมูลทดสอบ
+          {tr("ล้างข้อมูลทดสอบ")}
         </Button>
-        <nav aria-label="หน้าข้อมูล" className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-          <span aria-live="polite">{rangeLabel(offset, rows.length, total)}</span>
+        <nav aria-label={tr("หน้าข้อมูล")} className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+          <span aria-live="polite">{displayRangeLabel(locale, offset, rows.length, total)}</span>
           <Button
             ref={prevBtn}
             type="button"
@@ -702,7 +711,7 @@ function Grid({
             }}
           >
             <ChevronLeft aria-hidden />
-            ก่อนหน้า
+            {tr("ก่อนหน้า")}
           </Button>
           <Button
             ref={nextBtn}
@@ -715,7 +724,7 @@ function Grid({
               void load(offset + PAGE_SIZE);
             }}
           >
-            ถัดไป
+            {tr("ถัดไป")}
             <ChevronRight aria-hidden />
           </Button>
         </nav>
@@ -725,7 +734,7 @@ function Grid({
         <table
           ref={gridRef}
           role="grid"
-          aria-label={`ข้อมูลทดสอบ ${table.name}`}
+          aria-label={`${tr("ข้อมูลทดสอบ")} ${table.name}`}
           aria-rowcount={total + 1}
           aria-colcount={ncols}
           aria-describedby={err ? errId : undefined}
@@ -738,7 +747,7 @@ function Grid({
                 <input
                   type="checkbox"
                   tabIndex={-1}
-                  aria-label="เลือกทุกแถวในหน้านี้"
+                  aria-label={tr("เลือกทุกแถวในหน้านี้")}
                   checked={allOnPage}
                   disabled={rows.length === 0}
                   onChange={() =>
@@ -762,7 +771,7 @@ function Grid({
                   className="border-b border-l border-border px-2 py-1.5 text-left font-medium whitespace-nowrap"
                 >
                   <span className="font-mono">{c.name}</span>
-                  <span className="ml-1.5 font-normal text-muted-foreground">{DB_TYPE_LABELS[c.type]}</span>
+                  <span className="ml-1.5 font-normal text-muted-foreground">{tr(DB_TYPE_LABELS[c.type])}</span>
                 </th>
               ))}
             </tr>
@@ -777,7 +786,7 @@ function Grid({
                   colSpan={ncols}
                   className="px-3 py-6 text-center text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  ยังไม่มีแถว — กด เพิ่มแถว เพื่อเริ่ม
+                  {tr("ยังไม่มีแถว — กด เพิ่มแถว เพื่อเริ่ม")}
                 </td>
               </tr>
             ) : (
@@ -793,7 +802,7 @@ function Grid({
                     <input
                       type="checkbox"
                       tabIndex={active.row === ri && active.col === 0 ? 0 : -1}
-                      aria-label={`เลือกแถว ${offset + ri + 1}`}
+                      aria-label={`${tr("เลือกแถว")} ${offset + ri + 1}`}
                       checked={selected.has(r.rowid)}
                       onChange={() => toggleRow(r.rowid)}
                       onKeyDown={(e) => onCellKey(e, { row: ri, col: 0 })}
@@ -849,7 +858,7 @@ function Grid({
                             className="pointer-events-none"
                           />
                         ) : v === null ? (
-                          <span className="text-muted-foreground/60 italic">ว่าง</span>
+                          <span className="text-muted-foreground/60 italic">{tr("ว่าง")}</span>
                         ) : (
                           <span className="block truncate font-mono">{displayValue(v)}</span>
                         )}
@@ -863,7 +872,7 @@ function Grid({
         </table>
       </div>
       <p id={errId} className="min-h-4 text-xs text-destructive">
-        {err?.message ?? ""}
+        {err?.message ? phraseIpcError(locale, err.message) : ""}
       </p>
 
       <AlertDialog open={askDelete} onOpenChange={setAskDelete}>
@@ -875,13 +884,13 @@ function Grid({
         >
           <FocusHandoff to={() => cellEl(active)} />
           <AlertDialogHeader>
-            <AlertDialogTitle>ลบ {selected.size} แถว</AlertDialogTitle>
-            <AlertDialogDescription>ลบแล้วเลิกทำไม่ได้ ข้อมูลทดสอบไม่ได้อยู่ในประวัติการแก้ไข</AlertDialogDescription>
+            <AlertDialogTitle>{tr("ลบ")} {selected.size} {tr("แถว")}</AlertDialogTitle>
+            <AlertDialogDescription>{tr("ลบแล้วเลิกทำไม่ได้ ข้อมูลทดสอบไม่ได้อยู่ในประวัติการแก้ไข")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+            <AlertDialogCancel>{tr("ยกเลิก")}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={() => void doDelete()}>
-              ลบแถว
+              {tr("ลบแถว")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -896,7 +905,7 @@ function Grid({
             // active cell and focus it; then announce. Until it renders,
             // focus stays in the closing dialog, then on เพิ่มแถว.
             const at = newRowTarget(total, cols);
-            void load(at.offset, { lastRowCol: at.col }).then(() => announce("เพิ่มแถวแล้ว"));
+            void load(at.offset, { lastRowCol: at.col }).then(() => announce(tr("เพิ่มแถวแล้ว")));
           }}
           onDone={() => setAdding(false)}
         />
@@ -914,6 +923,7 @@ function CellEditor(p: {
   onCommit: (how: "enter" | "tab" | "shift-tab" | "stay", value?: WireValue) => void;
   onCancel: () => void;
 }) {
+  const tr = usePhrase();
   const c = p.column;
   const aria = {
     "aria-label": c.name,
@@ -948,7 +958,7 @@ function CellEditor(p: {
         <SelectContent>
           {c.nullable ? (
             <SelectItem value={NULL_ITEM} className="text-xs">
-              ว่าง
+              {tr("ว่าง")}
             </SelectItem>
           ) : null}
           {(c.values ?? []).map((v) => (
@@ -980,7 +990,7 @@ function CellEditor(p: {
             aria-describedby={[p.invalid ? p.errId : null, `${p.errId}-jsonhint`].filter(Boolean).join(" ")}
           />
           <p id={`${p.errId}-jsonhint`} className="mt-1 text-[11px] text-muted-foreground">
-            กด Ctrl+Enter เพื่อบันทึก · Esc ยกเลิก
+            {tr("กด Ctrl+Enter เพื่อบันทึก · Esc ยกเลิก")}
           </p>
         </PopoverContent>
       </Popover>
@@ -991,7 +1001,7 @@ function CellEditor(p: {
     <Input
       autoFocus
       value={p.text}
-      placeholder={c.type === "date" ? "YYYY-MM-DD" : c.nullable ? "ว่าง" : undefined}
+      placeholder={c.type === "date" ? "YYYY-MM-DD" : c.nullable ? tr("ว่าง") : undefined}
       onChange={(e) => p.onText(e.currentTarget.value)}
       onKeyDown={(e) => keys(e, false)}
       className="h-6 min-w-32 px-1.5 font-mono text-xs md:text-xs"
@@ -1012,6 +1022,8 @@ function AddRowDialog({
   /** After the close animation (the dialog's DOM is gone). */
   onDone: () => void;
 }) {
+  const tr = usePhrase();
+  const locale = useLocale();
   const [open, setOpen] = useState(true);
   const [form, setForm] = useState<Record<string, FormField>>(() => addRowForm(table));
   const [error, setError] = useState<{ message: string; columnId: string | null } | null>(null);
@@ -1057,8 +1069,8 @@ function AddRowDialog({
       >
         <FocusHandoff to={returnTo} />
         <DialogHeader>
-          <DialogTitle>เพิ่มแถว</DialogTitle>
-          <DialogDescription>ตาราง {table.name}</DialogDescription>
+          <DialogTitle>{tr("เพิ่มแถว")}</DialogTitle>
+          <DialogDescription>{tr("ตาราง")} {table.name}</DialogDescription>
         </DialogHeader>
         <form
           className="flex flex-col gap-3"
@@ -1077,12 +1089,12 @@ function AddRowDialog({
                 <label htmlFor={id} className="text-xs">
                   <span className="font-mono">{c.name}</span>
                   <span className="ml-1.5 text-muted-foreground">
-                    {DB_TYPE_LABELS[c.type]}
-                    {c.nullable ? "" : " · ต้องมีค่า"}
+                    {tr(DB_TYPE_LABELS[c.type])}
+                    {c.nullable ? "" : tr(" · ต้องมีค่า")}
                   </span>
                 </label>
                 {c.type === "identity" ? (
-                  <Input {...aria} disabled value="" placeholder="อัตโนมัติ" className="h-7 text-xs md:text-xs" />
+                  <Input {...aria} disabled value="" placeholder={tr("อัตโนมัติ")} className="h-7 text-xs md:text-xs" />
                 ) : c.type === "boolean" ? (
                   <Switch {...aria} checked={f.text === "true"} onCheckedChange={(v) => set(c.id, v ? "true" : "false")} />
                 ) : c.type === "enum" ? (
@@ -1092,7 +1104,7 @@ function AddRowDialog({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={NULL_ITEM} className="text-xs">
-                        {c.default ? "ค่าเริ่มต้น" : "ว่าง"}
+                        {c.default ? tr("ค่าเริ่มต้น") : tr("ว่าง")}
                       </SelectItem>
                       {(c.values ?? []).map((v) => (
                         <SelectItem key={v} value={v} className="text-xs">
@@ -1113,7 +1125,7 @@ function AddRowDialog({
                   <Input
                     {...aria}
                     value={f.text}
-                    placeholder={f.auto ?? (c.type === "date" ? "YYYY-MM-DD" : c.nullable ? "ว่าง" : undefined)}
+                    placeholder={f.auto ?? (c.type === "date" ? "YYYY-MM-DD" : c.nullable ? tr("ว่าง") : undefined)}
                     onChange={(e) => set(c.id, e.currentTarget.value)}
                     className="h-7 font-mono text-xs md:text-xs"
                   />
@@ -1122,14 +1134,14 @@ function AddRowDialog({
             );
           })}
           <p id={`${base}-err`} role="alert" className="min-h-4 text-xs text-destructive">
-            {error?.message ?? ""}
+            {error?.message ? phraseIpcError(locale, error.message) : ""}
           </p>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => !busy && setOpen(false)}>
-              ยกเลิก
+              {tr("ยกเลิก")}
             </Button>
             <Button type="submit" aria-disabled={busy || undefined}>
-              เพิ่มแถว
+              {tr("เพิ่มแถว")}
             </Button>
           </DialogFooter>
         </form>

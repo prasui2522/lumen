@@ -1,5 +1,6 @@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { usePhrase } from "@/lib/phrases";
 import { cn } from "@/lib/utils";
 import type { SegOption } from "@/lib/style-fields";
 
@@ -43,6 +44,8 @@ export function SegmentedField({
   itemClassName,
   className,
 }: Props) {
+  const p = usePhrase();
+  const shownLabel = p(label);
   return (
     <ToggleGroup
       id={id}
@@ -55,7 +58,7 @@ export function SegmentedField({
       }}
       disabled={disabled}
       aria-labelledby={labelledBy}
-      aria-label={labelledBy ? undefined : label}
+      aria-label={labelledBy ? undefined : shownLabel}
       className={cn(
         "min-w-0 gap-0.5 rounded-lg bg-muted p-0.5",
         fill ? "flex w-full flex-nowrap" : "inline-flex flex-wrap",
@@ -64,12 +67,13 @@ export function SegmentedField({
     >
       {options.map((o) => {
         const Icon = (column && o.iconColumn) || o.icon;
+        const optLabel = p(o.label);
         const item = (
           <ToggleGroupItem
             key={o.value}
             value={o.value}
-            aria-label={Icon ? o.label : undefined}
-            title={Icon ? undefined : o.label}
+            aria-label={Icon ? optLabel : undefined}
+            title={Icon ? undefined : optLabel}
             className={cn(ITEM, fill && "min-w-0 flex-1 shrink overflow-hidden px-0", itemClassName)}
             onKeyDown={(e) => {
               // Radix ToggleGroup selects on Space (onValueChange) but not Enter.
@@ -78,14 +82,14 @@ export function SegmentedField({
               if (o.value !== value) onChange(o.value);
             }}
           >
-            {Icon ? <Icon /> : fill ? <span className="truncate">{o.label}</span> : o.label}
+            {Icon ? <Icon /> : fill ? <span className="truncate">{optLabel}</span> : optLabel}
           </ToggleGroupItem>
         );
         if (!Icon) return item;
         return (
           <Tooltip key={o.value}>
             <TooltipTrigger asChild>{item}</TooltipTrigger>
-            <TooltipContent>{o.label}</TooltipContent>
+            <TooltipContent>{optLabel}</TooltipContent>
           </Tooltip>
         );
       })}

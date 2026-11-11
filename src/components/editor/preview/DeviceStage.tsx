@@ -20,6 +20,7 @@ import {
   type Size,
 } from "@/lib/devices";
 import { usePreviewDeviceStore, usePreviewScale } from "@/stores/preview-device-store";
+import { PreviewSelection, type NodeBox } from "@/components/editor/preview/PreviewSelection";
 import { Tier1Frame } from "@/components/editor/preview/Tier1Frame";
 import { ViteFrame } from "@/components/editor/preview/ViteFrame";
 import { nextFillHeight, type RuntimePayload } from "@/lib/preview-runtime";
@@ -378,6 +379,10 @@ export function DeviceStage({ source }: { source: FrameSource }) {
   }, [multi, frames]);
 
   const pct = Math.round(scale * 100);
+  const [boxesByFrame, setBoxesByFrame] = useState<Record<string, NodeBox[]>>({});
+  const rememberBoxes = (key: string, boxes: NodeBox[]) => {
+    setBoxesByFrame((prev) => (prev[key] === boxes ? prev : { ...prev, [key]: boxes }));
+  };
 
   return (
     <div
@@ -435,6 +440,7 @@ export function DeviceStage({ source }: { source: FrameSource }) {
                         onRoute={onRuntimeRoute}
                         onExternal={onRuntimeExternal}
                         onSelect={onRuntimeSelect}
+                        onBoxes={(boxes) => rememberBoxes(f.key, boxes)}
                         onTimeout={source.onTimeout}
                         style={size ? { width: size.w, height: size.h } : { width: "100%", height: fillH }}
                         className="block border-0 bg-white"
@@ -449,6 +455,7 @@ export function DeviceStage({ source }: { source: FrameSource }) {
                         onRoute={onRuntimeRoute}
                         onExternal={onRuntimeExternal}
                         onSelect={onRuntimeSelect}
+                        onBoxes={(boxes) => rememberBoxes(f.key, boxes)}
                         style={size ? { width: size.w, height: size.h } : { width: "100%", height: fillH }}
                         className="block border-0 bg-white"
                       />
@@ -472,6 +479,9 @@ export function DeviceStage({ source }: { source: FrameSource }) {
                         {f.dev.label}
                       </div>
                     )}
+                    {visible && (source.kind === "runtime" || source.kind === "vite") ? (
+                      <PreviewSelection boxes={boxesByFrame[f.key] ?? []} scale={scale} />
+                    ) : null}
                     {showHinge && size ? (
                       <div
                         aria-hidden

@@ -34,7 +34,8 @@ type OutMessage =
   | { type: "wb:height"; height: number }
   | { type: "wb:route"; path: string }
   | { type: "wb:external"; href: string }
-  | { type: "wb:select"; id: string | null };
+  | { type: "wb:select"; id: string | null }
+  | { type: "wb:boxes"; boxes: { id: string; x: number; y: number; w: number; h: number }[] };
 
 function post(m: OutMessage) {
   // Opaque origin on both sides → "*" is the only valid target.
@@ -130,6 +131,57 @@ function Runtime() {
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
   }, []);
+
+  // Same box list the Vite preview script posts, so the app can draw a selection frame.
+  useEffect(() => {
+    let queued = false;
+    const postBoxes = () => {
+      const boxes: { id: string; x: number; y: number; w: number; h: number }[] = [];
+      document.querySelectorAll(`[${NODE_ID_ATTR}]`).forEach((el) => {
+        const id = el.getAttribute(NODE_ID_ATTR);
+        if (!id) return;
+        const r = el.getBoundingClientRect();
+        boxes.push({ id, x: r.x, y: r.y, w: r.width, h: r.height });
+      });
+      post({ type: "wb:boxes", boxes });
+    };
+    const queue = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        postBoxes();
+      });
+    };
+    const ro = new ResizeObserver(queue);
+    const watched = new WeakSet<Element>();
+    const watch = () => {
+      document.querySelectorAll(`[${NODE_ID_ATTR}]`).forEach((el) => {
+        if (watched.has(el)) return;
+        watched.add(el);
+        ro.observe(el);
+      });
+    };
+    const mo = new MutationObserver(() => {
+      watch();
+      queue();
+    });
+    mo.observe(document.documentElement, { subtree: true, childList: true, attributes: true, characterData: true });
+    window.addEventListener("scroll", queue, true);
+    window.addEventListener("resize", queue);
+    document.addEventListener("transitionend", queue, true);
+    document.addEventListener("animationend", queue, true);
+    watch();
+    queue();
+    return () => {
+      mo.disconnect();
+      ro.disconnect();
+      window.removeEventListener("scroll", queue, true);
+      window.removeEventListener("resize", queue);
+      document.removeEventListener("transitionend", queue, true);
+      document.removeEventListener("animationend", queue, true);
+    };
+  }, [doc]);
 
   // S4 hook (selection sync): report the innermost node under a click.
   useEffect(() => {

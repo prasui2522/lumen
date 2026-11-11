@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { usePhrase } from "@/lib/phrases";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -41,6 +42,9 @@ export function FieldRow({
   group,
   stacked,
 }: Props) {
+  const p = usePhrase();
+  const shownLabel = p(label);
+  const shownReset = p(resetLabel);
   const captionCls = cn(
     "flex shrink-0 items-center gap-1.5 text-xs",
     stacked ? "min-w-0 flex-1" : "w-[88px]",
@@ -55,7 +59,7 @@ export function FieldRow({
           overridden ? "bg-primary" : "bg-transparent",
         )}
       />
-      <span className="truncate">{label}</span>
+      <span className="truncate">{shownLabel}</span>
     </>
   );
   const captionEl = group ? (
@@ -76,13 +80,13 @@ export function FieldRow({
               type="button"
               variant="ghost"
               size="icon-xs"
-              aria-label={`${resetLabel}: ${label}`}
+              aria-label={`${shownReset}: ${shownLabel}`}
               onClick={onReset}
             >
               <RotateCcw className="size-3.5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{resetLabel}</TooltipContent>
+          <TooltipContent>{shownReset}</TooltipContent>
         </Tooltip>
       ) : null}
     </div>

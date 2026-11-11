@@ -6,7 +6,9 @@ import { AlertCircle, LayoutTemplate, Plus, Search } from "lucide-react";
 import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useT } from "@/lib/messages";
 import { AppTooltipProvider } from "@/components/ui/tooltip";
 import { ProjectCard, ProjectCardSkeleton } from "@/components/projects/ProjectCard";
 import { ProjectEmptyState } from "@/components/projects/ProjectEmptyState";
@@ -44,13 +46,14 @@ export function ProjectListPage() {
   );
   const [filter, setFilter] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
+  const t = useT();
 
   const importFrom = async (kind: "folder" | "zip") => {
     setImportError(null);
     const picked = await open({
       directory: kind === "folder",
       multiple: false,
-      title: kind === "folder" ? "เปิดโฟลเดอร์โปรเจกต์" : "เปิดไฟล์ zip",
+      title: kind === "folder" ? t("openFolder") : t("openZip"),
       filters: kind === "zip" ? [{ name: "Zip", extensions: ["zip"] }] : undefined,
     });
     if (typeof picked !== "string") return;
@@ -117,25 +120,26 @@ export function ProjectListPage() {
             <Input
               value={filter}
               onChange={(e) => setFilter(e.currentTarget.value)}
-              placeholder="ค้นหาโปรเจกต์…"
-              aria-label="ค้นหาโปรเจกต์"
+              placeholder={t("searchProjectsPlaceholder")}
+              aria-label={t("searchProjects")}
               className="h-8 pl-8"
             />
           </div>
           <Suspense fallback={null}>
             <AboutMenu />
           </Suspense>
+          <LanguageToggle />
           <ThemeToggle />
           {/* data-focus-fallback: dialogs return focus here if their trigger is gone (e.g. a deleted card). */}
           <Button type="button" variant="outline" className="shrink-0" onClick={() => void importFrom("folder")}>
-            เปิดโฟลเดอร์
+            {t("openFolderShort")}
           </Button>
           <Button type="button" variant="outline" className="shrink-0" onClick={() => void importFrom("zip")}>
-            เปิด zip
+            {t("openZip")}
           </Button>
           <Button type="button" className="shrink-0" data-focus-fallback onClick={() => setNewOpen(true)}>
             <Plus />
-            สร้างโปรเจกต์
+            {t("newProject")}
           </Button>
         </div>
       </header>
@@ -147,7 +151,7 @@ export function ProjectListPage() {
             <AlertDescription>{importError}</AlertDescription>
             <AlertAction>
               <Button type="button" variant="ghost" size="xs" onClick={() => setImportError(null)}>
-                ปิด
+                {t("close")}
               </Button>
             </AlertAction>
           </Alert>
@@ -159,7 +163,7 @@ export function ProjectListPage() {
             <AlertDescription>{error}</AlertDescription>
             <AlertAction>
               <Button type="button" variant="ghost" size="xs" onClick={clearError}>
-                ปิด
+                {t("close")}
               </Button>
             </AlertAction>
           </Alert>
@@ -168,13 +172,13 @@ export function ProjectListPage() {
         {projects.length === 0 && !loading && !error && projectsStatus === "failed" ? (
           <div className="flex flex-1 items-center justify-center py-16">
             <Button type="button" variant="outline" onClick={() => void refreshProjects()}>
-              ลองใหม่
+              {t("retry")}
             </Button>
           </div>
         ) : projects.length === 0 && !loading && !error && projectsStatus === "ready" ? (
           <ProjectEmptyState onCreate={() => setNewOpen(true)} />
         ) : noMatch ? (
-          <p className="py-16 text-center text-sm text-muted-foreground">ไม่พบโปรเจกต์ที่ค้นหา</p>
+          <p className="py-16 text-center text-sm text-muted-foreground">{t("noProjects")}</p>
         ) : (
           <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {showSkeleton && firstLoad

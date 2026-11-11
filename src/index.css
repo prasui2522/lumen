@@ -88,7 +88,8 @@
     --cm-atom: #219;
     --cm-literal: #164;
     --cm-string: #a11;
-    --cm-regexp: #e40;
+    /* Darker than CodeMirror defaults so light-theme tokens clear WCAG AA on white. */
+    --cm-regexp: #b33a00;
     --cm-def-var: #00f;
     --cm-local-var: #30a;
     --cm-type: #085;
@@ -96,7 +97,7 @@
     --cm-special-var: #256;
     --cm-def-prop: #00c;
     --cm-comment: #940;
-    --cm-invalid: #f00;
+    --cm-invalid: #c00000;
 }
 
 .dark {
@@ -200,7 +201,8 @@
     --cm-atom: #219;
     --cm-literal: #164;
     --cm-string: #a11;
-    --cm-regexp: #e40;
+    /* Same AA pass as :root (light theme). */
+    --cm-regexp: #b33a00;
     --cm-def-var: #00f;
     --cm-local-var: #30a;
     --cm-type: #085;
@@ -208,7 +210,7 @@
     --cm-special-var: #256;
     --cm-def-prop: #00c;
     --cm-comment: #940;
-    --cm-invalid: #f00;
+    --cm-invalid: #c00000;
 }
 
 /* Thin panel scrollbars (Firefox/Chromium via standard props; WebKitGTK via pseudo-elements). */

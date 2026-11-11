@@ -40,6 +40,9 @@ import {
   type PathError,
 } from "@/lib/project-pages";
 import { useEditorStore } from "@/stores/editor-store";
+import { useT } from "@/lib/messages";
+import { useDisplayLayerLabel } from "@/lib/layer-display";
+import { usePhrase } from "@/lib/phrases";
 import { useProjectsStore } from "@/stores/projects-store";
 import { isLocked } from "@/schema";
 
@@ -57,6 +60,9 @@ export function PagesPanel() {
   const setSelectedNodeId = useEditorStore((s) => s.setSelectedNodeId);
   const setEditingNodeId = useEditorStore((s) => s.setEditingNodeId);
   const pendingPageRenameId = useEditorStore((s) => s.pendingPageRenameId);
+  const t = useT();
+  const p = usePhrase();
+  const showLabel = useDisplayLayerLabel();
 
   const [renameId, setRenameId] = useState<string | null>(null);
   const [pathId, setPathId] = useState<string | null>(null);
@@ -176,22 +182,22 @@ export function PagesPanel() {
   return (
     <div className="shrink-0 border-b border-sidebar-border">
       <div className="flex h-10 items-center gap-1 px-3">
-        <span className="text-[11px] font-medium text-muted-foreground">หน้า</span>
+        <span className="text-[11px] font-medium text-muted-foreground">{t("pages")}</span>
         <Button
           type="button"
           variant="ghost"
-          size="icon-sm"
-          className="ml-auto size-7"
-          aria-label="เพิ่มหน้า"
+          size="icon"
+          className="ml-auto size-8"
+          aria-label={t("addPage")}
           onClick={onAdd}
         >
-          <Plus className="size-3.5" />
+          <Plus className="size-4" />
         </Button>
       </div>
       <div
         className="scrollbar-thin max-h-24 space-y-0.5 overflow-y-auto px-2 pb-2"
         role="listbox"
-        aria-label="หน้า"
+        aria-label={t("pages")}
       >
         {pages.map((page, index) => {
           const selected = page.id === currentId;
@@ -216,7 +222,7 @@ export function PagesPanel() {
                     )}
                     onClick={() => switchPage(page.id)}
                   >
-                    <span className="truncate font-medium">{page.name}</span>
+                    <span className="truncate font-medium">{showLabel(page.name)}</span>
                     <span className="ml-auto truncate text-[11px] text-muted-foreground">{page.path}</span>
                   </button>
                 </ContextMenuTrigger>
@@ -225,13 +231,13 @@ export function PagesPanel() {
                     disabled={locked}
                     onSelect={() => armRename(page.id, page.name)}
                   >
-                    เปลี่ยนชื่อ
+                    {p("เปลี่ยนชื่อ")}
                   </ContextMenuItem>
                   <ContextMenuItem
                     disabled={locked || isHome}
                     onSelect={() => armPath(page.id, page.path)}
                   >
-                    ตั้งค่าเส้นทาง
+                    {p("ตั้งค่าเส้นทาง")}
                   </ContextMenuItem>
                   <ContextMenuItem
                     onSelect={() => {
@@ -239,7 +245,7 @@ export function PagesPanel() {
                       if (next) updateOpenDocument(next);
                     }}
                   >
-                    {locked ? "ปลดล็อก" : "ล็อก"}
+                    {locked ? p("ปลดล็อก") : p("ล็อก")}
                   </ContextMenuItem>
                   <ContextMenuSeparator />
                   <ContextMenuItem
@@ -249,7 +255,7 @@ export function PagesPanel() {
                       if (next) updateOpenDocument(next);
                     }}
                   >
-                    เลื่อนขึ้น
+                    {p("เลื่อนขึ้น")}
                   </ContextMenuItem>
                   <ContextMenuItem
                     disabled={isHome || index >= pages.length - 1}
@@ -258,7 +264,7 @@ export function PagesPanel() {
                       if (next) updateOpenDocument(next);
                     }}
                   >
-                    เลื่อนลง
+                    {p("เลื่อนลง")}
                   </ContextMenuItem>
                   <ContextMenuSeparator />
                   <ContextMenuItem
@@ -266,7 +272,7 @@ export function PagesPanel() {
                     variant="destructive"
                     onSelect={() => openDelete(page.id)}
                   >
-                    ลบหน้า
+                    {p("ลบหน้า")}
                   </ContextMenuItem>
                 </ContextMenuContent>
               </ContextMenu>
@@ -277,7 +283,7 @@ export function PagesPanel() {
                     variant="ghost"
                     size="icon-sm"
                     className="size-7 shrink-0"
-                    aria-label={`ตัวเลือกหน้า ${page.name}`}
+                    aria-label={`${p("ตัวเลือกหน้า")} ${page.name}`}
                   >
                     <MoreHorizontal className="size-3.5" />
                   </Button>
@@ -291,13 +297,13 @@ export function PagesPanel() {
                     disabled={locked}
                     onSelect={() => armRename(page.id, page.name)}
                   >
-                    เปลี่ยนชื่อ
+                    {p("เปลี่ยนชื่อ")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     disabled={locked || isHome}
                     onSelect={() => armPath(page.id, page.path)}
                   >
-                    ตั้งค่าเส้นทาง
+                    {p("ตั้งค่าเส้นทาง")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => {
@@ -305,7 +311,7 @@ export function PagesPanel() {
                       if (next) updateOpenDocument(next);
                     }}
                   >
-                    {locked ? "ปลดล็อก" : "ล็อก"}
+                    {locked ? p("ปลดล็อก") : p("ล็อก")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -315,7 +321,7 @@ export function PagesPanel() {
                       if (next) updateOpenDocument(next);
                     }}
                   >
-                    เลื่อนขึ้น
+                    {p("เลื่อนขึ้น")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     disabled={isHome || index >= pages.length - 1}
@@ -324,7 +330,7 @@ export function PagesPanel() {
                       if (next) updateOpenDocument(next);
                     }}
                   >
-                    เลื่อนลง
+                    {p("เลื่อนลง")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -332,7 +338,7 @@ export function PagesPanel() {
                     variant="destructive"
                     onSelect={() => openDelete(page.id)}
                   >
-                    ลบหน้า
+                    {p("ลบหน้า")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -376,7 +382,7 @@ export function PagesPanel() {
             }}
           >
             <label className="text-[11px] text-muted-foreground" htmlFor="page-rename">
-              ชื่อหน้า
+              {p("ชื่อหน้า")}
             </label>
             <Input
               id="page-rename"
@@ -386,7 +392,7 @@ export function PagesPanel() {
             />
             <Button type="submit" size="sm" className="mt-2 h-7 w-full text-[11px]">
               <Check className="size-3.5" />
-              ตกลง
+              {p("ตกลง")}
             </Button>
           </form>
         </PopoverContent>
@@ -431,7 +437,7 @@ export function PagesPanel() {
             }}
           >
             <label className="text-[11px] text-muted-foreground" htmlFor="page-path">
-              เส้นทาง
+              {p("เส้นทาง")}
             </label>
             <Input
               id="page-path"
@@ -451,7 +457,7 @@ export function PagesPanel() {
             ) : null}
             <Button type="submit" size="sm" className="mt-2 h-7 w-full text-[11px]">
               <Check className="size-3.5" />
-              ตกลง
+              {p("ตกลง")}
             </Button>
           </form>
         </PopoverContent>
@@ -476,14 +482,14 @@ export function PagesPanel() {
           }}
         >
           <AlertDialogHeader>
-            <AlertDialogTitle>ลบหน้านี้ไหม</AlertDialogTitle>
+            <AlertDialogTitle>{p("ลบหน้านี้ไหม")}</AlertDialogTitle>
             <AlertDialogDescription>
-              การลบจะเอาทั้งหน้าออกจากโปรเจกต์ และยกเลิกได้ด้วยเลิกทำ
+              {p("การลบจะเอาทั้งหน้าออกจากโปรเจกต์ และยกเลิกได้ด้วยเลิกทำ")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <Button type="button" ref={cancelRef} variant="outline" onClick={() => setDeleteId(null)}>
-              ยกเลิก
+              {p("ยกเลิก")}
             </Button>
             <Button
               type="button"
@@ -500,7 +506,7 @@ export function PagesPanel() {
                 }
               }}
             >
-              ลบหน้า
+              {p("ลบหน้า")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

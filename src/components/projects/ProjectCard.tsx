@@ -9,7 +9,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatRelativeTh } from "@/lib/relative-time";
+import { useLocale } from "@/lib/locale";
+import { usePhrase } from "@/lib/phrases";
+import { formatRelative } from "@/lib/relative-time";
 import type { ProjectSummary } from "@/stores/projects-store";
 
 type Props = {
@@ -24,6 +26,8 @@ type Props = {
  */
 export function ProjectCard({ project, onRequestDelete }: Props) {
   const navigate = useNavigate();
+  const p = usePhrase();
+  const locale = useLocale();
   const open = () => navigate(`/editor/${project.id}`);
 
   return (
@@ -32,7 +36,7 @@ export function ProjectCard({ project, onRequestDelete }: Props) {
         type="button"
         className="flex w-full cursor-pointer flex-col rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring"
         onClick={open}
-        aria-label={`เปิด ${project.name}`}
+        aria-label={`${p("เปิดโปรเจกต์")} ${project.name}`}
       >
         <span aria-hidden className="grid aspect-video w-full place-items-center bg-muted">
           <LayoutTemplate className="size-8 text-muted-foreground/40" />
@@ -40,7 +44,7 @@ export function ProjectCard({ project, onRequestDelete }: Props) {
         <span className="block min-w-0 p-3 pr-10">
           <span className="block truncate text-sm font-medium">{project.name}</span>
           <span className="mt-0.5 block text-xs text-muted-foreground">
-            {formatRelativeTh(project.updatedAt)}
+            {formatRelative(project.updatedAt, locale)}
           </span>
         </span>
       </button>
@@ -52,7 +56,7 @@ export function ProjectCard({ project, onRequestDelete }: Props) {
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label={`เมนูโปรเจกต์ ${project.name}`}
+              aria-label={`${p("เมนูโปรเจกต์")} ${project.name}`}
               aria-haspopup="menu"
               onClick={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
@@ -61,9 +65,9 @@ export function ProjectCard({ project, onRequestDelete }: Props) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-            <DropdownMenuItem onSelect={() => open()}>เปิด</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => open()}>{p("เปิดโปรเจกต์")}</DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onSelect={() => onRequestDelete(project)}>
-              ลบ
+              {p("ลบ")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
