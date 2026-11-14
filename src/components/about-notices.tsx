@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { checkForAppUpdate, installAppUpdate, type UpdateCheck } from "@/lib/app-updater";
+import { toastIpcError } from "@/lib/ipc-error-i18n";
 import { usePhrase } from "@/lib/phrases";
 import noticesMd from "../../THIRD-PARTY-NOTICES.md?raw";
 
@@ -205,14 +206,15 @@ function UpdateDialog({
       showInstall = true;
     } else {
       title = p("ตรวจหาอัปเดตไม่สำเร็จ");
+      const shown = toastIpcError(result.message);
       const endpointHint =
         result.message.includes("OWNER") ||
         result.message.includes("404") ||
         result.message.includes("error sending request") ||
         result.message.includes("Failed to fetch");
       body = endpointHint
-        ? `${p("ตั้งค่าที่เก็บรีลีสใน docs/UPDATER.md ก่อน")}\n${result.message}`
-        : result.message;
+        ? `${p("ตั้งค่าที่เก็บรีลีสใน docs/UPDATER.md ก่อน")}\n${shown}`
+        : shown;
     }
   }
 

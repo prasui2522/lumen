@@ -15,7 +15,50 @@ import {
   MOTION_ENTRANCE_PRESETS,
   TRANSITION_SPRING_BEZIER,
 } from "@/schema";
+import type { Locale } from "@/lib/locale";
 import { transitionEasingCss } from "@/lib/style-css";
+
+/**
+ * Motion-panel EN (display-only). Kept separate from global `phrases` so
+ * "เลื่อนขึ้น" / "เลื่อนลง" stay "Slide up/down" here and "Move up/down" in Layers.
+ */
+const MOTION_EN: Record<string, string> = {
+  "การเคลื่อนไหว": "Motion",
+  "เอฟเฟกต์ตอนเข้า": "Entrance effect",
+  "เริ่มเมื่อ": "Start when",
+  "ระยะเวลา": "Duration",
+  "หน่วงเวลา": "Delay",
+  "จังหวะ": "Easing",
+  "ไม่มี": "None",
+  "ค่อย ๆ ปรากฏ": "Fade in",
+  "เลื่อนขึ้น": "Slide up",
+  "เลื่อนลง": "Slide down",
+  "เลื่อนจากซ้าย": "Slide from left",
+  "เลื่อนจากขวา": "Slide from right",
+  "ขยายเข้า": "Scale in",
+  "โหลดหน้า": "On page load",
+  "เลื่อนมาถึง": "On scroll into view",
+  "ค่าเริ่มต้น": "Default",
+  "เร่งเข้า": "Ease in",
+  "เร่งออก": "Ease out",
+  "เร่งเข้า-ออก": "Ease in-out",
+  "คงที่": "Linear",
+  "เด้ง": "Spring",
+  "เล่นตัวอย่าง": "Preview",
+  "เล่นตัวอย่างแล้ว": "Preview played",
+  "ระบบตั้งค่าลดการเคลื่อนไหวไว้ จึงไม่เล่นตัวอย่าง":
+    "Reduced motion is on, so preview does not play",
+  "เบราว์เซอร์ที่ไม่รองรับจะแสดงเนื้อหาปกติโดยไม่มีแอนิเมชัน":
+    "Unsupported browsers show the content with no animation",
+  "ตัวอย่างการเลื่อนมาถึงดูได้ในโหมดตัวอย่างเท่านั้น":
+    "Scroll-into-view preview is available in Preview mode only",
+};
+
+/** Translate a motion UI Thai source string for the active locale. */
+export function phraseMotion(locale: Locale, th: string): string {
+  if (locale === "th") return th;
+  return MOTION_EN[th] ?? th;
+}
 
 /** T171–T178 */
 export const MOTION_PRESET_OPTIONS: {

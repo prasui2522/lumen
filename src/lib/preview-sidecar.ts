@@ -121,10 +121,15 @@ export function viteFrameUrl(port: number, path: string, appOrigin?: string): st
 /** postMessage origin of the Vite iframe (bridge or 127.0.0.1). */
 export function viteFrameOrigin(url: string, port: number): string {
   try {
-    return new URL(url).origin;
+    const u = new URL(url);
+    // Custom schemes (`wbpreview://`) often expose `origin` as the string "null".
+    if (u.origin && u.origin !== "null") return u.origin;
+    if (u.protocol && u.host) return `${u.protocol}//${u.host}`;
+    if (u.protocol && u.hostname) return `${u.protocol}//${u.hostname}`;
   } catch {
-    return `http://127.0.0.1:${port}`;
+    /* fall through */
   }
+  return `http://127.0.0.1:${port}`;
 }
 
 /** Debounce 150 ms after the last edit, never denser than 4 writes/s. */

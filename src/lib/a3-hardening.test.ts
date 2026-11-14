@@ -73,7 +73,12 @@ describe("A3 item 1: wb:navigate only from the parent, only same-site paths", ()
   test("template preview runtime has the same path checks", () => {
     const s = read("export-templates/vite-react/src/preview-runtime.tsx");
     expect(s).toContain("if (e.source !== window.parent) return;");
-    expect(s).toContain('if (typeof p !== "string" || !p.startsWith("/") || p.startsWith("//") || p.includes("\\\\")) return;');
+    expect(s).toContain("isSafeWbNavigatePath");
+    expect(s).toContain('import { isSafeWbNavigatePath } from "./lib/wb-navigate"');
+    const helper = read("export-templates/vite-react/src/lib/wb-navigate.ts");
+    expect(helper).toContain("path.startsWith(\"/\")");
+    expect(helper).toContain("!path.startsWith(\"//\")");
+    expect(helper).toContain("!path.includes(\"\\\\\")");
   });
 
   let server: ReturnType<typeof Bun.serve> | null = null;
@@ -209,9 +214,28 @@ describe("A3 item 8: dark code-view text and selection meet WCAG AA", () => {
       for (const t of tokens) expect([t, bg, ratio(t, bg) >= 4.5]).toEqual([t, bg, true]);
     }
   });
-  test("light values stay CodeMirror's defaults; selection overrides apply in .dark only", () => {
+  test("selection, blurred selection, and search match are ≥ 3:1 against the dark background", () => {
+    const dark = block(".dark");
+    const bg = v(dark, "--background");
+    for (const name of ["--cm-selection", "--cm-selection-blur", "--cm-search-match"] as const) {
+      const sel = v(dark, name);
+      expect([name, sel, ratio(sel, bg) >= 3]).toEqual([name, sel, true]);
+    }
+  });
+  test("light search match is ≥ 3:1 against white", () => {
     const root = block(":root");
-    for (const [hex, name] of Object.entries(CM_TOKEN_VARS)) expect(v(root, name)).toBe(hex);
+    expect(ratio(v(root, "--cm-search-match"), "#ffffff") >= 3).toBe(true);
+    expect(css).toContain(".cm-editor .cm-searchMatch");
+  });
+  test("light values stay CodeMirror's defaults (AA-darkened regexp/invalid); selection overrides apply in .dark only", () => {
+    const root = block(":root");
+    const lightOverride: Record<string, string> = {
+      "--cm-regexp": "#b33a00",
+      "--cm-invalid": "#c00000",
+    };
+    for (const [hex, name] of Object.entries(CM_TOKEN_VARS)) {
+      expect(v(root, name)).toBe(lightOverride[name] ?? hex);
+    }
     expect(css).toContain(".dark .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground");
     expect(css).toContain(".dark .cm-editor .cm-selectionLayer .cm-selectionBackground");
     const specs = themedSpecs([{ color: "#708" }, { color: "#123" }, { fontWeight: "bold" }]);
@@ -250,6 +274,24 @@ describe("A3 item 12: Chromium cleanup waits for the exit before removing the pr
     await new Promise((r) => p.once("exit", r));
     await stopChrome(p, null);
     expect(p.exitCode).toBe(0);
+  });
+});
+
+describe("Preview frame clicks: select + page links, not live controls", () => {
+  test("Vite PREVIEW_ENTRY and Tier 1 runtime preventDefault non-link clicks in capture", () => {
+    const m = /const PREVIEW_ENTRY: &str = r##"([\s\S]*?)"##;/.exec(read("src-tauri/src/sidecar.rs"));
+    if (!m) throw new Error("PREVIEW_ENTRY not found");
+    const entry = m[1];
+    expect(entry).toContain('document.addEventListener("click"');
+    expect(entry).toContain(", true)");
+    expect(entry).toContain("e.preventDefault()");
+    expect(entry).toContain('document.addEventListener("submit"');
+    expect(entry).toContain('post({ type: "wb:select"');
+    const tier1 = read("export-templates/vite-react/src/preview-runtime.tsx");
+    expect(tier1).toContain('document.addEventListener("click", onClick, true)');
+    expect(tier1).toContain('document.addEventListener("submit", onSubmit, true)');
+    expect(tier1).toContain("e.preventDefault()");
+    expect(tier1).toContain('post({ type: "wb:select"');
   });
 });
 

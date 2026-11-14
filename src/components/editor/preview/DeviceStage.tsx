@@ -9,6 +9,8 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import { parsePageMarker, resolvePageMarker } from "@/lib/preview-links";
+import { followPreviewRoute } from "@/lib/preview-page-nav";
+import { usePhrase } from "@/lib/phrases";
 import { ensurePages, openPageIdOf, switchToPage } from "@/lib/project-pages";
 import { useEditorStore } from "@/stores/editor-store";
 import { useProjectsStore } from "@/stores/projects-store";
@@ -20,11 +22,9 @@ import {
   type Size,
 } from "@/lib/devices";
 import { usePreviewDeviceStore, usePreviewScale } from "@/stores/preview-device-store";
-import { PreviewSelection, type NodeBox } from "@/components/editor/preview/PreviewSelection";
 import { Tier1Frame } from "@/components/editor/preview/Tier1Frame";
 import { ViteFrame } from "@/components/editor/preview/ViteFrame";
 import { nextFillHeight, type RuntimePayload } from "@/lib/preview-runtime";
-import { findPageForHref } from "@/lib/link-target";
 
 /**
  * What a frame shows: last-good static HTML (`srcdoc`, snapshots only after S10),
@@ -111,18 +111,14 @@ function openPageFromMarker(href: string): string | null {
 function openPageFromRoute(path: string): string | null {
   const doc = useProjectsStore.getState().openDocument;
   if (!doc) return null;
-  const withPages = ensurePages(doc);
   const ed = useEditorStore.getState();
-  const current = ed.openPageId ?? openPageIdOf(withPages);
-  const page = findPageForHref(path, withPages.pages!);
-  if (!page || page.id === current) return null;
-  const next = switchToPage(withPages, page.id);
-  if (!next) return null;
-  ed.setOpenPageId(page.id);
+  const hit = followPreviewRoute(doc, path, ed.openPageId);
+  if (!hit) return null;
+  ed.setOpenPageId(hit.pageId);
   ed.setSelectedNodeId(null);
   ed.setEditingNodeId(null);
-  useProjectsStore.getState().restoreDocument(next);
-  return page.name;
+  useProjectsStore.getState().restoreDocument(hit.doc);
+  return hit.pageName;
 }
 
 type Frame = {
@@ -146,6 +142,7 @@ function outerOf(dev: DevicePreset, size: Size | null): Size {
  * device, rotate, zoom or custom-size change does not reparse the page.
  */
 export function DeviceStage({ source }: { source: FrameSource }) {
+  const tr = usePhrase();
   const html = source.kind === "srcdoc" ? source.html : "";
   const preset = usePreviewDeviceStore((s) => s.preset);
   const landscape = usePreviewDeviceStore((s) => s.landscape);
@@ -345,10 +342,6 @@ export function DeviceStage({ source }: { source: FrameSource }) {
     useEditorStore.getState().announce(`ลิงก์ภายนอก ${href} ไม่เปิดในตัวอย่าง`);
   }, []);
 
-  const onRuntimeSelect = useCallback((id: string | null) => {
-    useEditorStore.getState().setSelectedNodeId(id);
-  }, []);
-
   /* ---- Multi-view: unmount frames scrolled out of view (§6) ---- */
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const sizerEls = useRef(new Map<string, HTMLDivElement>());
@@ -379,10 +372,6 @@ export function DeviceStage({ source }: { source: FrameSource }) {
   }, [multi, frames]);
 
   const pct = Math.round(scale * 100);
-  const [boxesByFrame, setBoxesByFrame] = useState<Record<string, NodeBox[]>>({});
-  const rememberBoxes = (key: string, boxes: NodeBox[]) => {
-    setBoxesByFrame((prev) => (prev[key] === boxes ? prev : { ...prev, [key]: boxes }));
-  };
 
   return (
     <div
@@ -434,13 +423,11 @@ export function DeviceStage({ source }: { source: FrameSource }) {
                       <Tier1Frame
                         payload={source.payload}
                         path={source.path}
-                        title={`ตัวอย่างหน้า ${source.pageName}`}
+                        title={`${tr("ตัวอย่างหน้า")} ${source.pageName}`}
                         frameRef={f.key === "single" ? (el) => (fillFrameRef.current = el) : undefined}
                         onHeight={f.key === "single" ? onRuntimeHeight : undefined}
                         onRoute={onRuntimeRoute}
                         onExternal={onRuntimeExternal}
-                        onSelect={onRuntimeSelect}
-                        onBoxes={(boxes) => rememberBoxes(f.key, boxes)}
                         onTimeout={source.onTimeout}
                         style={size ? { width: size.w, height: size.h } : { width: "100%", height: fillH }}
                         className="block border-0 bg-white"
@@ -449,20 +436,18 @@ export function DeviceStage({ source }: { source: FrameSource }) {
                       <ViteFrame
                         url={source.url}
                         port={source.port}
-                        title={`ตัวอย่างหน้า ${source.pageName}`}
+                        title={`${tr("ตัวอย่างหน้า")} ${source.pageName}`}
                         frameRef={f.key === "single" ? (el) => (fillFrameRef.current = el) : undefined}
                         onHeight={f.key === "single" ? onRuntimeHeight : undefined}
                         onRoute={onRuntimeRoute}
                         onExternal={onRuntimeExternal}
-                        onSelect={onRuntimeSelect}
-                        onBoxes={(boxes) => rememberBoxes(f.key, boxes)}
                         style={size ? { width: size.w, height: size.h } : { width: "100%", height: fillH }}
                         className="block border-0 bg-white"
                       />
                     ) : visible ? (
                       <iframe
                         ref={f.key === "single" ? fillFrameRef : undefined}
-                        title="ตัวอย่างหน้าเว็บ"
+                        title={tr("ตัวอย่างหน้าเว็บ")}
                         // No allow-scripts: same-origin only lets the parent measure height.
                         sandbox="allow-same-origin"
                         srcDoc={html}
@@ -479,9 +464,6 @@ export function DeviceStage({ source }: { source: FrameSource }) {
                         {f.dev.label}
                       </div>
                     )}
-                    {visible && (source.kind === "runtime" || source.kind === "vite") ? (
-                      <PreviewSelection boxes={boxesByFrame[f.key] ?? []} scale={scale} />
-                    ) : null}
                     {showHinge && size ? (
                       <div
                         aria-hidden

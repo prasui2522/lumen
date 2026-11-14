@@ -8,6 +8,7 @@ import {
   normalizeStatus,
   parseStartError,
   shouldPollPss,
+  viteFrameOrigin,
   viteFrameUrl,
 } from "./preview-sidecar";
 
@@ -34,6 +35,11 @@ describe("S6 sidecar helpers", () => {
     expect(viteFrameUrl(47301, "/about", "https://tauri.localhost")).toBe(
       "https://wbpreview.localhost/about",
     );
+    expect(viteFrameOrigin("http://127.0.0.1:47301/about", 47301)).toBe("http://127.0.0.1:47301");
+    expect(viteFrameOrigin("wbpreview://localhost/", 47301)).toBe("wbpreview://localhost");
+    expect(viteFrameOrigin("https://wbpreview.localhost/about", 47301)).toBe(
+      "https://wbpreview.localhost",
+    );
   });
 
   test("UI strings live in lazy status bar + DeviceToolbar", () => {
@@ -55,6 +61,8 @@ describe("S6 sidecar helpers", () => {
       "utf8",
     );
     expect(btn).toContain("รันด้วย Vite");
+    expect(btn).toContain("หยุด");
+    expect(btn).toContain("sidecarStop");
   });
 
   test("S8 HMR delay is 150 ms debounce and at most 4 writes/s", () => {

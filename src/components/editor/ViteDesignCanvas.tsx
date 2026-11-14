@@ -7,6 +7,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { findParent, moveNodeInDocument, setNodeProp } from "@/lib/document-ops";
+import { usePhrase } from "@/lib/phrases";
 import { useSidecarStatus, viteFrameUrl } from "@/lib/preview-sidecar";
 import { useProjectsStore } from "@/stores/projects-store";
 import { useEditorStore } from "@/stores/editor-store";
@@ -15,6 +16,7 @@ import { ViteFrame } from "@/components/editor/preview/ViteFrame";
 type Box = { id: string; x: number; y: number; w: number; h: number };
 
 export function ViteDesignCanvas({ fallback }: { fallback: ReactNode }) {
+  const tr = usePhrase();
   const doc = useProjectsStore((s) => s.openDocument);
   const updateOpenDocument = useProjectsStore((s) => s.updateOpenDocument);
   const selected = useEditorStore((s) => s.selectedNodeId);
@@ -31,10 +33,10 @@ export function ViteDesignCanvas({ fallback }: { fallback: ReactNode }) {
     return (
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex h-7 shrink-0 items-center gap-2 border-b border-border px-2 text-[11px] text-muted-foreground">
-          {status.state === "starting" ? "กำลังเปิดตัวอย่าง Vite…" : "ผืนผ้าในแอป"}
+          {status.state === "starting" ? tr("กำลังเปิดตัวอย่าง Vite…") : tr("ผืนผ้าในแอป")}
           {forceCanvas && status.state === "running" ? (
             <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px]" onClick={() => setForceCanvas(false)}>
-              ใช้เฟรม Vite
+              {tr("ใช้เฟรม Vite")}
             </Button>
           ) : null}
         </div>
@@ -64,16 +66,16 @@ export function ViteDesignCanvas({ fallback }: { fallback: ReactNode }) {
   return (
     <div data-kbd-pane="canvas" tabIndex={-1} className="flex min-h-0 min-w-0 flex-1 flex-col outline-none">
       <div className="flex h-7 shrink-0 items-center gap-2 border-b border-border px-2 text-[11px] text-muted-foreground">
-        ออกแบบบน Vite
+        {tr("ออกแบบบน Vite")}
         <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px]" onClick={() => setForceCanvas(true)}>
-          ใช้ผืนผ้าในแอป
+          {tr("ใช้ผืนผ้าในแอป")}
         </Button>
       </div>
       <div ref={wrapRef} className="relative min-h-0 flex-1">
         <ViteFrame
           url={url}
           port={status.port}
-          title="ออกแบบบน Vite"
+          title={tr("ออกแบบบน Vite")}
           className="pointer-events-none h-full w-full border-0 bg-background"
           onBoxes={setBoxes}
           onSelect={setSelected}
@@ -133,7 +135,7 @@ export function ViteDesignCanvas({ fallback }: { fallback: ReactNode }) {
         />
         {editBox && editId ? (
           <input
-            aria-label="ข้อความในโหนด"
+            aria-label={tr("ข้อความในโหนด")}
             className="absolute z-10 rounded-sm border border-ring bg-background px-1 text-sm"
             style={{ left: editBox.x, top: editBox.y, width: Math.max(80, editBox.w) }}
             value={draft}
@@ -153,7 +155,7 @@ export function ViteDesignCanvas({ fallback }: { fallback: ReactNode }) {
           />
         ) : null}
         {selected ? (
-          <span className="sr-only">เลือก {selected}</span>
+          <span className="sr-only">{tr("เลือก")} {selected}</span>
         ) : null}
       </div>
     </div>

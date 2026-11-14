@@ -12,6 +12,7 @@ import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { SiteRoutes } from "./lib/site-routes";
 import { NODE_ID_ATTR, PREVIEW_FLAG } from "./lib/render-node";
 import type { SiteDocument } from "./lib/site-types";
+import { isSafeWbNavigatePath } from "./lib/wb-navigate";
 import "./index.css";
 
 (globalThis as Record<string, unknown>)[PREVIEW_FLAG] = true;
@@ -91,9 +92,8 @@ function Runtime() {
         if (m.path) setNavTo((n) => ({ path: m.path!, seq: (n?.seq ?? 0) + 1 }));
       } else if (m.type === "wb:navigate") {
         // A3 item 1: same-site paths only (the source check above already limits this to the app).
-        const p = m.path;
-        if (typeof p !== "string" || !p.startsWith("/") || p.startsWith("//") || p.includes("\\")) return;
-        setNavTo((n) => ({ path: p, seq: (n?.seq ?? 0) + 1 }));
+        if (!isSafeWbNavigatePath(m.path)) return;
+        setNavTo((n) => ({ path: m.path, seq: (n?.seq ?? 0) + 1 }));
       }
     };
     window.addEventListener("message", onMessage);
@@ -118,18 +118,33 @@ function Runtime() {
     return () => ro.disconnect();
   }, [doc]);
 
-  // External links: never navigate the frame away; the app decides.
+  // Capture: select + keep same-site page links; block buttons/inputs/forms (Preview ≠ live site).
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      const a = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
-      if (!a) return;
-      const href = a.getAttribute("href") ?? "";
-      if (!href || isInternalPath(href) || href.startsWith("#")) return;
-      e.preventDefault();
-      post({ type: "wb:external", href });
+      const t = e.target as Element | null;
+      if (!t?.closest) return;
+      const a = t.closest("a[href]") as HTMLAnchorElement | null;
+      if (a) {
+        const href = a.getAttribute("href") ?? "";
+        if (href && !isInternalPath(href) && !href.startsWith("#")) {
+          e.preventDefault();
+          post({ type: "wb:external", href });
+        } else if (!isInternalPath(href)) {
+          e.preventDefault();
+        }
+      } else {
+        e.preventDefault();
+      }
+      const el = t.closest(`[${NODE_ID_ATTR}]`);
+      post({ type: "wb:select", id: el?.getAttribute(NODE_ID_ATTR) ?? null });
     };
+    const onSubmit = (e: Event) => e.preventDefault();
     document.addEventListener("click", onClick, true);
-    return () => document.removeEventListener("click", onClick, true);
+    document.addEventListener("submit", onSubmit, true);
+    return () => {
+      document.removeEventListener("click", onClick, true);
+      document.removeEventListener("submit", onSubmit, true);
+    };
   }, []);
 
   // Same box list the Vite preview script posts, so the app can draw a selection frame.
@@ -182,16 +197,6 @@ function Runtime() {
       document.removeEventListener("animationend", queue, true);
     };
   }, [doc]);
-
-  // S4 hook (selection sync): report the innermost node under a click.
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      const el = (e.target as Element | null)?.closest?.(`[${NODE_ID_ATTR}]`);
-      post({ type: "wb:select", id: el?.getAttribute(NODE_ID_ATTR) ?? null });
-    };
-    document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
-  }, []);
 
   if (!doc) return null;
   return (

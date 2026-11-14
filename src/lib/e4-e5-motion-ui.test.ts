@@ -11,6 +11,7 @@ import {
   MOTION_SECTION,
   clampMotionDuration,
   isMotionPreset,
+  phraseMotion,
 } from "@/lib/motion";
 
 const ROOT = join(import.meta.dir, "..", "..");
@@ -56,6 +57,14 @@ describe("E4 motion panel", () => {
     expect(MOTION_REPLAY_REDUCED).toContain("ลดการเคลื่อนไหว");
   });
 
+  test("phraseMotion keeps Thai and maps EN without colliding with Layers Move up/down", () => {
+    expect(phraseMotion("th", "เลื่อนขึ้น")).toBe("เลื่อนขึ้น");
+    expect(phraseMotion("en", "เลื่อนขึ้น")).toBe("Slide up");
+    expect(phraseMotion("en", "เลื่อนลง")).toBe("Slide down");
+    expect(phraseMotion("en", MOTION_REPLAY)).toBe("Preview");
+    expect(phraseMotion("en", "เอฟเฟกต์ตอนเข้า")).toBe("Entrance effect");
+  });
+
   test("motion panel re-evaluates page perf after writes (E6 T117)", () => {
     const src = readFileSync(
       join(ROOT, "src/components/editor/motion-panel.tsx"),
@@ -63,5 +72,7 @@ describe("E4 motion panel", () => {
     );
     expect(src).toContain("evaluatePagePerf");
     expect(src).toContain('w.kind === "animated"');
+    expect(src).toContain("phraseMotion");
+    expect(src).toContain("displayPerfWarning");
   });
 });

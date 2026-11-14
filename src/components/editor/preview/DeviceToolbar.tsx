@@ -61,6 +61,7 @@ import { useEditorStore } from "@/stores/editor-store";
 import { useProjectsStore } from "@/stores/projects-store";
 import { isDocumentEmpty } from "@/components/editor/node-view";
 import { ViteRunButton } from "@/components/editor/preview/ViteRunButton";
+import { displayPerfWarning } from "@/lib/announce-i18n";
 import { usePhrase } from "@/lib/phrases";
 
 const ICONS: Record<DeviceIcon, ComponentType<{ className?: string }>> = {
@@ -299,9 +300,9 @@ export function DeviceToolbar({ compact }: { compact: boolean }) {
       <span
         data-page-perf-toolbar
         className="max-w-[10rem] truncate text-[11px] text-amber-700 dark:text-amber-400"
-        title={pagePerfToolbar}
+        title={displayPerfWarning(pagePerfToolbar)}
       >
-        {pagePerfToolbar}
+        {displayPerfWarning(pagePerfToolbar)}
       </span>
     ) : null}
     <div className="flex shrink-0 items-center gap-1.5" role="group" aria-label={p("อุปกรณ์ตัวอย่าง")}>

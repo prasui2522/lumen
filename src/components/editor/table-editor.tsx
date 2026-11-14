@@ -19,6 +19,7 @@ import { FieldRow, fieldLabelId } from "@/components/editor/style/FieldRow";
 import { TextPropField } from "@/components/editor/style/TextPropField";
 import { writeTableEditorCommit } from "@/components/editor/style/write";
 import { toastIpcError } from "@/lib/ipc-error-i18n";
+import { usePhrase } from "@/lib/phrases";
 import { toast } from "@/lib/toast";
 import {
   TABLE_FULL_MESSAGE,
@@ -69,6 +70,7 @@ export function TableEditor({
   locked = false,
 }: TableEditorProps) {
   const uid = useId();
+  const tr = usePhrase();
   const [grid, setGrid] = useState<TableGrid>(() => cloneGrid(columns, rows));
   const [draftCaption, setDraftCaption] = useState(caption ?? "");
   const [draftHeader, setDraftHeader] = useState(headerRow);
@@ -304,7 +306,7 @@ export function TableEditor({
                         className="min-w-24 flex-1 rounded border bg-transparent px-1.5 py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         value={h}
                         disabled={locked}
-                        aria-label={`หัวคอลัมน์ ${c + 1}`}
+                        aria-label={`${tr("หัวคอลัมน์")} ${c + 1}`}
                         onChange={(e) => setHeader(c, e.currentTarget.value)}
                         onFocus={() => setFocusCell({ r: -1, c })}
                         onKeyDown={(e) => onCellKeyDown(e, -1, c)}
@@ -322,7 +324,7 @@ export function TableEditor({
                         variant="ghost"
                         className="shrink-0"
                         disabled={locked || grid.columns.length <= 1}
-                        aria-label={`ลบคอลัมน์ ${c + 1}`}
+                        aria-label={`${tr("ลบคอลัมน์")} ${c + 1}`}
                         onClick={() => onRemoveCol(c)}
                       >
                         ×
@@ -343,7 +345,7 @@ export function TableEditor({
                           className="min-w-24 flex-1 rounded border bg-transparent px-1.5 py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           value={cell}
                           disabled={locked}
-                          aria-label={`แถว ${r + 1} คอลัมน์ ${c + 1}`}
+                          aria-label={`${tr("แถว")} ${r + 1} ${tr("คอลัมน์")} ${c + 1}`}
                           onChange={(e) => setCell(r, c, e.currentTarget.value)}
                           onFocus={() => setFocusCell({ r, c })}
                           onKeyDown={(e) => onCellKeyDown(e, r, c)}
@@ -362,7 +364,7 @@ export function TableEditor({
                             variant="ghost"
                             className="shrink-0"
                             disabled={locked || grid.rows.length <= 1}
-                            aria-label={`ลบแถว ${r + 1}`}
+                            aria-label={`${tr("ลบแถว")} ${r + 1}`}
                             onClick={() => onRemoveRow(r)}
                           >
                             ×

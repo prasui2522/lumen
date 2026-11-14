@@ -46,3 +46,6 @@ src-tauri/*.key
 *.msi
 *.app/
 src-tauri/target/
+# Pinned bun binary for the Vite sidecar (~35–90 MB); created by scripts/ensure-bundled-bun.mjs
+src-tauri/resources/bin/bun
+

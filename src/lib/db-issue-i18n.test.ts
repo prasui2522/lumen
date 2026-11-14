@@ -9,6 +9,8 @@ describe("phraseIssue", () => {
     expect(phraseIssue("en", "ต้องมีคีย์หลัก")).toBe("A primary key is required");
     expect(phraseIssue("en", "users เป็นคำสงวน")).toBe("users is a reserved word");
     expect(phraseIssue("en", "ชื่อคอลัมน์ซ้ำ: email")).toBe("Duplicate column name: email");
+    expect(phraseIssue("en", "ตารางได้ไม่เกิน 50 ตาราง")).toBe("At most 50 tables");
+    expect(phraseIssue("en", "คอลัมน์ได้ไม่เกิน 100 คอลัมน์")).toBe("At most 100 columns");
   });
 });
 

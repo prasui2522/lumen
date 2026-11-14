@@ -133,12 +133,13 @@ const COLS = 2;
 const OVERSCAN = 2;
 
 function WireThumb({ thumb, name }: { thumb: BlockThumbRect[]; name: string }) {
+  const tr = usePhrase();
   return (
     <svg
       viewBox="0 0 100 70"
       className="h-14 w-full rounded-md bg-muted"
       role="img"
-      aria-label={`โครงร่างของบล็อก ${name}`}
+      aria-label={`${tr("โครงร่างของบล็อก")} ${name}`}
     >
       {thumb.map((r, i) => (
         <rect

@@ -14,6 +14,17 @@ describe("phraseIpcError", () => {
     expect(phraseIpcError("en", "ตาราง users จะถูกลบ (ลบ 12 แถว)")).toBe(
       "Table users will be deleted (12 rows removed)",
     );
+    expect(phraseIpcError("en", "ไฟล์ zip มีไฟล์มากเกินไป (เกิน 5,000 ไฟล์)")).toBe(
+      "Zip has too many files (over 5,000)",
+    );
+    expect(phraseIpcError("en", "ต้องมีคีย์หลัก")).toBe("A primary key is required");
+    expect(phraseIpcError("en", "แก้ไม่ได้: id เป็นลำดับอัตโนมัติ")).toBe(
+      "Cannot edit: id is an auto sequence",
+    );
+    expect(phraseIpcError("en", "คอลัมน์ได้ไม่เกิน 100 คอลัมน์")).toBe("At most 100 columns");
+    expect(phraseIpcError("en", "ไม่พบแถวที่อ้างอิง: category_id")).toBe(
+      "Referenced row not found: category_id",
+    );
   });
 });
 

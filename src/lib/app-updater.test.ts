@@ -1,15 +1,35 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dir, "../..");
+
+import {
+  UPDATER_ENDPOINT_NOT_CONFIGURED,
+  UPDATER_ENDPOINT_TEMPLATE,
+  updaterEndpointConfigured,
+} from "./app-updater";
 
 describe("app updater", () => {
   test("tauri conf has updater pubkey, GitHub latest.json endpoint, and artifacts", () => {
     const conf = JSON.parse(readFileSync(join(ROOT, "src-tauri/tauri.conf.json"), "utf8"));
     expect(conf.bundle.createUpdaterArtifacts).toBe(true);
     expect(conf.plugins.updater.pubkey).toMatch(/^dW50cnVzdGVk/);
-    expect(conf.plugins.updater.endpoints[0]).toContain("releases/latest/download/latest.json");
+    expect(conf.plugins.updater.endpoints[0]).toBe(UPDATER_ENDPOINT_TEMPLATE);
+  });
+
+  test("placeholder endpoint is detected until CI rewrites OWNER/REPO", () => {
+    expect(updaterEndpointConfigured(UPDATER_ENDPOINT_TEMPLATE)).toBe(false);
+    expect(
+      updaterEndpointConfigured(
+        "https://github.com/acme/web-builder/releases/latest/download/latest.json",
+      ),
+    ).toBe(true);
+    expect(UPDATER_ENDPOINT_NOT_CONFIGURED).toMatch(/OWNER\/REPO/);
+    const wf = readFileSync(join(ROOT, ".github/workflows/release.yml"), "utf8");
+    expect(wf).toContain("OWNER/REPO");
+    expect(wf).toContain("make-latest-json.mjs");
+    expect(existsSync(join(ROOT, "scripts/make-latest-json.mjs"))).toBe(true);
   });
 
   test("About menu offers check for updates and plugins are registered", () => {

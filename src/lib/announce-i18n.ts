@@ -80,5 +80,7 @@ export function displayPerfWarning(message: string): string {
     return `This page has ${m[1]} animated elements. Keep under ${m[2]} if you can.`;
   }
   if (message === "เงาหนัก") return "Heavy shadows";
+  if ((m = /^เบลอ (\d+)\/(\d+)$/.exec(message))) return `Blur ${m[1]}/${m[2]}`;
+  if ((m = /^เคลื่อนไหว (\d+)\/(\d+)$/.exec(message))) return `Motion ${m[1]}/${m[2]}`;
   return phrase(locale, message);
 }

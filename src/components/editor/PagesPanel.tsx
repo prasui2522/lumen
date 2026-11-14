@@ -186,8 +186,8 @@ export function PagesPanel() {
         <Button
           type="button"
           variant="ghost"
-          size="icon"
-          className="ml-auto size-8"
+          size="icon-sm"
+          className="ml-auto"
           aria-label={t("addPage")}
           onClick={onAdd}
         >

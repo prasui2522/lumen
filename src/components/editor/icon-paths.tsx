@@ -12,6 +12,7 @@ import {
   isIconName,
   type IconName,
 } from "@/lib/icon-paths";
+import { usePhrase } from "@/lib/phrases";
 
 export {
   FEATHER_DERIVED_ICON_NAMES,
@@ -78,6 +79,7 @@ export function IconPicker({
   disabled?: boolean;
   onPick: (name: IconName) => void;
 }) {
+  const tr = usePhrase();
   const [q, setQ] = useState("");
   const listId = useId();
   const liveId = useId();
@@ -134,24 +136,24 @@ export function IconPicker({
   return (
     <div className="space-y-2">
       <label className="sr-only" htmlFor={listId}>
-        ค้นหาไอคอน
+        {tr("ค้นหาไอคอน")}
       </label>
       <input
         id={listId}
         type="search"
         value={q}
         disabled={disabled}
-        placeholder="ค้นหาไอคอน"
+        placeholder={tr("ค้นหาไอคอน")}
         className="h-8 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring"
         onChange={(e) => setQ(e.currentTarget.value)}
       />
       <p className="text-[11px] text-muted-foreground" aria-live="polite" id={liveId}>
-        {live ? `เลือกแล้ว: ${live}` : `ชื่อไอคอน: ${active}`}
+        {live ? `${tr("เลือกแล้ว")}: ${live}` : `${tr("ชื่อไอคอน")}: ${active}`}
       </p>
       <div
         ref={gridRef}
         role="listbox"
-        aria-label="ไอคอน"
+        aria-label={tr("ไอคอน")}
         aria-activedescendant={focusName ? `icon-opt-${focusName}` : undefined}
         className="grid max-h-48 grid-cols-6 gap-1 overflow-y-auto"
         onKeyDown={onGridKeyDown}

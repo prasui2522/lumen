@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.webapp.builder",
   "build": {
-    "beforeDevCommand": "bun run dev",
+    "beforeDevCommand": "bun scripts/ensure-bundled-bun.mjs && bun run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun run build",
+    "beforeBuildCommand": "bun scripts/ensure-bundled-bun.mjs && bun run build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -39,7 +39,8 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md"
+      "../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md",
+      "resources/bin/bun": "bin/bun"
     }
   },
   "plugins": {

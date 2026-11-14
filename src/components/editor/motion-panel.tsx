@@ -6,7 +6,9 @@ import { FieldRow } from "@/components/editor/style/FieldRow";
 import { NumberField } from "@/components/editor/style/NumberField";
 import { SelectField } from "@/components/editor/style/SelectField";
 import { applyOps } from "@/components/editor/style/write";
+import { displayPerfWarning } from "@/lib/announce-i18n";
 import { setNodeMotion } from "@/lib/document-ops";
+import { useLocale } from "@/lib/locale";
 import {
   DEFAULT_MOTION_ENTRANCE,
   MOTION_EASING_OPTIONS,
@@ -22,6 +24,7 @@ import {
   clampMotionDelay,
   clampMotionDuration,
   isMotionPreset,
+  phraseMotion,
   prefersReducedMotion,
 } from "@/lib/motion";
 import { evaluatePagePerf } from "@/lib/page-perf-watch";
@@ -41,6 +44,8 @@ export type MotionPanelProps = {
 };
 
 export function MotionPanel({ node, locked }: MotionPanelProps) {
+  const locale = useLocale();
+  const t = (th: string) => phraseMotion(locale, th);
   const announce = useEditorStore((s) => s.announce);
   const requestMotionReplay = useEditorStore((s) => s.requestMotionReplay);
   const animatedWarn = useEditorStore((s) =>
@@ -78,28 +83,28 @@ export function MotionPanel({ node, locked }: MotionPanelProps) {
   const onReplay = () => {
     if (!entrance) return;
     if (prefersReducedMotion()) {
-      announce(MOTION_REPLAY_REDUCED);
+      announce(t(MOTION_REPLAY_REDUCED));
       return;
     }
     requestMotionReplay(node.id);
-    announce(MOTION_REPLAY_DONE);
+    announce(t(MOTION_REPLAY_DONE));
   };
 
   return (
     <div className="space-y-2" data-motion-panel="">
       {animatedWarn ? (
         <p className="text-[11px] text-amber-700 dark:text-amber-400" role="status">
-          {animatedWarn.message}
+          {displayPerfWarning(animatedWarn.message)}
         </p>
       ) : null}
-      <FieldRow id="mo-preset" label={MOTION_EFFECT_LABEL} overridden={!!entrance} locked={locked}>
+      <FieldRow id="mo-preset" label={t(MOTION_EFFECT_LABEL)} overridden={!!entrance} locked={locked}>
         <SelectField
           id="mo-preset"
           value={presetValue}
           disabled={locked}
           options={MOTION_PRESET_OPTIONS.map((o) => ({
             value: o.value,
-            label: o.label,
+            label: t(o.label),
           }))}
           onChange={(v) => {
             if (v === "none") {
@@ -117,19 +122,19 @@ export function MotionPanel({ node, locked }: MotionPanelProps) {
 
       {entrance ? (
         <>
-          <FieldRow id="mo-trigger" label={MOTION_TRIGGER_LABEL} overridden={false} locked={locked}>
+          <FieldRow id="mo-trigger" label={t(MOTION_TRIGGER_LABEL)} overridden={false} locked={locked}>
             <SelectField
               id="mo-trigger"
               value={entrance.trigger}
               disabled={locked}
               options={MOTION_TRIGGER_OPTIONS.map((o) => ({
                 value: o.value,
-                label: o.label,
+                label: t(o.label),
               }))}
               onChange={(v) => patch({ trigger: v as MotionTrigger })}
             />
           </FieldRow>
-          <FieldRow id="mo-dur" label="ระยะเวลา" overridden={false} locked={locked}>
+          <FieldRow id="mo-dur" label={t("ระยะเวลา")} overridden={false} locked={locked}>
             <NumberField
               id="mo-dur"
               value={entrance.durationMs}
@@ -140,7 +145,7 @@ export function MotionPanel({ node, locked }: MotionPanelProps) {
               onCommit={(durationMs) => patch({ durationMs })}
             />
           </FieldRow>
-          <FieldRow id="mo-delay" label="หน่วงเวลา" overridden={false} locked={locked}>
+          <FieldRow id="mo-delay" label={t("หน่วงเวลา")} overridden={false} locked={locked}>
             <NumberField
               id="mo-delay"
               value={entrance.delayMs}
@@ -151,14 +156,14 @@ export function MotionPanel({ node, locked }: MotionPanelProps) {
               onCommit={(delayMs) => patch({ delayMs })}
             />
           </FieldRow>
-          <FieldRow id="mo-ease" label="จังหวะ" overridden={false} locked={locked}>
+          <FieldRow id="mo-ease" label={t("จังหวะ")} overridden={false} locked={locked}>
             <SelectField
               id="mo-ease"
               value={entrance.easing}
               disabled={locked}
               options={MOTION_EASING_OPTIONS.map((o) => ({
                 value: o.value,
-                label: o.label,
+                label: t(o.label),
               }))}
               onChange={(easing) => patch({ easing: easing as TransitionEasing })}
             />
@@ -167,10 +172,10 @@ export function MotionPanel({ node, locked }: MotionPanelProps) {
           {entrance.trigger === "view" ? (
             <>
               <p className="text-[11px] text-muted-foreground" role="note">
-                {MOTION_VIEW_FALLBACK_NOTE}
+                {t(MOTION_VIEW_FALLBACK_NOTE)}
               </p>
               <p className="text-[11px] text-muted-foreground" role="note">
-                {MOTION_VIEW_DESIGN_NOTE}
+                {t(MOTION_VIEW_DESIGN_NOTE)}
               </p>
             </>
           ) : null}
@@ -183,7 +188,7 @@ export function MotionPanel({ node, locked }: MotionPanelProps) {
             disabled={locked}
             onClick={onReplay}
           >
-            {MOTION_REPLAY}
+            {t(MOTION_REPLAY)}
           </Button>
         </>
       ) : null}

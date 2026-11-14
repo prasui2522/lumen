@@ -23,6 +23,12 @@ describe("announce-i18n", () => {
     expect(
       displayPerfWarning("หน้านี้ใช้เอฟเฟกต์เบลอ 5 จุด อาจทำให้เครื่องช้าลง แนะนำไม่เกิน 3 จุด"),
     ).toContain("5 blur");
+    expect(
+      displayPerfWarning("หน้านี้มีองค์ประกอบที่เคลื่อนไหว 31 จุด แนะนำไม่เกิน 30 จุด"),
+    ).toContain("31 animated");
+    expect(displayPerfWarning("เคลื่อนไหว 31/30")).toBe("Motion 31/30");
+    expect(displayPerfWarning("เบลอ 7/6")).toBe("Blur 7/6");
     setLocale("th");
+    expect(displayPerfWarning("เคลื่อนไหว 31/30")).toBe("เคลื่อนไหว 31/30");
   });
 });

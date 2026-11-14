@@ -26,6 +26,7 @@ import {
 } from "@/lib/color-hex";
 import { useRafCommit } from "@/components/editor/style/useRafCommit";
 import { beginHistoryGroup, endHistoryGroup, revertHistoryGroup } from "@/lib/history";
+import { usePhrase } from "@/lib/phrases";
 
 export { COLOR_RE } from "@/lib/color-hex";
 
@@ -106,6 +107,7 @@ export function useColorField({
   disabled,
   muted,
 }: Props) {
+  const tr = usePhrase();
   const [open, setOpen] = useState(false);
   const hex = toOpaqueHex6(value);
   const parts = parseColorParts(value);
@@ -245,17 +247,17 @@ export function useColorField({
         <PopoverTrigger asChild>
           <button
             type="button"
-            aria-label={`เลือกสี: ${label}`}
+            aria-label={`${tr("เลือกสี")}: ${label}`}
             disabled={disabled}
             className="relative size-[22px] shrink-0 overflow-hidden rounded border border-input outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             style={swatchStyle(value)}
-            title="เลือกสี"
+            title={tr("เลือกสี")}
           />
         </PopoverTrigger>
         <PopoverContent
           align="start"
           className="w-56 gap-2 p-2.5"
-          aria-label={`สี: ${label}`}
+          aria-label={`${tr("สี")}: ${label}`}
           onEscapeKeyDown={(e) => {
             if (pop.draft !== null && e.target instanceof HTMLElement && e.target.id === popHexId) {
               e.preventDefault();
@@ -265,11 +267,11 @@ export function useColorField({
         >
           <div className="space-y-1.5">
             <p id={`${id}-ph`} className="text-[11px] font-medium text-muted-foreground">
-              สีสำเร็จรูป
+              {tr("สีสำเร็จรูป")}
             </p>
             <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby={`${id}-ph`}>
               {presets.map((c, i) => {
-                const name = PRESET_NAMES[c] ?? c;
+                const name = tr(PRESET_NAMES[c] ?? c);
                 return (
                   <Tooltip key={c}>
                     <TooltipTrigger asChild>
@@ -304,7 +306,7 @@ export function useColorField({
           <div className="space-y-1">
             <Input
               id={popHexId}
-              aria-label={`รหัสสี: ${label}`}
+              aria-label={`${tr("รหัสสี")}: ${label}`}
               value={pop.draft ?? value ?? ""}
               placeholder="#rrggbb"
               disabled={disabled}

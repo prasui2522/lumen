@@ -31,6 +31,7 @@ import {
   parseChartValue,
   type ChartEditorModel,
 } from "@/lib/chart-model";
+import { usePhrase } from "@/lib/phrases";
 
 export type ChartEditorProps = {
   open: boolean;
@@ -64,6 +65,7 @@ export function ChartEditor({
   locked = false,
 }: ChartEditorProps) {
   const uid = useId();
+  const tr = usePhrase();
   const [draft, setDraft] = useState<ChartEditorModel>(() =>
     cloneChartModel({ kind, categories, series, caption }),
   );
@@ -200,9 +202,10 @@ export function ChartEditor({
         }}
       >
         <DialogHeader>
-          <DialogTitle>ข้อมูลกราฟ</DialogTitle>
+          <DialogTitle>{tr("ข้อมูลกราฟ")}</DialogTitle>
           <DialogDescription>
-            สูงสุด {CHART_MAX_CATEGORIES} หมวด × {CHART_MAX_SERIES} ชุดข้อมูล — Tab เลื่อนช่อง, Enter ไปค่าถัดไป
+            {tr("สูงสุด")} {CHART_MAX_CATEGORIES} {tr("หมวด")} × {CHART_MAX_SERIES} {tr("ชุดข้อมูล")} —{" "}
+            {tr("Tab เลื่อนช่อง, Enter ไปค่าถัดไป")}
           </DialogDescription>
         </DialogHeader>
 
@@ -231,7 +234,7 @@ export function ChartEditor({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-medium text-muted-foreground">ชื่อหมวด</p>
+            <p className="text-xs font-medium text-muted-foreground">{tr("ชื่อหมวด")}</p>
             <Button
               type="button"
               size="sm"
@@ -239,7 +242,7 @@ export function ChartEditor({
               disabled={locked || draft.categories.length >= CHART_MAX_CATEGORIES}
               onClick={addCategory}
             >
-              เพิ่มหมวด
+              {tr("เพิ่มหมวด")}
             </Button>
           </div>
           <div className="space-y-1">
@@ -250,7 +253,7 @@ export function ChartEditor({
                   className="min-w-0 flex-1 rounded border bg-transparent px-1.5 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   value={cat}
                   disabled={locked}
-                  aria-label={`ชื่อหมวด ${ci + 1}`}
+                  aria-label={`${tr("ชื่อหมวด")} ${ci + 1}`}
                   onChange={(e) => setCategory(ci, e.currentTarget.value)}
                   onFocus={() => setFocusKey(focusId(uid, "cat", 0, ci))}
                 />
@@ -259,7 +262,7 @@ export function ChartEditor({
                   size="icon-sm"
                   variant="ghost"
                   disabled={locked || draft.categories.length <= 1}
-                  aria-label={`ลบหมวด ${ci + 1}`}
+                  aria-label={`${tr("ลบหมวด")} ${ci + 1}`}
                   onClick={() => removeCategory(ci)}
                 >
                   ×
@@ -271,7 +274,7 @@ export function ChartEditor({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-medium text-muted-foreground">ชุดข้อมูล</p>
+            <p className="text-xs font-medium text-muted-foreground">{tr("ชุดข้อมูล")}</p>
             <Button
               type="button"
               size="sm"
@@ -279,7 +282,7 @@ export function ChartEditor({
               disabled={locked || draft.series.length >= CHART_MAX_SERIES}
               onClick={addSeries}
             >
-              เพิ่มชุดข้อมูล
+              {tr("เพิ่มชุดข้อมูล")}
             </Button>
           </div>
           {draft.series.map((s, si) => (
@@ -290,7 +293,7 @@ export function ChartEditor({
                   className="min-w-0 flex-1 rounded border bg-transparent px-1.5 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   value={s.name}
                   disabled={locked}
-                  aria-label={`ชื่อชุดข้อมูล ${si + 1}`}
+                  aria-label={`${tr("ชื่อชุดข้อมูล")} ${si + 1}`}
                   aria-labelledby={fieldLabelId(`${uid}-series-${si}`)}
                   onChange={(e) => setSeriesName(si, e.currentTarget.value)}
                   onFocus={() => setFocusKey(focusId(uid, "name", si))}
@@ -301,7 +304,7 @@ export function ChartEditor({
                   className="h-8 w-10 shrink-0 cursor-pointer rounded border bg-transparent p-0.5"
                   value={/^#[0-9a-fA-F]{6}$/.test(s.color) ? s.color : CHART_DEFAULT_COLORS[si % 3]!}
                   disabled={locked}
-                  aria-label={`สีชุดข้อมูล ${si + 1}`}
+                  aria-label={`${tr("สีชุดข้อมูล")} ${si + 1}`}
                   onChange={(e) => setSeriesColor(si, e.currentTarget.value)}
                 />
                 <Button
@@ -309,7 +312,7 @@ export function ChartEditor({
                   size="icon-sm"
                   variant="ghost"
                   disabled={locked || draft.series.length <= 1}
-                  aria-label={`ลบชุดข้อมูล ${si + 1}`}
+                  aria-label={`${tr("ลบชุดข้อมูล")} ${si + 1}`}
                   onClick={() => removeSeries(si)}
                 >
                   ×
@@ -319,7 +322,7 @@ export function ChartEditor({
                 {draft.categories.map((cat, ci) => (
                   <label key={ci} className="flex min-w-[4.5rem] flex-1 flex-col gap-0.5">
                     <span className="truncate text-[10px] text-muted-foreground">
-                      {cat.trim() || `หมวด ${ci + 1}`} · ค่า
+                      {cat.trim() || `${tr("หมวด")} ${ci + 1}`} · {tr("ค่า")}
                     </span>
                     <input
                       id={focusId(uid, "val", si, ci)}
@@ -327,7 +330,7 @@ export function ChartEditor({
                       className="rounded border bg-transparent px-1.5 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       value={formatChartValue(s.values[ci] ?? null)}
                       disabled={locked}
-                      aria-label={`ค่า ${s.name || `ชุด ${si + 1}`} หมวด ${ci + 1}`}
+                      aria-label={`${tr("ค่า")} ${s.name || `${tr("ชุด")} ${si + 1}`} ${tr("หมวด")} ${ci + 1}`}
                       onChange={(e) => setSeriesValue(si, ci, e.currentTarget.value)}
                       onFocus={() => setFocusKey(focusId(uid, "val", si, ci))}
                       onKeyDown={(e) => onValKeyDown(e, si, ci)}

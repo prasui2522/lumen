@@ -46,12 +46,12 @@ describe("preview selection resize", () => {
     expect(resizedSize(start, "n", 0, 500)).toEqual({ w: 100, h: 8 });
   });
 
-  test("Tier 1 posts wb:boxes and the stage paints handles", () => {
+  test("Tier 1 may post wb:boxes; Preview stage has no selection chrome (visitor view)", () => {
     const rt = readFileSync(join(ROOT, "export-templates/vite-react/src/preview-runtime.tsx"), "utf8");
     expect(rt).toContain('type: "wb:boxes"');
     const stage = readFileSync(join(ROOT, "src/components/editor/preview/DeviceStage.tsx"), "utf8");
-    expect(stage).toContain("onBoxes=");
-    expect(stage).toContain("PreviewSelection");
+    expect(stage).not.toContain("PreviewSelection");
+    expect(stage).not.toContain("onSelect=");
     const frame = readFileSync(join(ROOT, "src/components/editor/preview/Tier1Frame.tsx"), "utf8");
     expect(frame).toContain('case "wb:boxes"');
   });
@@ -65,7 +65,7 @@ describe("add page command", () => {
     expect(src).toMatch(/addPage\(ensurePages\(doc\), cur\)/);
     const pages = readFileSync(join(ROOT, "src/components/editor/PagesPanel.tsx"), "utf8");
     expect(pages).toContain('aria-label={t("addPage")}');
-    expect(pages).toContain("size-8");
+    expect(pages).toContain('size="icon-sm"');
   });
 
   test("addPage appends a page", () => {

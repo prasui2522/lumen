@@ -86,6 +86,44 @@ const IPC_EN: Record<string, string> = {
   "บันทึกพรีเซ็ตแล้ว": "Preset saved",
   "ดิสก์เต็ม": "Disk full",
   "permission denied": "permission denied",
+  "ไฟล์ zip มีไฟล์มากเกินไป (เกิน 5,000 ไฟล์)": "Zip has too many files (over 5,000)",
+  "ไฟล์ zip มีไฟล์ที่ใหญ่เกินไป (เกิน 64 MB ต่อไฟล์เมื่อแตกออก)":
+    "Zip has a file that is too large (over 64 MB per file when extracted)",
+  "ไฟล์ zip ใหญ่เกินไป (รวมเกิน 256 MB เมื่อแตกออก)":
+    "Zip is too large (over 256 MB total when extracted)",
+  "ไฟล์ใหญ่เกิน 20MB": "File is over 20 MB",
+  "โหนดรากต้องเป็นหน้า (page)": "Root node must be a page",
+  "ไม่พบโหนดราก (root)": "Root node not found",
+  "ต้องมีคีย์หลัก": "A primary key is required",
+  "ต้องมีอย่างน้อย 1 คอลัมน์": "At least 1 column is required",
+  "ต้องมีอย่างน้อย 1 ตาราง": "At least 1 table is required",
+  "ต้องมีชื่อ": "A name is required",
+  "คอลัมน์ซ้ำ": "Duplicate column",
+  "คอลัมน์คีย์หลักต้องมีค่า": "Primary key columns must be required",
+  "คีย์หลักมีคอลัมน์ซ้ำ": "Primary key has duplicate columns",
+  "คีย์หลักอ้างถึงคอลัมน์ที่ไม่มีอยู่": "Primary key references a missing column",
+  "ชื่อคอลัมน์ซ้ำ": "Duplicate column name",
+  "ชื่อตารางซ้ำ": "Duplicate table name",
+  "ชื่อใช้ได้เฉพาะ a-z 0-9 _ ขึ้นต้นด้วยตัวอักษร ไม่เกิน 63 ตัว":
+    "Name may only use a-z, 0-9, _, start with a letter, and be at most 63 characters",
+  "ห้ามขึ้นต้นด้วย pg_ หรือ sqlite_": "Must not start with pg_ or sqlite_",
+  "ค่าเริ่มต้นไม่ตรงกับชนิด": "Default value does not match the type",
+  "JSON ไม่มีค่าเริ่มต้น": "JSON has no default value",
+  "ลำดับอัตโนมัติต้องเป็นคีย์หลักเพียงคอลัมน์เดียว":
+    "Auto sequence must be the only primary-key column",
+  "ลำดับอัตโนมัติไม่มีค่าเริ่มต้น": "Auto sequence has no default value",
+  "รหัสคอลัมน์ซ้ำหรือว่าง": "Duplicate or empty column id",
+  "รหัสตารางซ้ำหรือว่าง": "Duplicate or empty table id",
+  "เลือกคอลัมน์ซ้ำ": "Duplicate columns selected",
+  "ไม่ซ้ำ: ซ้ำกับคีย์หลัก": "Unique: overlaps the primary key",
+  "ไม่ซ้ำ: ต้องเลือกอย่างน้อย 1 คอลัมน์": "Unique: select at least 1 column",
+  "ไม่ซ้ำ: มีชุดคอลัมน์นี้แล้ว": "Unique: this column set already exists",
+  "ไม่ซ้ำ: อ้างถึงคอลัมน์ที่ไม่มีอยู่": "Unique: references a missing column",
+  "ไม่ซ้ำ: เลือกคอลัมน์ซ้ำ": "Unique: duplicate columns selected",
+  "ตัวเลือก: 1–50 ค่าไม่ซ้ำกัน แต่ละค่า 1–63 ตัวอักษร":
+    "Options: 1–50 unique values, each 1–63 characters",
+  "ยังไม่ได้ตั้งค่าที่เก็บรีลีส (OWNER/REPO) — ดู docs/UPDATER.md":
+    "Release repository is not set (OWNER/REPO) — see docs/UPDATER.md",
 };
 
 const PREFIX_EN: Record<string, string> = {
@@ -142,6 +180,15 @@ export function phraseIpcError(locale: Locale, message: string): string {
   }
   if ((hit = /^ใช้จุดสีได้สูงสุด (\d+) จุด$/.exec(m))) {
     return `At most ${hit[1]} color stops`;
+  }
+  if ((hit = /^แก้ไม่ได้: (.+) เป็นลำดับอัตโนมัติ$/.exec(m))) {
+    return `Cannot edit: ${hit[1]} is an auto sequence`;
+  }
+  if ((hit = /^ตารางได้ไม่เกิน (\d+) ตาราง$/.exec(m))) {
+    return `At most ${hit[1]} tables`;
+  }
+  if ((hit = /^คอลัมน์ได้ไม่เกิน (\d+) คอลัมน์$/.exec(m))) {
+    return `At most ${hit[1]} columns`;
   }
   if ((hit = /^(.+): (.+)$/.exec(m))) {
     const left = hit[1]!;

@@ -138,22 +138,22 @@ function LabelTextPairsEditor({
   return (
     <div className="space-y-2">
       {items.map((item, i) => (
-        <FieldRow key={i} id={`p6-lt-${i}`} label={`${rowLabel} ${i + 1}`} overridden={false} locked={locked} stacked>
+        <FieldRow key={i} id={`p6-lt-${i}`} label={`${tr(rowLabel)} ${i + 1}`} overridden={false} locked={locked} stacked>
           <TextPropField
             id={`p6-lt-l-${i}`}
-            ariaLabel={`ป้ายกำกับ แถว ${i + 1}`}
+            ariaLabel={`${tr("ป้ายกำกับ")} ${tr("แถว")} ${i + 1}`}
             value={item.label}
             disabled={locked}
-            placeholder="ป้ายกำกับ"
+            placeholder={tr("ป้ายกำกับ")}
             onCommit={(v) => commit(nodeId, { kind: "pair", index: i, key: "label", value: v })}
           />
           <div className="flex min-w-0 items-start gap-1">
             <TextPropField
               id={`p6-lt-t-${i}`}
-              ariaLabel={`ข้อความ แถว ${i + 1}`}
+              ariaLabel={`${tr("ข้อความ")} ${tr("แถว")} ${i + 1}`}
               value={item.text}
               disabled={locked}
-              placeholder="ข้อความ"
+              placeholder={tr("ข้อความ")}
               onCommit={(v) => commit(nodeId, { kind: "pair", index: i, key: "text", value: v })}
             />
             <Button
@@ -162,7 +162,7 @@ function LabelTextPairsEditor({
               size="icon-xs"
               className="mt-0.5 shrink-0"
               disabled={locked || items.length <= 1}
-              aria-label={`ลบ${rowLabel} ${i + 1}`}
+              aria-label={`${tr(`ลบ${rowLabel}`)} ${i + 1}`}
               onClick={() => replace(items.filter((_, j) => j !== i))}
             >
               <Minus className="size-3.5" />
@@ -201,20 +201,20 @@ function HrefPairsEditor({
   return (
     <div className="space-y-2">
       {items.map((item, i) => (
-        <FieldRow key={i} id={`p6-href-${i}`} label={`รายการ ${i + 1}`} overridden={false} locked={locked} stacked>
+        <FieldRow key={i} id={`p6-href-${i}`} label={`${tr("รายการ")} ${i + 1}`} overridden={false} locked={locked} stacked>
           <TextPropField
             id={`p6-href-l-${i}`}
-            ariaLabel={`ป้ายกำกับ แถว ${i + 1}`}
+            ariaLabel={`${tr("ป้ายกำกับ")} ${tr("แถว")} ${i + 1}`}
             value={item.label}
             disabled={locked}
-            placeholder="ป้ายกำกับ"
+            placeholder={tr("ป้ายกำกับ")}
             onCommit={(v) => commit(nodeId, { kind: "pair", index: i, key: "label", value: v })}
           />
           <div className="flex min-w-0 items-start gap-1">
             <Suspense fallback={<div className="h-7 min-w-0 flex-1 rounded-md border" />}>
               <HrefField
                 id={`p6-href-h-${i}`}
-                ariaLabel={`ลิงก์ แถว ${i + 1}`}
+                ariaLabel={`${tr("ลิงก์")} ${tr("แถว")} ${i + 1}`}
                 value={item.href}
                 disabled={locked}
                 onCommit={(href) => commit(nodeId, { kind: "pair", index: i, key: "href", value: href })}
@@ -226,7 +226,7 @@ function HrefPairsEditor({
               size="icon-xs"
               className="mt-0.5 shrink-0"
               disabled={locked}
-              aria-label={`ลบรายการ ${i + 1}`}
+              aria-label={`${tr("ลบรายการ")} ${i + 1}`}
               onClick={() => replace(items.filter((_, j) => j !== i))}
             >
               <Minus className="size-3.5" />
@@ -275,10 +275,10 @@ function MenubarEditor({
     <div className="space-y-3">
       {menus.map((menu, i) => (
         <div key={i} className="space-y-2 rounded-md border p-2">
-          <FieldRow id={`p6-mb-m-${i}`} label={`เมนู ${i + 1}`} overridden={false} locked={locked}>
+          <FieldRow id={`p6-mb-m-${i}`} label={`${tr("เมนู")} ${i + 1}`} overridden={false} locked={locked}>
             <TextPropField
               id={`p6-mb-ml-${i}`}
-              ariaLabel={`ชื่อเมนู ${i + 1}`}
+              ariaLabel={`${tr("ชื่อเมนู")} ${i + 1}`}
               value={menu.label}
               disabled={locked}
               placeholder="File"
@@ -290,7 +290,7 @@ function MenubarEditor({
               size="icon-xs"
               className="shrink-0"
               disabled={locked}
-              aria-label={`ลบเมนู ${i + 1}`}
+              aria-label={`${tr("ลบเมนู")} ${i + 1}`}
               onClick={() => replace(menus.filter((_, j) => j !== i))}
             >
               <Minus className="size-3.5" />
@@ -300,17 +300,17 @@ function MenubarEditor({
             <FieldRow
               key={j}
               id={`p6-mb-${i}-${j}`}
-              label={`รายการ ${j + 1}`}
+              label={`${tr("รายการ")} ${j + 1}`}
               overridden={false}
               locked={locked}
               stacked
             >
               <TextPropField
                 id={`p6-mb-l-${i}-${j}`}
-                ariaLabel={`ป้ายกำกับ เมนู ${i + 1} แถว ${j + 1}`}
+                ariaLabel={`${tr("ป้ายกำกับ")} ${tr("เมนู")} ${i + 1} ${tr("แถว")} ${j + 1}`}
                 value={item.label}
                 disabled={locked}
-                placeholder="ป้ายกำกับ"
+                placeholder={tr("ป้ายกำกับ")}
                 onCommit={(label) => {
                   const items = menu.items.slice();
                   items[j] = { ...item, label };
@@ -321,7 +321,7 @@ function MenubarEditor({
                 <Suspense fallback={<div className="h-7 min-w-0 flex-1 rounded-md border" />}>
                   <HrefField
                     id={`p6-mb-h-${i}-${j}`}
-                    ariaLabel={`ลิงก์ เมนู ${i + 1} แถว ${j + 1}`}
+                    ariaLabel={`${tr("ลิงก์")} ${tr("เมนู")} ${i + 1} ${tr("แถว")} ${j + 1}`}
                     value={item.href}
                     disabled={locked}
                     onCommit={(href) => {
@@ -337,7 +337,7 @@ function MenubarEditor({
                   size="icon-xs"
                   className="mt-0.5 shrink-0"
                   disabled={locked}
-                  aria-label={`ลบรายการ ${j + 1} ของเมนู ${i + 1}`}
+                  aria-label={`${tr("ลบรายการ")} ${j + 1} ${tr("ของเมนู")} ${i + 1}`}
                   onClick={() =>
                     setMenu(i, { ...menu, items: menu.items.filter((_, k) => k !== j) })
                   }
@@ -404,7 +404,7 @@ function AvatarFile({ nodeId, assetId, locked }: { nodeId: string; assetId: stri
               const imported = await invoke<{ id: string }>("import_image", { projectId, path: picked });
               writeProp(nodeId, "srcId", imported.id);
             } catch (e) {
-              const msg = e instanceof Error && e.message.trim() ? e.message : "นำเข้ารูปไม่สำเร็จ";
+              const msg = e instanceof Error && e.message.trim() ? e.message : tr("นำเข้ารูปไม่สำเร็จ");
               toast.error(toastIpcError(msg));
             } finally {
               setBusy(false);

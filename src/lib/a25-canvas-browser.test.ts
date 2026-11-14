@@ -98,9 +98,20 @@ describe.skipIf(!CHROME)("scrollArea on the canvas: the wheel scrolls, a drag st
     const cdp = b!.cdp;
     const sa = await show(`[data-node-id="scroll"]`);
     expect(await cdp.eval(`document.querySelector('[data-node-id="scroll"]').scrollHeight > document.querySelector('[data-node-id="scroll"]').clientHeight`)).toBe(true);
-    await cdp.send("Input.dispatchMouseEvent", { type: "mouseWheel", x: sa.x + 100, y: sa.y + 30, deltaX: 0, deltaY: 60 });
-    await sleep(150);
-    const top = await cdp.eval<number>(`document.querySelector('[data-node-id="scroll"]').scrollTop`);
+    // Under parallel bun test load the first wheel can land before layout settles
+    // (FOLLOWUPS 94.1). Retry a few wheels until scrollTop moves.
+    let top = 0;
+    for (let i = 0; i < 8 && top <= 0; i++) {
+      await cdp.send("Input.dispatchMouseEvent", {
+        type: "mouseWheel",
+        x: sa.x + 100,
+        y: sa.y + 30,
+        deltaX: 0,
+        deltaY: 80,
+      });
+      await sleep(80);
+      top = await cdp.eval<number>(`document.querySelector('[data-node-id="scroll"]').scrollTop`);
+    }
     expect(top).toBeGreaterThan(0);
 
     await cdp.eval(`document.querySelector('[data-node-id="scroll"]').scrollTop=0`);

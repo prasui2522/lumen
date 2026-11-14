@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FieldRow } from "@/components/editor/style/FieldRow";
 import { checkButtonHref, missingPageWarning, type LinkPage } from "@/lib/link-target";
+import { usePhrase } from "@/lib/phrases";
 import type { PageDocument } from "@/schema";
 import { useProjectsStore } from "@/stores/projects-store";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,7 @@ function parsePagesKey(key: string): LinkPage[] {
  * Shared by button/link `ลิงก์ปลายทาง`, breadcrumb / navigationMenu, and menubar items.
  */
 export function HrefField({ id, value, disabled, onCommit, label, className, ariaLabel }: Props) {
+  const tr = usePhrase();
   const key = useProjectsStore((s) => pagesKey(s.openDocument));
   const pages = useMemo(() => parsePagesKey(key), [key]);
   const [draft, setDraft] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export function HrefField({ id, value, disabled, onCommit, label, className, ari
         id={id}
         value={draft ?? value}
         disabled={disabled}
-        placeholder="/หน้า หรือ https://…"
+        placeholder={tr("/หน้า หรือ https://…")}
         spellCheck={false}
         aria-invalid={error ? true : undefined}
         aria-describedby={message ? msgId : undefined}
@@ -113,25 +115,25 @@ export function HrefField({ id, value, disabled, onCommit, label, className, ari
         <Tooltip>
           <TooltipTrigger asChild>
             <PopoverTrigger asChild>
-              <Button type="button" variant="ghost" size="icon-xs" aria-label="เลือกหน้า" disabled={disabled}>
+              <Button type="button" variant="ghost" size="icon-xs" aria-label={tr("เลือกหน้า")} disabled={disabled}>
                 <Files className="size-3.5" />
               </Button>
             </PopoverTrigger>
           </TooltipTrigger>
-          <TooltipContent>เลือกหน้า</TooltipContent>
+          <TooltipContent>{tr("เลือกหน้า")}</TooltipContent>
         </Tooltip>
         <PopoverContent
           align="end"
           className="w-60 gap-0 p-0"
-          aria-label="เลือกหน้า"
+          aria-label={tr("เลือกหน้า")}
           onCloseAutoFocus={(e) => {
             e.preventDefault();
             inputRef.current?.focus();
           }}
         >
-          <Command label="เลือกหน้า" className="flex flex-col">
+          <Command label={tr("เลือกหน้า")} className="flex flex-col">
             <Command.Input
-              placeholder="ค้นหาหน้า…"
+              placeholder={tr("ค้นหาหน้า…")}
               className="h-8 border-b border-border bg-transparent px-2.5 text-xs outline-none placeholder:text-muted-foreground"
             />
             <Command.List className="scrollbar-thin max-h-60 overflow-auto p-1">

@@ -1,5 +1,6 @@
 //! PREVIEW-CODE-VIEW S6–S9: Rust-managed Vite sidecar.
-//! System bun/node are never used; `bun_path` is the bundled binary (or a test double).
+//! Release uses the bundled `bin/bun` only (or `WB_BUN_PATH` / a test double).
+//! Debug may fall back to `src-tauri/resources/bin/bun` or the developer `bun`.
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -58,21 +59,27 @@ window.addEventListener("message", (e) => {
   if (typeof p !== "string" || !p.startsWith("/") || p.startsWith("//") || p.includes("\\")) return;
   history.pushState({}, "", p);
 });
+// Capture: select + keep page links working, but block buttons/inputs/forms (Preview is not the live site).
 document.addEventListener("click", (e) => {
   const t = e.target;
   if (!(t instanceof Element)) return;
   const a = t.closest("a[href]");
   if (a) {
     const href = a.getAttribute("href") || "";
-    if (href && !(href.startsWith("/") && !href.startsWith("//")) && !href.startsWith('#')) {
+    const internal = href.startsWith("/") && !href.startsWith("//");
+    if (href && !internal && !href.startsWith("#")) {
       e.preventDefault();
       post({ type: "wb:external", href });
-      return;
+    } else if (!internal) {
+      e.preventDefault();
     }
+  } else {
+    e.preventDefault();
   }
   const n = t.closest("[data-node-id]");
   post({ type: "wb:select", id: n ? n.getAttribute("data-node-id") : null });
-});
+}, true);
+document.addEventListener("submit", (e) => e.preventDefault(), true);
 function boxes() {
   const list = [];
   document.querySelectorAll("[data-node-id]").forEach((el) => {
@@ -1045,6 +1052,8 @@ pub fn bun_path_from_env() -> Option<PathBuf> {
     std::env::var_os("WB_BUN_PATH").map(PathBuf::from)
 }
 
+/// Bundled `bin/bun` under the app resources (release), `WB_BUN_PATH`, or — in debug only —
+/// `src-tauri/resources/bin/bun` / the developer `bun` used to launch `tauri dev`.
 pub fn resolve_bun(resource_dir: Option<&Path>) -> PathBuf {
     if let Some(p) = bun_path_from_env() {
         if p.is_file() {
@@ -1057,7 +1066,33 @@ pub fn resolve_bun(resource_dir: Option<&Path>) -> PathBuf {
             return p;
         }
     }
+    #[cfg(debug_assertions)]
+    {
+        let local = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("resources")
+            .join("bin")
+            .join("bun");
+        if local.is_file() {
+            return local;
+        }
+        if let Some(p) = dev_bun_from_path() {
+            return p;
+        }
+    }
     PathBuf::new()
+}
+
+#[cfg(debug_assertions)]
+fn dev_bun_from_path() -> Option<PathBuf> {
+    let out = Command::new("/bin/sh")
+        .args(["-c", "command -v bun"])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let p = PathBuf::from(String::from_utf8_lossy(&out.stdout).trim());
+    p.is_file().then_some(p)
 }
 
 /// Prepare workspace + optional shared deps (S7) + spawn bun (S6).

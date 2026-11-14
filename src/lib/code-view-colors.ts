@@ -2,7 +2,8 @@
  * A3 item 8: code-view colours follow the theme. CodeMirror's default token colours are dark-on-light and
  * its base selection is #d7d4f0 / #d9d9d9, so in the dark theme (light text) the selected text and many
  * tokens dropped below WCAG AA. Each default token colour maps to a CSS variable (index.css): the light
- * values are CodeMirror's own, the dark values are lighter shades checked for 4.5:1 on the dark background.
+ * values are CodeMirror's own; dark values are lighter shades checked for 4.5:1 on the dark
+ * background, selection, blurred selection, and search match, with selection chrome ≥ 3:1 vs the background.
  */
 export const CM_TOKEN_VARS: Readonly<Record<string, string>> = {
   "#404740": "--cm-meta",

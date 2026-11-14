@@ -98,6 +98,8 @@
     --cm-def-prop: #00c;
     --cm-comment: #940;
     --cm-invalid: #c00000;
+    /* Light search match ≥ 3:1 vs white (Designer GUI check). */
+    --cm-search-match: #a79451;
 }
 
 .dark {
@@ -132,24 +134,27 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.68 0.15 240);
-    /* A3 item 8: lighter token shades, each >= 4.5:1 on --background (tested). */
-    --cm-meta: #c8ccc8;
-    --cm-keyword: #e0b0ff;
-    --cm-atom: #9ecbff;
-    --cm-literal: #b5e8a8;
-    --cm-string: #ffb4a8;
-    --cm-regexp: #ffb27a;
-    --cm-def-var: #a8c8ff;
-    --cm-local-var: #c8b4ff;
-    --cm-type: #8fe0c0;
-    --cm-class: #8fd8e8;
-    --cm-special-var: #a8d8e8;
-    --cm-def-prop: #a8c0ff;
-    --cm-comment: #e8c088;
-    --cm-invalid: #ff9a9a;
-    --cm-selection: #1e3a5f;
-    --cm-selection-blur: #2e3440;
-    --cm-search-match: #463800;
+    /* A3 item 8: lighter token shades, each >= 4.5:1 on --background,
+       --cm-selection, --cm-selection-blur, and --cm-search-match (tested).
+       Selection / blur also ≥ 3:1 vs --background (non-text chrome). */
+    --cm-meta: #dcdfdc;
+    --cm-keyword: #eed5ff;
+    --cm-atom: #c6e1ff;
+    --cm-literal: #bdebb1;
+    --cm-string: #ffd5ce;
+    --cm-regexp: #ffd7b9;
+    --cm-def-var: #cddfff;
+    --cm-local-var: #e3d9ff;
+    --cm-type: #b2ead3;
+    --cm-class: #b7e6f0;
+    --cm-special-var: #c2e4ef;
+    --cm-def-prop: #d1deff;
+    --cm-comment: #f2dbba;
+    --cm-invalid: #ffd4d4;
+    --cm-selection: #3a6499;
+    --cm-selection-blur: #5a6274;
+    /* Search match ≥ 3:1 vs --background; tokens still AA on this fill. */
+    --cm-search-match: #646620;
 }
 
 /* A3 item 8: CodeMirror's base selection (#d7d4f0 / #d9d9d9) is light; with light text in the dark
@@ -161,7 +166,12 @@
 .dark .cm-editor .cm-content ::selection {
     background: var(--cm-selection);
 }
-.dark .cm-editor .cm-searchMatch {
+.cm-editor .cm-searchMatch,
+.cm-editor .cm-searchMatch.cm-searchMatch-selected {
+    background: var(--cm-search-match);
+}
+.dark .cm-editor .cm-searchMatch,
+.dark .cm-editor .cm-searchMatch.cm-searchMatch-selected {
     background: var(--cm-search-match);
 }
 
@@ -211,6 +221,7 @@
     --cm-def-prop: #00c;
     --cm-comment: #940;
     --cm-invalid: #c00000;
+    --cm-search-match: #a79451;
 }
 
 /* Thin panel scrollbars (Firefox/Chromium via standard props; WebKitGTK via pseudo-elements). */
