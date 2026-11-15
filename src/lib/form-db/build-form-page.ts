@@ -12,11 +12,6 @@ function heading(content: string): Node {
   return { ...n, props: { type: "heading", level: 2, content } };
 }
 
-function text(content: string): Node {
-  const n = createNode("text");
-  return { ...n, props: { type: "text", content } };
-}
-
 function withDb(node: Node, db: NodeDb): Node {
   return { ...node, db };
 }
@@ -116,9 +111,10 @@ export function buildFormPageFromTable(
     formDb,
   );
 
-  const pageRoot = createNode("page");
   const pageNode: Node = {
-    ...pageRoot,
+    id: crypto.randomUUID(),
+    type: "page",
+    style: {},
     props: { type: "page", children: [formNode.id] },
   };
 

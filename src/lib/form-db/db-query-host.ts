@@ -36,6 +36,7 @@ function tableOf(model: DbModel, id: string): DbTable | null {
 }
 
 export async function handleDbQuery(req: DbQueryRequest): Promise<DbQueryResult> {
+  const requestId = req.requestId;
   const opened = await ensureTestDbOpen();
   if (!opened.ok) return { requestId: req.requestId, ok: false, error: opened.error };
   const { model } = opened;
@@ -113,5 +114,5 @@ export async function handleDbQuery(req: DbQueryRequest): Promise<DbQueryResult>
     }
   }
 
-  return { requestId: req.requestId, ok: false, error: "คำถามไม่รู้จัก" };
+  return { requestId, ok: false, error: "คำถามไม่รู้จัก" };
 }

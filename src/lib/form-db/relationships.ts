@@ -22,12 +22,8 @@ export function pickValueColumn(table: DbTable): string | null {
   return table.primaryKey[0] ?? table.columns[0]?.id ?? null;
 }
 
-/** Build dbLookup from an FK on `fromTable` (single-column FK only in v1). */
-export function lookupFromForeignKey(
-  model: DbModel,
-  fromTable: DbTable,
-  fk: DbForeignKey,
-): DbLookupBinding | null {
+/** Build dbLookup from a single-column FK (v1). */
+export function lookupFromForeignKey(model: DbModel, fk: DbForeignKey): DbLookupBinding | null {
   if (fk.columns.length !== 1 || fk.refColumns.length !== 1) return null;
   const ref = model.tables.find((t) => t.id === fk.refTableId);
   if (!ref) return null;
@@ -42,7 +38,7 @@ export function forwardLookups(model: DbModel, table: DbTable): Map<string, DbLo
   const out = new Map<string, DbLookupBinding>();
   for (const fk of table.foreignKeys) {
     if (fk.columns.length !== 1) continue;
-    const binding = lookupFromForeignKey(model, table, fk);
+    const binding = lookupFromForeignKey(model, fk);
     if (binding) out.set(fk.columns[0]!, binding);
   }
   return out;

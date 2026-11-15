@@ -88,8 +88,12 @@ function pageFromChildren(
     },
     { adminSource, ...extraRootDb },
   );
-  const root = createNode("page");
-  const pageNode: Node = { ...root, props: { type: "page", children: [containerNode.id] } };
+  const pageNode: Node = {
+    id: crypto.randomUUID(),
+    type: "page",
+    style: {},
+    props: { type: "page", children: [containerNode.id] },
+  };
   const nodes: Record<NodeId, Node> = {
     [pageNode.id]: pageNode,
     [containerNode.id]: containerNode,
