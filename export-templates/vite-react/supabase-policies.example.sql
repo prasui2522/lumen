@@ -1,0 +1,14 @@
+-- Lumen example policies. Not applied by the schema export.
+-- The schema file already runs: alter table ... enable row level security;
+-- Until a policy exists, anon and authenticated cannot read or write.
+--
+-- Replace public.items with each table the exported site must use.
+-- `for all to authenticated using (true)` lets every signed-in user
+-- read and write every row. Narrow it (for example auth.uid()) before real data.
+
+-- create policy "authenticated all"
+--   on public.items
+--   for all
+--   to authenticated
+--   using (true)
+--   with check (true);

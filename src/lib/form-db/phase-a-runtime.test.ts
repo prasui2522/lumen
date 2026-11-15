@@ -37,6 +37,7 @@ describe("Phase A runtime wiring", () => {
     expect(src).toContain("wb-db-widgets.tsx");
     expect(src).toContain("wb-db-supabase.ts");
     expect(src).toContain(".env.example");
+    expect(src).toContain("supabase-policies.example.sql");
   });
 
   test("DeviceStage wires dbQuery + ensureTestDbOpen", () => {

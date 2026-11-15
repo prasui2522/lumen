@@ -25,7 +25,7 @@ flowchart LR
 ```
 
 1. Design tables in **ฐานข้อมูล**.
-2. **ส่งออก .sql** → paste into Supabase SQL Editor (or `supabase db push` if you use the CLI).
+2. **ส่งออก .sql** → paste into Supabase SQL Editor (or `supabase db push` if you use the CLI). Then uncomment and edit `supabase-policies.example.sql` for each table the site must read or write.
 3. Export / open the site folder; copy `.env.example` → `.env`.
 4. Set:
    - `VITE_WB_DB_BACKEND=supabase`

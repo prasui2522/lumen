@@ -32,7 +32,7 @@ bun run build
 1. ใน Lumen: โหมดฐานข้อมูล → **ส่งออก .sql** แล้วรันใน Supabase SQL Editor
 2. คัดลอก `.env.example` เป็น `.env` แล้วใส่ URL + anon key
 3. ตั้ง `VITE_WB_DB_BACKEND=supabase`
-4. เพิ่ม RLS policies ตามที่ต้องการ (ไฟล์ SQL เปิด RLS ไว้แล้ว แต่ยังไม่มี policy)
+4. แก้ `supabase-policies.example.sql` แล้วรันใน SQL Editor (ไฟล์สคีมาเปิด RLS ไว้แล้ว แต่ยังไม่มี policy)
 
 ล็อกอิน/สมัครใช้ Supabase Auth (อีเมล+รหัสผ่าน) — ตาราง `users` ในสคีมาเป็นโปรไฟล์ ไม่เก็บรหัสผ่านเอง  
 รายละเอียด: เอกสาร `docs/SUPABASE.md` ในรีโป Lumen

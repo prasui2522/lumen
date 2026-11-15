@@ -361,6 +361,10 @@ fn template_files() -> Vec<(&'static str, &'static [u8])> {
             include_bytes!("../../export-templates/vite-react/.env.example"),
         ),
         (
+            "supabase-policies.example.sql",
+            include_bytes!("../../export-templates/vite-react/supabase-policies.example.sql"),
+        ),
+        (
             "src/main.tsx",
             include_bytes!("../../export-templates/vite-react/src/main.tsx"),
         ),
