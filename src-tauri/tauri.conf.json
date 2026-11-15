@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "bun scripts/ensure-bundled-bun.mjs && bun run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun scripts/ensure-bundled-bun.mjs && bun run build",
+    "beforeBuildCommand": "bun scripts/ensure-bundled-bun.mjs && bun scripts/build-preview-runtime.mjs --write && tsc && vite build",
     "frontendDist": "../dist"
   },
   "app": {
