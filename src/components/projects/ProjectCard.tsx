@@ -31,15 +31,20 @@ export function ProjectCard({ project, onRequestDelete }: Props) {
   const open = () => navigate(`/editor/${project.id}`);
 
   return (
-    <Card className="interactive-card group relative min-w-0 gap-0 py-0 transition-colors hover:bg-accent/40">
+    <Card className="interactive-card group relative min-w-0 gap-0 overflow-hidden border-border/80 bg-card/90 py-0 shadow-sm transition-[transform,box-shadow,background-color] hover:-translate-y-0.5 hover:bg-accent/30 hover:shadow-md">
       <button
         type="button"
         className="flex w-full cursor-pointer flex-col rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring"
         onClick={open}
         aria-label={`${p("เปิดโปรเจกต์")} ${project.name}`}
       >
-        <span aria-hidden className="grid aspect-video w-full place-items-center bg-muted">
-          <LayoutTemplate className="size-8 text-muted-foreground/40" />
+        <span
+          aria-hidden
+          className="grid aspect-video w-full place-items-center bg-[linear-gradient(145deg,oklch(0.92_0.05_195),oklch(0.88_0.07_230)_55%,oklch(0.9_0.05_165))] dark:bg-[linear-gradient(145deg,oklch(0.3_0.05_220),oklch(0.28_0.06_200)_55%,oklch(0.32_0.05_175))]"
+        >
+          <span className="grid size-12 place-items-center rounded-xl bg-card/80 text-primary shadow-sm backdrop-blur-sm">
+            <LayoutTemplate className="size-6" />
+          </span>
         </span>
         <span className="block min-w-0 p-3 pr-10">
           <span className="block truncate text-sm font-medium">{project.name}</span>

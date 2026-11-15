@@ -348,39 +348,52 @@ pub fn sweep_orphans(cache: &Path) -> Result<u32, String> {
         return Ok(0);
     }
     // Per pid, re-checked right before each signal — never a group-wide kill on the file's word.
-    for p in &victims {
-        if ours(*p) {
-            unsafe {
-                libc::kill(*p, libc::SIGTERM);
+    #[cfg(unix)]
+    {
+        for p in &victims {
+            if ours(*p) {
+                unsafe {
+                    libc::kill(*p, libc::SIGTERM);
+                }
             }
         }
-    }
-    let start = Instant::now();
-    while victims.iter().any(|p| ours(*p)) && start.elapsed() < Duration::from_millis(1500) {
-        std::thread::sleep(Duration::from_millis(50));
-    }
-    for p in &victims {
-        if ours(*p) {
-            unsafe {
-                libc::kill(*p, libc::SIGKILL);
+        let start = Instant::now();
+        while victims.iter().any(|p| ours(*p)) && start.elapsed() < Duration::from_millis(1500) {
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        for p in &victims {
+            if ours(*p) {
+                unsafe {
+                    libc::kill(*p, libc::SIGKILL);
+                }
             }
         }
     }
     Ok(victims.len() as u32)
 }
 
+#[derive(Clone, Copy)]
+enum KillHow {
+    Soft,
+    Hard,
+}
+
 #[cfg(unix)]
-fn kill_group(pgid: i32, sig: i32) {
+fn kill_group(pgid: i32, how: KillHow) {
     if pgid <= 1 {
         return;
     }
+    let sig = match how {
+        KillHow::Soft => libc::SIGTERM,
+        KillHow::Hard => libc::SIGKILL,
+    };
     unsafe {
         libc::kill(-pgid.abs(), sig);
     }
 }
 
 #[cfg(not(unix))]
-fn kill_group(_pgid: i32, _sig: i32) {}
+fn kill_group(_pgid: i32, _how: KillHow) {}
 
 pub fn pss_kb(pid: u32) -> u64 {
     let mut total = pss_kb_one(pid);
@@ -544,13 +557,13 @@ fn kill_untracked(spawned: &mut Vec<(u32, i32, String)>, keep: i32) {
         let members = group_members(pgid);
         let leader_ours = read_cmdline(pid).is_some_and(|c| cmdline_has_token(&c, &token));
         if !members.is_empty() && (leader_ours || members.iter().all(|(_, sid)| *sid == my_sid)) {
-            kill_group(pgid, libc::SIGTERM);
+            kill_group(pgid, KillHow::Soft);
             let start = Instant::now();
             while !group_members(pgid).is_empty() && start.elapsed() < Duration::from_millis(1500) {
                 std::thread::sleep(Duration::from_millis(50));
             }
             if !group_members(pgid).is_empty() {
-                kill_group(pgid, libc::SIGKILL);
+                kill_group(pgid, KillHow::Hard);
             }
         }
         #[cfg(unix)]
@@ -644,13 +657,13 @@ impl Sidecar {
         let mut g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         if g.session != session || g.phase != SidecarPhase::Starting {
             drop(g);
-            kill_group(pgid, libc::SIGKILL);
+            kill_group(pgid, KillHow::Hard);
             let _ = child.kill();
             let _ = child.wait();
             return Err(START_SUPERSEDED.into());
         }
         if let Some(mut old) = g.child.take() {
-            kill_group(g.pgid, libc::SIGKILL);
+            kill_group(g.pgid, KillHow::Hard);
             let _ = old.kill();
             let _ = old.wait();
         }
@@ -711,14 +724,14 @@ impl Sidecar {
 
     fn stop_locked(&self, g: &mut Inner) {
         if let Some(mut child) = g.child.take() {
-            kill_group(g.pgid, libc::SIGTERM);
+            kill_group(g.pgid, KillHow::Soft);
             let start = Instant::now();
             loop {
                 if child.try_wait().ok().flatten().is_some() {
                     break;
                 }
                 if start.elapsed() >= STOP_KILL_AFTER {
-                    kill_group(g.pgid, libc::SIGKILL);
+                    kill_group(g.pgid, KillHow::Hard);
                     let _ = child.kill();
                     let _ = child.wait();
                     break;
@@ -1052,8 +1065,18 @@ pub fn bun_path_from_env() -> Option<PathBuf> {
     std::env::var_os("WB_BUN_PATH").map(PathBuf::from)
 }
 
-/// Bundled `bin/bun` under the app resources (release), `WB_BUN_PATH`, or — in debug only —
-/// `src-tauri/resources/bin/bun` / the developer `bun` used to launch `tauri dev`.
+fn bun_in_bin(dir: &Path) -> Option<PathBuf> {
+    for name in ["bun", "bun.exe"] {
+        let p = dir.join("bin").join(name);
+        if p.is_file() {
+            return Some(p);
+        }
+    }
+    None
+}
+
+/// Bundled `bin/bun` (or `bun.exe`) under the app resources (release), `WB_BUN_PATH`, or — in
+/// debug only — `src-tauri/resources/bin/bun` / the developer `bun` used to launch `tauri dev`.
 pub fn resolve_bun(resource_dir: Option<&Path>) -> PathBuf {
     if let Some(p) = bun_path_from_env() {
         if p.is_file() {
@@ -1061,19 +1084,15 @@ pub fn resolve_bun(resource_dir: Option<&Path>) -> PathBuf {
         }
     }
     if let Some(dir) = resource_dir {
-        let p = dir.join("bin").join("bun");
-        if p.is_file() {
+        if let Some(p) = bun_in_bin(dir) {
             return p;
         }
     }
     #[cfg(debug_assertions)]
     {
-        let local = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("resources")
-            .join("bin")
-            .join("bun");
-        if local.is_file() {
-            return local;
+        let local_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("resources");
+        if let Some(p) = bun_in_bin(&local_root) {
+            return p;
         }
         if let Some(p) = dev_bun_from_path() {
             return p;
@@ -1352,15 +1371,26 @@ fn link_node_modules(ws: &Path, target: &Path) -> Result<(), String> {
     {
         std::os::unix::fs::symlink(target, &link).map_err(|e| format!("ลิงก์ node_modules ไม่สำเร็จ: {e}"))?;
     }
+    #[cfg(windows)]
+    {
+        std::os::windows::fs::symlink_dir(target, &link).map_err(|e| {
+            format!("ลิงก์ node_modules ไม่สำเร็จ: {e}")
+        })?;
+    }
     Ok(())
 }
 
 fn disk_or(e: std::io::Error) -> String {
+    #[cfg(unix)]
     if e.raw_os_error() == Some(libc::ENOSPC) {
-        "PREVIEW_DISK_FULL".into()
-    } else {
-        format!("PREVIEW_INSTALL_FAILED:{e}")
+        return "PREVIEW_DISK_FULL".into();
     }
+    // Windows ERROR_DISK_FULL
+    #[cfg(windows)]
+    if e.raw_os_error() == Some(112) {
+        return "PREVIEW_DISK_FULL".into();
+    }
+    format!("PREVIEW_INSTALL_FAILED:{e}")
 }
 
 fn install_err(msg: &str) -> String {
@@ -1394,7 +1424,7 @@ fn fail_running(s: &Sidecar, status: Option<i32>) {
     let mut g = s.inner.lock().unwrap_or_else(|e| e.into_inner());
     if let Some(mut child) = g.child.take() {
         // A1: the leader alone dying leaves vite / esbuild in its group — take the group down.
-        kill_group(g.pgid, libc::SIGKILL);
+        kill_group(g.pgid, KillHow::Hard);
         let _ = child.kill();
         let _ = child.wait();
     }

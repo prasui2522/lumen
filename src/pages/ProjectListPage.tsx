@@ -106,13 +106,17 @@ export function ProjectListPage() {
 
   return (
     <AppTooltipProvider>
-    <div className="flex min-h-svh min-w-0 flex-col overflow-x-hidden bg-background">
-      <header className="sticky top-0 z-10 flex h-14 min-w-0 items-center gap-3 overflow-hidden border-b border-border bg-background px-6">
+    <div className="relative flex min-h-svh min-w-0 flex-col overflow-x-hidden bg-background">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(120%_80%_at_10%_-10%,oklch(0.88_0.08_195/0.55),transparent_55%),radial-gradient(90%_70%_at_90%_0%,oklch(0.9_0.07_230/0.4),transparent_50%)] dark:bg-[radial-gradient(120%_80%_at_10%_-10%,oklch(0.35_0.08_205/0.45),transparent_55%),radial-gradient(90%_70%_at_90%_0%,oklch(0.32_0.07_230/0.35),transparent_50%)]"
+      />
+      <header className="sticky top-0 z-10 flex h-14 min-w-0 items-center gap-3 overflow-hidden border-b border-border/80 bg-background/80 px-6 backdrop-blur-md supports-backdrop-filter:bg-background/70">
         <span className="flex shrink-0 items-center gap-2">
-          <span aria-hidden className="grid size-7 place-items-center rounded-md bg-primary text-primary-foreground">
+          <span aria-hidden className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.58_0.12_175)] text-primary-foreground shadow-sm shadow-primary/25">
             <LayoutTemplate className="size-4" />
           </span>
-          <span className="text-base font-semibold">Web Builder</span>
+          <span className="text-base font-semibold tracking-tight">Web Builder</span>
         </span>
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
           <div className="relative w-full max-w-xs min-w-32">
@@ -144,7 +148,7 @@ export function ProjectListPage() {
         </div>
       </header>
 
-      <div className="flex min-w-0 flex-1 flex-col overflow-auto scrollbar-thin px-6 py-6">
+      <div className="relative z-[1] flex min-w-0 flex-1 flex-col overflow-auto scrollbar-thin px-6 py-6">
         {importError ? (
           <Alert variant="destructive" className="mb-4">
             <AlertCircle />

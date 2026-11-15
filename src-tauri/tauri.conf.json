@@ -40,7 +40,7 @@
     ],
     "resources": {
       "../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md",
-      "resources/bin/bun": "bin/bun"
+      "resources/bin": "bin"
     }
   },
   "plugins": {
