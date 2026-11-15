@@ -1,4 +1,4 @@
--- Vite Studio schema export
+-- Lumen schema export
 -- PostgreSQL 17 / Supabase. Row level security is enabled on every table.
 -- No policies are generated: the anon and authenticated roles can read or
 -- write nothing until you add policies (see docs/SUPABASE.md).

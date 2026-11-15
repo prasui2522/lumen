@@ -1,8 +1,8 @@
 # App updater (GitHub Releases)
 
-**Product:** Vite Studio · Channel: one `latest.json` on **GitHub Releases**. CDN may mirror the same files later. Cursor Origin is source hosting only — not the binary feed.
+**Product:** Lumen · Channel: one `latest.json` on **GitHub Releases**. CDN may mirror the same files later. Cursor Origin is source hosting only — not the binary feed.
 
-**Public feed status:** Repo https://github.com/prasui2522/vite-studio (GitHub still redirects `web-builder`). Release `v0.1.3` publishes `latest.json`. Apps built before that tag still check the old repository URL until they install a build whose endpoint was rewritten to `vite-studio`.
+**Public feed status:** Repo https://github.com/prasui2522/lumen (GitHub redirects the earlier names `web-builder` and `vite-studio`). Release `v0.1.3` was published before this rename. The next tagged build rewrites the updater endpoint to `lumen`. Apps built against an older repository name keep checking that URL until they install a newer build.
 
 ## Keys
 
@@ -25,14 +25,14 @@ bun run tauri build
 
 ## Public repository
 
-- **Remote:** https://github.com/prasui2522/vite-studio
+- **Remote:** https://github.com/prasui2522/lumen
 - **First tag:** `v0.1.1` (triggers `.github/workflows/release.yml`)
 - **Secret on the repo:** `TAURI_SIGNING_PRIVATE_KEY` (no password on the current key)
 
 CI rewrites `OWNER/REPO` in `tauri.conf.json` to `github.repository` on each tagged build, then publishes binaries + `latest.json`. After the Release job finishes, installed apps check:
 
 ```text
-https://github.com/prasui2522/vite-studio/releases/latest/download/latest.json
+https://github.com/prasui2522/lumen/releases/latest/download/latest.json
 ```
 
 Until a Release has published `latest.json`, **About → Check for updates** may still show the placeholder error if the local build still has `OWNER/REPO` in `tauri.conf.json`.

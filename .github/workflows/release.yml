@@ -1,4 +1,4 @@
-# Signed Vite Studio release + updater feed (latest.json).
+# Signed Lumen release + updater feed (latest.json).
 # Requires repo secrets:
 #   TAURI_SIGNING_PRIVATE_KEY          — contents of the .key file
 #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD — optional
@@ -105,7 +105,7 @@ jobs:
             --version "$VERSION" \
             --tag "$TAG" \
             --repo "${{ github.repository }}" \
-            --notes "Vite Studio $TAG" \
+            --notes "Lumen $TAG" \
             --out dist-upd/latest.json
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2

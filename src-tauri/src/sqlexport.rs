@@ -228,7 +228,7 @@ fn pg_default(c: &DbColumn) -> Option<String> {
     })
 }
 
-const PG_HEADER: &str = "-- Vite Studio schema export
+const PG_HEADER: &str = "-- Lumen schema export
 -- PostgreSQL 17 / Supabase. Row level security is enabled on every table.
 -- No policies are generated: the anon and authenticated roles can read or
 -- write nothing until you add policies (see docs/SUPABASE.md).
@@ -268,7 +268,7 @@ pub fn pg_sql(model: &DbModel) -> String {
         for c in &t.columns {
             if c.col_type == DbType::Asset {
                 s.push_str(&format!(
-                    "comment on column {}.{} is 'vite-studio asset id (not BYTEA)';\n",
+                    "comment on column {}.{} is 'lumen asset id (not BYTEA)';\n",
                     tq(&t.name),
                     q(&c.name)
                 ));
@@ -369,7 +369,7 @@ fn sq_default(c: &DbColumn) -> Option<String> {
 
 pub fn sqlite_sql(model: &DbModel) -> String {
     let plans = plan(model);
-    let mut s = String::from("-- Vite Studio test schema (SQLite STRICT)\n");
+    let mut s = String::from("-- Lumen test schema (SQLite STRICT)\n");
     for p in &plans {
         let t = p.t;
         let rowid_pk = p.pk_cols.len() == 1 && p.pk_cols[0].col_type == DbType::Identity;

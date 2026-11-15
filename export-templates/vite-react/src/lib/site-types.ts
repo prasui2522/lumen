@@ -1,4 +1,4 @@
-/** Shape of `src/data/site.json` written by the Vite Studio export. */
+/** Shape of `src/data/site.json` written by the Lumen export. */
 
 export type CssSize = number | string;
 export type BoxSpacing = number | { t?: number; r?: number; b?: number; l?: number };
@@ -150,7 +150,7 @@ export type SiteDocument = {
   root: string;
   nodes: Record<string, SiteNode>;
   pages?: SitePage[];
-  /** `src.id` → filename under `/assets/` (set by Vite Studio export). */
+  /** `src.id` → filename under `/assets/` (set by Lumen export). */
   assetFiles?: Record<string, string>;
   /**
    * S2 Tier 1 Preview only: `src.id` → absolute Tauri asset URL. Never written to

@@ -1,4 +1,4 @@
-//! Local SQLite persistence for Vite Studio projects (Phase 1).
+//! Local SQLite persistence for Lumen projects (Phase 1).
 //! One PageDocument per project — kept light for fast load / low RAM.
 
 use crate::defaults::{

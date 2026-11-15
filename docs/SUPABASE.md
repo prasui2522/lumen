@@ -1,6 +1,6 @@
 # Supabase deploy (Form↔DB Phase C)
 
-**Product:** Vite Studio · **Status:** Phase C — export adapters shipped; Preview stays on the local stub.
+**Product:** Lumen · **Status:** Phase C — export adapters shipped; Preview stays on the local stub.
 
 ## Why Supabase first
 

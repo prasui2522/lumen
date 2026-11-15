@@ -1,4 +1,4 @@
--- Vite Studio test schema (SQLite STRICT)
+-- Lumen test schema (SQLite STRICT)
 
 CREATE TABLE "employees" (
   "id" INTEGER PRIMARY KEY,

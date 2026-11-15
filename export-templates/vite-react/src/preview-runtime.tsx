@@ -1,5 +1,5 @@
 /**
- * Vite Studio Tier 1 Preview runtime (PREVIEW-CODE-VIEW-SPEC §1 / S2).
+ * Lumen Tier 1 Preview runtime (PREVIEW-CODE-VIEW-SPEC §1 / S2).
  *
  * The same template sources as the exported site, prebuilt at app build time and
  * loaded in a sandboxed frame (`allow-scripts`, no `allow-same-origin`). The app

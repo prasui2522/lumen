@@ -232,7 +232,7 @@ Any other change, a dropped column, or a value that does not fit becomes NULL an
 `ส่งออก .sql` → `save({ title: "ส่งออกโครงสร้างฐานข้อมูล", defaultPath: "<project>-schema.sql", filters: [{ name: "SQL", extensions: ["sql"] }] })` (name stem from the `exportFileName` rules) → `db_sql_export` with the in-memory model.
 
 ```sql
--- Vite Studio schema export
+-- Lumen schema export
 -- PostgreSQL 17 / Supabase. Row level security is enabled on every table.
 -- No policies are generated: the anon and authenticated roles can read or
 -- write nothing until you add policies (see docs/SUPABASE.md).

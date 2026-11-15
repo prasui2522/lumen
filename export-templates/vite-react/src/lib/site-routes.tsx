@@ -19,7 +19,7 @@ export function sitePages(doc: SiteDocument): Page[] {
 
 /**
  * Route table shared by the exported site (`App.tsx`, static `site.json`) and the
- * Vite Studio Tier 1 Preview runtime (same document over `postMessage`).
+ * Lumen Tier 1 Preview runtime (same document over `postMessage`).
  */
 export function SiteRoutes({ doc }: { doc: SiteDocument }) {
   return (

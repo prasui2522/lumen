@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
-// B0: generated per document by the Vite Studio export (shared Rust style generator); never hand-edited.
+// B0: generated per document by the Lumen export (shared Rust style generator); never hand-edited.
 import "./styles/kinds.css";
 import "./styles/site.css";
 

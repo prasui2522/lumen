@@ -1,4 +1,4 @@
--- Vite Studio test schema (SQLite STRICT)
+-- Lumen test schema (SQLite STRICT)
 
 CREATE TABLE "items" (
   "id" TEXT NOT NULL CONSTRAINT "items_id_check" CHECK (length("id") = 36),
