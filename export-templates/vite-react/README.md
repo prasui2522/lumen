@@ -1,4 +1,4 @@
-# เว็บที่ส่งออกจาก Web Builder
+# เว็บที่ส่งออกจาก Vite Studio
 
 โปรเจกต์ **Vite + React + TypeScript** (ไฟล์ `.tsx` / `.ts`)
 
@@ -25,5 +25,16 @@ bun run build
 - `src/lib/render-node.tsx` — เรนเดอร์โหนดเป็น React (TypeScript)
 - `src/App.tsx` — เส้นทางหลายหน้าด้วย React Router
 - `public/assets/` — รูปภาพ
+- `src/lib/wb-db-*.ts` — Form↔DB (stub ในเครื่อง หรือ Supabase เมื่อตั้งค่า env)
+
+## ต่อกับ Supabase (Phase C)
+
+1. ใน Vite Studio: โหมดฐานข้อมูล → **ส่งออก .sql** แล้วรันใน Supabase SQL Editor
+2. คัดลอก `.env.example` เป็น `.env` แล้วใส่ URL + anon key
+3. ตั้ง `VITE_WB_DB_BACKEND=supabase`
+4. เพิ่ม RLS policies ตามที่ต้องการ (ไฟล์ SQL เปิด RLS ไว้แล้ว แต่ยังไม่มี policy)
+
+ล็อกอิน/สมัครใช้ Supabase Auth (อีเมล+รหัสผ่าน) — ตาราง `users` ในสคีมาเป็นโปรไฟล์ ไม่เก็บรหัสผ่านเอง  
+รายละเอียด: เอกสาร `docs/SUPABASE.md` ในรีโป Vite Studio
 
 ใช้ `npm` หรือ `pnpm` แทน bun ได้เช่นกัน

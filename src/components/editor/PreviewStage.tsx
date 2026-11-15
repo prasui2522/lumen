@@ -93,6 +93,14 @@ export function PreviewStage() {
       });
       if (my !== seq.current || !alive.current) return;
       const p = payloadFromBundle(bundle);
+      try {
+        const { useDbModelStore } = await import("@/lib/db-model-store");
+        if (openId) await useDbModelStore.getState().ensureLoaded(openId);
+        const model = useDbModelStore.getState().model;
+        if (model.tables.length > 0) p.site.dbModel = model;
+      } catch {
+        /* db model optional for Preview */
+      }
       payloadRef.current = p;
       setPayload(p);
       setPreviewError(null);

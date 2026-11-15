@@ -109,7 +109,7 @@ function validateDefault(t: DbTable, c: DbColumn, out: ModelIssue[]) {
   else if (c.type === "integer") ok = isI64(v);
   else if (c.type === "decimal") ok = c.precision !== undefined && c.scale !== undefined && decimalFits(v, c.precision, c.scale);
   else if (c.type === "date") ok = isValidDate(v);
-  else if (c.type === "text") ok = chars(v) <= MAX_TEXT_DEFAULT_CHARS;
+  else if (c.type === "text" || c.type === "asset") ok = chars(v) <= MAX_TEXT_DEFAULT_CHARS;
   else if (c.type === "enum") ok = !!c.values && c.values.includes(v);
   if (!ok) bad("ค่าเริ่มต้นไม่ตรงกับชนิด");
 }

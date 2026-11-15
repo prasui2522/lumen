@@ -20,6 +20,7 @@ import { runSqlExport } from "@/lib/db-export";
 import { useTestDataStore } from "@/lib/db-testdata";
 import { useEditorStore } from "@/stores/editor-store";
 import { SqlExportButton } from "./SqlExportButton";
+import { FormDbActions } from "./FormDbActions";
 import { TableList } from "./TableList";
 import { TableEditor, type IssueLookup } from "./TableEditor";
 import { tableProblems } from "@/lib/db-problems";
@@ -216,7 +217,8 @@ export function DatabaseMode() {
 /** Mode-level bar: `ส่งออก .sql` exports the whole schema (reachable with 0 tables). */
 function DbHeader() {
   return (
-    <div className="flex items-center justify-end gap-2 border-b border-border px-3 py-1.5">
+    <div className="flex flex-wrap items-center justify-end gap-2 border-b border-border px-3 py-1.5">
+      <FormDbActions />
       <SqlExportButton />
     </div>
   );

@@ -1,4 +1,4 @@
-//! Local SQLite persistence for Web Builder projects (Phase 1).
+//! Local SQLite persistence for Vite Studio projects (Phase 1).
 //! One PageDocument per project — kept light for fast load / low RAM.
 
 use crate::defaults::{
@@ -31,6 +31,7 @@ fn empty_page_document(title: &str) -> PageDocument {
             style_breakpoints: None,
             states: None,
             motion: None,
+            db: None,
         },
     );
     PageDocument {
@@ -587,6 +588,7 @@ mod tests {
                 label,
                 placeholder,
                 suggestions,
+                input_kind: _,
             } => {
                 assert_eq!(label, "");
                 assert_eq!(placeholder, "พิมพ์ที่นี่");
@@ -696,6 +698,7 @@ mod tests {
                 style_breakpoints: None,
                 states: None,
                 motion: None,
+                db: None,
             },
         );
         doc.pages = vec![

@@ -79,6 +79,9 @@ import type { ListMarker } from "@/schema";
 const ButtonLinkField = lazyNamed(() =>
   import("@/components/editor/style/ButtonLinkField").then((m) => m.ButtonLinkField),
 );
+const DbBindingSectionLazy = lazyNamed(() =>
+  import("@/components/editor/DbBindingSection").then((m) => m.DbBindingSection),
+);
 // Phase 11 A4.3: table grid editor (own chunk; no whenIdle preload per §5).
 const TableEditor = lazyNamed(() =>
   import("@/components/editor/table-editor").then((m) => m.TableEditor),
@@ -454,7 +457,7 @@ function PanelBody({
           <select
             className="h-7 min-w-0 flex-1 rounded-lg border border-input bg-transparent px-2"
             disabled={locked}
-            value={(editState ? node.states?.[editState]?.cursor : node.style.cursor) ?? ""}
+            value={(editState ? node.states?.[editState]?.cursor : (node.style ?? {}).cursor) ?? ""}
             onChange={(e) => {
               const value = e.target.value;
               const next = value
@@ -477,7 +480,7 @@ function PanelBody({
             <select
               className="h-7 min-w-0 flex-1 rounded-lg border border-input bg-transparent px-2"
               disabled={locked}
-              value={node.style.borderEffect ?? ""}
+              value={(node.style ?? {}).borderEffect ?? ""}
               onChange={(e) => {
                 const value = e.target.value === "led" ? "led" : undefined;
                 writeStyle(node.id, "borderEffect", value, undefined, null);
@@ -499,7 +502,7 @@ function PanelBody({
           <select
             className="h-7 min-w-0 flex-1 rounded-lg border border-input bg-transparent px-2"
             disabled={locked}
-            value={glassLevelOf(node.style)}
+            value={glassLevelOf(node.style ?? {})}
             onChange={(e) => writeGlassThickness(node.id, e.target.value as "" | "ultra" | "thin" | "regular" | "thick")}
           >
             <option value="">{p("ไม่ใช้กระจก")}</option>
@@ -513,6 +516,11 @@ function PanelBody({
       ) : null}
 
       {onState ? null : <NodePropsSection node={node} locked={locked} />}
+      {onState ? null : (
+        <Suspense fallback={null}>
+          <DbBindingSectionLazy node={node} locked={locked} />
+        </Suspense>
+      )}
 
       {STYLE_SECTIONS.map((sec) => {
         if (sec.id === "effects") {
@@ -1433,7 +1441,7 @@ function A2Props({ node, locked }: { node: Node; locked: boolean }) {
               onCommit={(v) => writeProp(node.id, "label", v)}
             />
           </FieldRow>
-          {node.style.height === undefined && node.style.minHeight === undefined ? (
+          {(node.style ?? {}).height === undefined && (node.style ?? {}).minHeight === undefined ? (
             <p className="text-[11px] text-muted-foreground">{tr("ตั้งความสูงเพื่อให้เลื่อนได้")}</p>
           ) : null}
         </>
@@ -2092,7 +2100,7 @@ function SimpleRow(props: FieldProps) {
       const own =
         props.segment !== "desktop" && breakpointKeySet(node, props.segment, "fontFamily")
           ? (node.styleBreakpoints?.[props.segment]?.fontFamily as string | undefined)
-          : node.style.fontFamily;
+          : (node.style ?? {}).fontFamily;
       const preset = FONT_PRESETS.find((p) => p.value === own);
       const sel = own === undefined ? "" : preset ? preset.value : "__custom";
       control = (

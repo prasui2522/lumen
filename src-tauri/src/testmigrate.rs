@@ -90,7 +90,8 @@ pub fn map_value(old: &DbColumn, new: &DbColumn, v: &SqlValue) -> Option<SqlValu
             SqlValue::Integer(i) => Some(SqlValue::Text(if *i != 0 { "true" } else { "false" }.into())),
             _ => None,
         },
-        (Integer | Decimal | Date | Timestamptz | Uuid | Json | Enum, Text) => text().map(SqlValue::Text),
+        (Integer | Decimal | Date | Timestamptz | Uuid | Json | Enum | Asset, Text) => text().map(SqlValue::Text),
+        (Text | Asset, Asset) => text().map(SqlValue::Text),
         // Identity is the rowid; it is never copied as a value.
         (a, b) if a == b && b != Identity => Some(v.clone()),
         _ => None,

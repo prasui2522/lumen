@@ -21,6 +21,14 @@ export type Tier1FrameProps = {
   onExternal?: (href: string) => void;
   onSelect?: (id: string | null) => void;
   onBoxes?: (boxes: { id: string; x: number; y: number; w: number; h: number }[]) => void;
+  /** Form↔DB submit from Preview (`data-wb-action="dbSubmit"`). */
+  onDbSubmit?: (msg: { buttonId: string; values: Record<string, string | boolean> }) => void;
+  /**
+   * Form↔DB data query from Preview. Return a result object; the frame posts `wb:dbResult`.
+   */
+  onDbQuery?: (
+    msg: Extract<import("@/lib/preview-runtime").FrameToApp, { type: "wb:dbQuery" }>,
+  ) => Promise<Record<string, unknown>>;
   /** Runtime did not answer in time (missing build, blocked script) → caller falls back. */
   onTimeout?: () => void;
 };
@@ -43,12 +51,36 @@ export function Tier1Frame({
   onExternal,
   onSelect,
   onBoxes,
+  onDbSubmit,
+  onDbQuery,
   onTimeout,
 }: Tier1FrameProps) {
   const ref = useRef<HTMLIFrameElement | null>(null);
   const ready = useRef(false);
-  const latest = useRef({ payload, path, onHeight, onRoute, onExternal, onSelect, onBoxes, onTimeout });
-  latest.current = { payload, path, onHeight, onRoute, onExternal, onSelect, onBoxes, onTimeout };
+  const latest = useRef({
+    payload,
+    path,
+    onHeight,
+    onRoute,
+    onExternal,
+    onSelect,
+    onBoxes,
+    onDbSubmit,
+    onDbQuery,
+    onTimeout,
+  });
+  latest.current = {
+    payload,
+    path,
+    onHeight,
+    onRoute,
+    onExternal,
+    onSelect,
+    onBoxes,
+    onDbSubmit,
+    onDbQuery,
+    onTimeout,
+  };
   const lastSentPath = useRef<string | null>(null);
 
   const send = (m: AppToFrame) => {
@@ -87,6 +119,26 @@ export function Tier1Frame({
         case "wb:boxes":
           latest.current.onBoxes?.(m.boxes);
           break;
+        case "wb:dbSubmit":
+          latest.current.onDbSubmit?.({ buttonId: m.buttonId, values: m.values });
+          break;
+        case "wb:dbQuery": {
+          const handler = latest.current.onDbQuery;
+          if (!handler) break;
+          void handler(m)
+            .then((result) => {
+              send({ type: "wb:dbResult", requestId: m.requestId, ...result });
+            })
+            .catch((err) => {
+              send({
+                type: "wb:dbResult",
+                requestId: m.requestId,
+                ok: false,
+                error: err instanceof Error ? err.message : String(err),
+              });
+            });
+          break;
+        }
       }
     };
     window.addEventListener("message", onMessage);

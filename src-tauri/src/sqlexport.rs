@@ -179,7 +179,7 @@ fn plan(model: &DbModel) -> Vec<TablePlan<'_>> {
 fn has_check(c: &DbColumn) -> bool {
     // PG: only enum. SQLite: every type except text/integer/identity (see `sq_check`).
     // One name is reserved per column that needs a check on either side.
-    !matches!(c.col_type, DbType::Text | DbType::Integer | DbType::Identity)
+    !matches!(c.col_type, DbType::Text | DbType::Integer | DbType::Identity | DbType::Asset)
 }
 
 fn on_delete_sql(o: OnDelete) -> &'static str {
@@ -203,7 +203,7 @@ fn list(cols: &[&DbColumn], q: fn(&str) -> String) -> String {
 
 fn pg_type(c: &DbColumn) -> String {
     match c.col_type {
-        DbType::Text | DbType::Enum => "text".into(),
+        DbType::Text | DbType::Enum | DbType::Asset => "text".into(),
         DbType::Integer => "bigint".into(),
         DbType::Decimal => format!("numeric({},{})", c.precision.unwrap_or(12), c.scale.unwrap_or(2)),
         DbType::Boolean => "boolean".into(),
@@ -228,10 +228,12 @@ fn pg_default(c: &DbColumn) -> Option<String> {
     })
 }
 
-const PG_HEADER: &str = "-- Web Builder schema export
--- PostgreSQL 17. Row level security is enabled on every table.
+const PG_HEADER: &str = "-- Vite Studio schema export
+-- PostgreSQL 17 / Supabase. Row level security is enabled on every table.
 -- No policies are generated: the anon and authenticated roles can read or
--- write nothing until you add policies.
+-- write nothing until you add policies (see docs/SUPABASE.md).
+-- Prefer Supabase Auth for login; treat app users tables as profiles, not
+-- password stores.
 ";
 
 pub fn pg_sql(model: &DbModel) -> String {
@@ -263,6 +265,15 @@ pub fn pg_sql(model: &DbModel) -> String {
             }
         }
         s.push_str(&format!("\ncreate table {} (\n{}\n);\n", tq(&t.name), lines.join(",\n")));
+        for c in &t.columns {
+            if c.col_type == DbType::Asset {
+                s.push_str(&format!(
+                    "comment on column {}.{} is 'vite-studio asset id (not BYTEA)';\n",
+                    tq(&t.name),
+                    q(&c.name)
+                ));
+            }
+        }
     }
     let fks: Vec<String> = plans
         .iter()
@@ -330,7 +341,7 @@ fn sq_type(c: &DbColumn) -> &'static str {
 fn sq_check(c: &DbColumn) -> Option<String> {
     let n = sq_ident(&c.name);
     Some(match c.col_type {
-        DbType::Text | DbType::Integer | DbType::Identity => return None,
+        DbType::Text | DbType::Integer | DbType::Identity | DbType::Asset => return None,
         DbType::Decimal => format!("({n} GLOB '[0-9]*' OR {n} GLOB '-[0-9]*') AND {n} NOT GLOB '*[^0-9.-]*'"),
         DbType::Boolean => format!("{n} IN (0, 1)"),
         DbType::Date => format!("date({n}) = {n}"),
@@ -358,7 +369,7 @@ fn sq_default(c: &DbColumn) -> Option<String> {
 
 pub fn sqlite_sql(model: &DbModel) -> String {
     let plans = plan(model);
-    let mut s = String::from("-- Web Builder test schema (SQLite STRICT)\n");
+    let mut s = String::from("-- Vite Studio test schema (SQLite STRICT)\n");
     for p in &plans {
         let t = p.t;
         let rowid_pk = p.pk_cols.len() == 1 && p.pk_cols[0].col_type == DbType::Identity;

@@ -22,11 +22,36 @@ export function projectDirty(documentDirty: boolean, pendingDbModel: unknown): b
   return documentDirty || pendingDbModel !== null;
 }
 
+/** Legacy / sparse nodes may omit `style`; canvas reads `node.style.height` etc. */
+function ensureNodeStyles(
+  nodes: PageDocument["nodes"],
+): PageDocument["nodes"] {
+  let changed = false;
+  const out: PageDocument["nodes"] = {};
+  for (const [id, node] of Object.entries(nodes)) {
+    if (node.style != null && typeof node.style === "object") {
+      out[id] = node;
+    } else {
+      changed = true;
+      out[id] = { ...node, style: {} };
+    }
+  }
+  return changed ? out : nodes;
+}
+
 function acceptDocument(doc: PageDocument): PageDocument {
   const withPages = ensurePages(doc);
+  const pages = withPages.pages!.map((page) => {
+    const nodes = ensureNodeStyles(page.nodes);
+    return nodes === page.nodes ? page : { ...page, nodes };
+  });
+  const normalized =
+    pages.every((p, i) => p === withPages.pages![i])
+      ? withPages
+      : { ...withPages, pages };
   // Open home (first page) after load/create.
-  const home = withPages.pages![0]!;
-  return { ...withPages, root: home.root, nodes: home.nodes };
+  const home = normalized.pages![0]!;
+  return { ...normalized, root: home.root, nodes: home.nodes };
 }
 
 export type ProjectSummary = {

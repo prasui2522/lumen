@@ -1,4 +1,4 @@
-/** Shape of `src/data/site.json` written by the Web Builder export. */
+/** Shape of `src/data/site.json` written by the Vite Studio export. */
 
 export type CssSize = number | string;
 export type BoxSpacing = number | { t?: number; r?: number; b?: number; l?: number };
@@ -125,6 +125,15 @@ export type SiteNode = {
   motion?: {
     entrance?: { preset?: string; trigger?: string; durationMs?: number; delayMs?: number; easing?: string };
   };
+  /** Form↔DB / admin bindings (docs/FORM-DB-CRUD-SPEC.md). */
+  db?: {
+    form?: { tableId: string; op: string; keyColumnId?: string };
+    column?: string;
+    lookup?: { tableId: string; valueColumnId: string; labelColumnId: string };
+    list?: { tableId: string; resolveFks?: boolean; search?: boolean };
+    related?: { parentTableId: string; fkId: string };
+    adminSource?: string;
+  };
 };
 
 export type SitePage = {
@@ -141,7 +150,7 @@ export type SiteDocument = {
   root: string;
   nodes: Record<string, SiteNode>;
   pages?: SitePage[];
-  /** `src.id` → filename under `/assets/` (set by Web Builder export). */
+  /** `src.id` → filename under `/assets/` (set by Vite Studio export). */
   assetFiles?: Record<string, string>;
   /**
    * S2 Tier 1 Preview only: `src.id` → absolute Tauri asset URL. Never written to
@@ -152,4 +161,16 @@ export type SiteDocument = {
   baseDefaults?: Record<string, StyleProps>;
   /** B0: heading font size per level 1–6 (defaults.rs `heading_font_size`). */
   headingFontSizes?: number[];
+  /** Form↔DB model (optional). Preview injects from the app; export may embed it. */
+  dbModel?: {
+    version: number;
+    tables: {
+      id: string;
+      name: string;
+      label?: string;
+      primaryKey: string[];
+      columns: { id: string; name: string; label?: string; type: string; secret?: string | null }[];
+      foreignKeys: { id: string; columns: string[]; refTableId: string; refColumns: string[] }[];
+    }[];
+  };
 };

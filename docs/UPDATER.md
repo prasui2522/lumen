@@ -1,6 +1,8 @@
 # App updater (GitHub Releases)
 
-Channel: one `latest.json` on **GitHub Releases**. CDN may mirror the same files later. Cursor Origin is source hosting only — not the binary feed.
+**Product:** Vite Studio · Channel: one `latest.json` on **GitHub Releases**. CDN may mirror the same files later. Cursor Origin is source hosting only — not the binary feed.
+
+**Public feed status:** Repo https://github.com/prasui2522/web-builder is public. Tag `v0.1.1` exists; a Release with `latest.json` must finish publishing before **About → Check for updates** works against the real endpoint. After renaming to Vite Studio, prefer a new tag (e.g. `v0.1.2`) once the rename + Phase C commits are on `main`.
 
 ## Keys
 
@@ -71,19 +73,19 @@ https://github.com/OWNER/REPO/releases/latest/download/latest.json
   "platforms": {
     "linux-x86_64": {
       "signature": "<contents of .AppImage.sig>",
-      "url": "https://github.com/OWNER/REPO/releases/download/v0.1.1/Web.Builder_0.1.1_amd64.AppImage"
+      "url": "https://github.com/OWNER/REPO/releases/download/v0.1.1/Vite.Studio_0.1.1_amd64.AppImage"
     },
     "windows-x86_64": {
       "signature": "<contents of .nsis.zip.sig or .msi.sig>",
-      "url": "https://github.com/OWNER/REPO/releases/download/v0.1.1/Web.Builder_0.1.1_x64-setup.exe"
+      "url": "https://github.com/OWNER/REPO/releases/download/v0.1.1/Vite.Studio_0.1.1_x64-setup.exe"
     },
     "darwin-aarch64": {
       "signature": "<contents of .app.tar.gz.sig>",
-      "url": "https://github.com/OWNER/REPO/releases/download/v0.1.1/Web.Builder_aarch64.app.tar.gz"
+      "url": "https://github.com/OWNER/REPO/releases/download/v0.1.1/Vite.Studio_aarch64.app.tar.gz"
     },
     "darwin-x86_64": {
       "signature": "<contents of .app.tar.gz.sig>",
-      "url": "https://github.com/OWNER/REPO/releases/download/v0.1.1/Web.Builder_x64.app.tar.gz"
+      "url": "https://github.com/OWNER/REPO/releases/download/v0.1.1/Vite.Studio_x64.app.tar.gz"
     }
   }
 }

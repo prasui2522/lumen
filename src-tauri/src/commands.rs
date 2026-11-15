@@ -6,7 +6,6 @@ use crate::db::{
 };
 use crate::compiler::{compile, parse_document, CompileOptions};
 use crate::defaults::PageDocument;
-use crate::export::write_zip;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use crate::testdb::{self, OpenResult, Rows, TestDbState};
@@ -180,11 +179,19 @@ pub async fn export_project(
             db_open(&conn, &project_id)?.document
         }
     };
-    let (opts, files) = {
+    let (opts, files, db_model) = {
         let conn = state.conn.lock().map_err(|_| "DB lock poisoned".to_string())?;
-        crate::assets::export_parts(&conn, &state.assets_dir, &project_id, &doc)?
+        let parts = crate::assets::export_parts(&conn, &state.assets_dir, &project_id, &doc)?;
+        let model = crate::db::load_db_model(&conn, &project_id)?;
+        (parts.0, parts.1, model)
     };
-    let written = write_zip(&PathBuf::from(dest), &doc, &opts, &files)?;
+    let written = crate::export::write_zip_with_db(
+        &PathBuf::from(dest),
+        &doc,
+        &opts,
+        &files,
+        db_model.as_ref(),
+    )?;
     Ok(written.to_string_lossy().into_owned())
 }
 
@@ -569,6 +576,27 @@ pub fn db_test_insert(
     values: serde_json::Map<String, Value>,
 ) -> Result<Inserted, String> {
     Ok(Inserted { rowid: testdb::insert(&*slot(&test)?, &table_id, &values)? })
+}
+
+/// Argon2id hash for Form↔DB password columns (Preview + export adapter).
+#[tauri::command]
+pub fn hash_password(plain: String) -> Result<String, String> {
+    use argon2::{
+        password_hash::{PasswordHasher, SaltString},
+        Argon2,
+    };
+    use rand_core::OsRng;
+    if plain.is_empty() {
+        return Err("รหัสผ่านว่าง".into());
+    }
+    if plain.chars().count() > 200 {
+        return Err("รหัสผ่านยาวเกินไป".into());
+    }
+    let salt = SaltString::generate(&mut OsRng);
+    Argon2::default()
+        .hash_password(plain.as_bytes(), &salt)
+        .map(|h| h.to_string())
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

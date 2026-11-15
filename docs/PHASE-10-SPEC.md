@@ -232,10 +232,12 @@ Any other change, a dropped column, or a value that does not fit becomes NULL an
 `ส่งออก .sql` → `save({ title: "ส่งออกโครงสร้างฐานข้อมูล", defaultPath: "<project>-schema.sql", filters: [{ name: "SQL", extensions: ["sql"] }] })` (name stem from the `exportFileName` rules) → `db_sql_export` with the in-memory model.
 
 ```sql
--- Web Builder schema export
--- PostgreSQL 17. Row level security is enabled on every table.
+-- Vite Studio schema export
+-- PostgreSQL 17 / Supabase. Row level security is enabled on every table.
 -- No policies are generated: the anon and authenticated roles can read or
--- write nothing until you add policies.
+-- write nothing until you add policies (see docs/SUPABASE.md).
+-- Prefer Supabase Auth for login; treat app users tables as profiles, not
+-- password stores.
 create table public.<t> ( … , constraint <t>_pkey primary key (…), constraint <t>_<c>_key unique (…), constraint <t>_<c>_check check (…) );
 …                                  -- tables by name, columns in model order
 alter table public.<t> add constraint <t>_<c>_fkey foreign key (…) references public.<r> (…) on delete <action>;

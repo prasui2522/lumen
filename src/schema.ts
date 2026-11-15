@@ -51,6 +51,19 @@ export type AssetRef = {
   alt?: string;
 };
 
+/** Form↔DB binding on a node (sparse). See docs/FORM-DB-CRUD-SPEC.md. */
+export type NodeDbFormOp = "insert" | "update" | "delete" | "load";
+export type NodeDb = {
+  form?: { tableId: string; op: NodeDbFormOp; keyColumnId?: string };
+  column?: string;
+  lookup?: { tableId: string; valueColumnId: string; labelColumnId: string };
+  list?: { tableId: string; resolveFks?: boolean; search?: boolean };
+  related?: { parentTableId: string; fkId: string };
+  adminSource?: string;
+};
+
+export type InputKind = "text" | "password" | "number" | "date" | "datetime-local" | "asset";
+
 export type NodeType =
   | "page"
   | "section"
@@ -153,6 +166,8 @@ export type Node = {
    * Shape: see `NodeMotion` after StyleProps.
    */
   motion?: NodeMotion;
+  /** Form↔DB / admin bindings. Omitted when unused. */
+  db?: NodeDb;
 };
 
 export type NodeProps =
@@ -260,7 +275,8 @@ export type ButtonProps = {
   type: "button";
   label: string;
   href?: string;
-  action?: "link" | "none";
+  /** `dbSubmit` runs the ancestor container's `db.form` op. */
+  action?: "link" | "none" | "dbSubmit";
 };
 
 export type LinkProps = {
@@ -286,6 +302,8 @@ export type InputProps = {
    * no `list` / no `<datalist>` in the export.
    */
   suggestions?: string[];
+  /** HTML input type / asset picker. Default text when omitted. */
+  inputKind?: InputKind;
 };
 
 export type SwitchProps = {
@@ -1520,7 +1538,8 @@ export function resolvedStyle(node: Node): StyleProps {
     base.fontSize = HEADING_FONT_SIZE[node.props.level];
   }
 
-  return { ...base, ...node.style };
+  // Sparse / legacy docs may omit `style`; treat as {}.
+  return { ...base, ...(node.style ?? {}) };
 }
 
 export function getChildren(node: Node): NodeId[] {

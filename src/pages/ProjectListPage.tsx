@@ -116,7 +116,7 @@ export function ProjectListPage() {
           <span aria-hidden className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-[oklch(0.58_0.12_175)] text-primary-foreground shadow-sm shadow-primary/25">
             <LayoutTemplate className="size-4" />
           </span>
-          <span className="text-base font-semibold tracking-tight">Web Builder</span>
+          <span className="text-base font-semibold tracking-tight">Vite Studio</span>
         </span>
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
           <div className="relative w-full max-w-xs min-w-32">

@@ -313,55 +313,56 @@ export function backdropFilterToCss(f: BackdropFilterValue | undefined): string 
 }
 
 export function styleToCss(
-  style: StyleProps,
+  style: StyleProps | undefined | null,
   extra?: CSSProperties,
 ): CSSProperties {
-  const bgGrad = gradientToCss(style.backgroundGradient);
-  const textGrad = bgGrad ? undefined : gradientToCss(style.textGradient);
+  const s = style ?? {};
+  const bgGrad = gradientToCss(s.backgroundGradient);
+  const textGrad = bgGrad ? undefined : gradientToCss(s.textGradient);
   const out: CSSProperties = {
-    display: style.display,
-    width: cssLen(style.width),
-    height: cssLen(style.height),
-    minHeight: cssLen(style.minHeight),
-    maxWidth: cssLen(style.maxWidth),
-    margin: spacingToCss(style.margin),
-    padding: spacingToCss(style.padding),
-    backgroundColor: style.backgroundColor,
-    color: textGrad ? "transparent" : style.color,
-    fontFamily: style.fontFamily,
-    fontSize: style.fontSize !== undefined ? `${style.fontSize}px` : undefined,
-    fontWeight: style.fontWeight,
-    lineHeight: style.lineHeight,
-    textAlign: style.textAlign,
+    display: s.display,
+    width: cssLen(s.width),
+    height: cssLen(s.height),
+    minHeight: cssLen(s.minHeight),
+    maxWidth: cssLen(s.maxWidth),
+    margin: spacingToCss(s.margin),
+    padding: spacingToCss(s.padding),
+    backgroundColor: s.backgroundColor,
+    color: textGrad ? "transparent" : s.color,
+    fontFamily: s.fontFamily,
+    fontSize: s.fontSize !== undefined ? `${s.fontSize}px` : undefined,
+    fontWeight: s.fontWeight,
+    lineHeight: s.lineHeight,
+    textAlign: s.textAlign,
     borderRadius:
-      style.borderRadius !== undefined ? `${style.borderRadius}px` : undefined,
+      s.borderRadius !== undefined ? `${s.borderRadius}px` : undefined,
     borderWidth:
-      style.borderWidth !== undefined ? `${style.borderWidth}px` : undefined,
+      s.borderWidth !== undefined ? `${s.borderWidth}px` : undefined,
     // Unset → currentColor (defaults.rs / compiler), not the app's border-border gray.
-    borderColor: style.borderColor ?? "currentColor",
-    borderStyle: borderStyleKw(style.borderStyle) as CSSProperties["borderStyle"],
-    opacity: style.opacity,
-    cursor: style.cursor,
-    overflow: style.overflow,
-    boxShadow: boxShadowToCss(style.boxShadow),
+    borderColor: s.borderColor ?? "currentColor",
+    borderStyle: borderStyleKw(s.borderStyle) as CSSProperties["borderStyle"],
+    opacity: s.opacity,
+    cursor: s.cursor,
+    overflow: s.overflow,
+    boxShadow: boxShadowToCss(s.boxShadow),
   };
-  applyBorderRadiusCorners(out, style.borderRadiusCorners);
-  applyBorderSides(out, style.borderSides);
-  const xform = transformToCss(style.transform);
+  applyBorderRadiusCorners(out, s.borderRadiusCorners);
+  applyBorderSides(out, s.borderSides);
+  const xform = transformToCss(s.transform);
   // B5.1 T105: inline + transform → inline-block (canvas / preview parity with export).
   if (out.display === "inline" && xform) out.display = "inline-block";
   if (xform) out.transform = xform;
-  const origin = transformOriginKw(style.transform?.origin);
+  const origin = transformOriginKw(s.transform?.origin);
   if (origin) out.transformOrigin = origin;
-  applyTransition(out, style.transition);
-  const filt = filterToCss(style.filter);
+  applyTransition(out, s.transition);
+  const filt = filterToCss(s.filter);
   if (filt) out.filter = filt;
-  const bfilt = backdropFilterToCss(style.backdropFilter);
+  const bfilt = backdropFilterToCss(s.backdropFilter);
   if (bfilt) {
     out.WebkitBackdropFilter = bfilt;
     out.backdropFilter = bfilt;
     (out as CSSProperties & { "--wb-glass-solid"?: string })["--wb-glass-solid"] = opaqueFill(
-      style.backgroundColor,
+      s.backgroundColor,
     );
   }
   const img = bgGrad ?? textGrad;

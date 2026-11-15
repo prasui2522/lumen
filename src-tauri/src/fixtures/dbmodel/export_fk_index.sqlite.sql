@@ -1,4 +1,4 @@
--- Web Builder test schema (SQLite STRICT)
+-- Vite Studio test schema (SQLite STRICT)
 
 CREATE TABLE "memberships" (
   "user_id" TEXT NOT NULL CONSTRAINT "memberships_user_id_check" CHECK (length("user_id") = 36),

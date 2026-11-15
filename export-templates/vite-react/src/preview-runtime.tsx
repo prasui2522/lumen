@@ -1,5 +1,5 @@
 /**
- * Web Builder Tier 1 Preview runtime (PREVIEW-CODE-VIEW-SPEC §1 / S2).
+ * Vite Studio Tier 1 Preview runtime (PREVIEW-CODE-VIEW-SPEC §1 / S2).
  *
  * The same template sources as the exported site, prebuilt at app build time and
  * loaded in a sandboxed frame (`allow-scripts`, no `allow-same-origin`). The app
@@ -13,6 +13,7 @@ import { SiteRoutes } from "./lib/site-routes";
 import { NODE_ID_ATTR, PREVIEW_FLAG } from "./lib/render-node";
 import type { SiteDocument } from "./lib/site-types";
 import { isSafeWbNavigatePath } from "./lib/wb-navigate";
+import { acceptDbResult } from "./lib/wb-db-client";
 import "./index.css";
 
 (globalThis as Record<string, unknown>)[PREVIEW_FLAG] = true;
@@ -27,7 +28,8 @@ type SiteMessage = {
   path?: string;
 };
 type NavigateMessage = { type: "wb:navigate"; path: string };
-type InMessage = SiteMessage | NavigateMessage;
+type DbResultMessage = { type: "wb:dbResult"; requestId: string; [k: string]: unknown };
+type InMessage = SiteMessage | NavigateMessage | DbResultMessage;
 
 /** Frame → app. */
 type OutMessage =
@@ -94,6 +96,8 @@ function Runtime() {
         // A3 item 1: same-site paths only (the source check above already limits this to the app).
         if (!isSafeWbNavigatePath(m.path)) return;
         setNavTo((n) => ({ path: m.path, seq: (n?.seq ?? 0) + 1 }));
+      } else if (m.type === "wb:dbResult") {
+        acceptDbResult(m);
       }
     };
     window.addEventListener("message", onMessage);
@@ -118,11 +122,44 @@ function Runtime() {
     return () => ro.disconnect();
   }, [doc]);
 
-  // Capture: select + keep same-site page links; block buttons/inputs/forms (Preview ≠ live site).
+  // Capture: select + keep same-site page links; block most buttons/inputs.
+  // Exception: `data-wb-action="dbSubmit"` collects bound field values and posts wb:dbSubmit.
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const t = e.target as Element | null;
       if (!t?.closest) return;
+      const dbBtn = t.closest('[data-wb-action="dbSubmit"]') as HTMLElement | null;
+      if (dbBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const buttonEl = dbBtn.closest(`[${NODE_ID_ATTR}]`);
+        const buttonId = buttonEl?.getAttribute(NODE_ID_ATTR);
+        if (!buttonId) return;
+        const root = buttonEl?.closest("form") ?? buttonEl?.closest("[data-node-id]")?.parentElement ?? document.body;
+        const values: Record<string, string | boolean> = {};
+        root.querySelectorAll(`[${NODE_ID_ATTR}]`).forEach((el) => {
+          const id = el.getAttribute(NODE_ID_ATTR);
+          if (!id) return;
+          const input = el.querySelector("input, textarea, select") as
+            | HTMLInputElement
+            | HTMLTextAreaElement
+            | HTMLSelectElement
+            | null;
+          if (!input) return;
+          if (input instanceof HTMLInputElement && input.type === "checkbox") {
+            values[id] = input.checked;
+          } else {
+            values[id] = input.value;
+          }
+        });
+        post({ type: "wb:dbSubmit", buttonId, values } as never);
+        post({ type: "wb:select", id: buttonId });
+        return;
+      }
+      // Allow Form↔DB widgets and native fields to receive clicks/focus.
+      const interactive = t.closest(
+        "input, textarea, select, button, [data-wb-db-list], [data-wb-db-related], [data-wb-asset-field], [data-wb-lookup]",
+      );
       const a = t.closest("a[href]") as HTMLAnchorElement | null;
       if (a) {
         const href = a.getAttribute("href") ?? "";
@@ -132,7 +169,7 @@ function Runtime() {
         } else if (!isInternalPath(href)) {
           e.preventDefault();
         }
-      } else {
+      } else if (!interactive) {
         e.preventDefault();
       }
       const el = t.closest(`[${NODE_ID_ATTR}]`);

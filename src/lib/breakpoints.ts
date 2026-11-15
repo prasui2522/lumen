@@ -172,8 +172,8 @@ function cleanNodes(nodes: Record<NodeId, Node>): {
   for (const [id, node] of Object.entries(nodes)) {
     if (isVersion4Kind(node.type)) v4 = true; // includes the A3 checkbox (§4.4)
     else if (node.type === "input" || node.type === "switch") field = true;
-    let next: Node = node;
-    const map = cleanBreakpoints(node.styleBreakpoints);
+    let next: Node = node.style ? node : { ...node, style: {} };
+    const map = cleanBreakpoints(next.styleBreakpoints);
     if (map) {
       anyBp = true;
       next = { ...next, styleBreakpoints: map };

@@ -36,7 +36,8 @@ export function payloadFromBundle(b: PreviewBundle): RuntimePayload {
 
 export type AppToFrame =
   | ({ type: "wb:site"; path?: string } & RuntimePayload)
-  | { type: "wb:navigate"; path: string };
+  | { type: "wb:navigate"; path: string }
+  | ({ type: "wb:dbResult" } & Record<string, unknown>);
 
 export type FrameToApp =
   | { type: "wb:ready" }
@@ -45,7 +46,19 @@ export type FrameToApp =
   | { type: "wb:external"; href: string }
   | { type: "wb:select"; id: string | null }
   | { type: "wb:boxes"; boxes: { id: string; x: number; y: number; w: number; h: number }[] }
-  | { type: "wb:edit"; id: string | null };
+  | { type: "wb:edit"; id: string | null }
+  | { type: "wb:dbSubmit"; buttonId: string; values: Record<string, string | boolean> }
+  | {
+      type: "wb:dbQuery";
+      requestId: string;
+      kind: "listMeta" | "rows" | "lookupOptions" | "related" | "model";
+      tableId?: string;
+      valueColumnId?: string;
+      labelColumnId?: string;
+      parentTableId?: string;
+      fkId?: string;
+      parentKey?: string;
+    };
 
 const FRAME_TYPES = new Set([
   "wb:ready",
@@ -55,6 +68,8 @@ const FRAME_TYPES = new Set([
   "wb:select",
   "wb:boxes",
   "wb:edit",
+  "wb:dbSubmit",
+  "wb:dbQuery",
 ]);
 
 /**

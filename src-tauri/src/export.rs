@@ -357,6 +357,10 @@ fn template_files() -> Vec<(&'static str, &'static [u8])> {
             include_bytes!("../../export-templates/vite-react/README.md"),
         ),
         (
+            ".env.example",
+            include_bytes!("../../export-templates/vite-react/.env.example"),
+        ),
+        (
             "src/main.tsx",
             include_bytes!("../../export-templates/vite-react/src/main.tsx"),
         ),
@@ -412,6 +416,28 @@ fn template_files() -> Vec<(&'static str, &'static [u8])> {
             include_bytes!("../../export-templates/vite-react/src/lib/calendar-render.ts"),
         ),
         (
+            // Form↔DB AuthAdapter + Phase C Supabase (docs/FORM-DB-CRUD-SPEC.md, docs/SUPABASE.md).
+            "src/lib/wb-db-runtime.ts",
+            include_bytes!("../../export-templates/vite-react/src/lib/wb-db-runtime.ts"),
+        ),
+        (
+            "src/lib/wb-db-supabase.ts",
+            include_bytes!("../../export-templates/vite-react/src/lib/wb-db-supabase.ts"),
+        ),
+        (
+            "src/lib/wb-db-client.ts",
+            include_bytes!("../../export-templates/vite-react/src/lib/wb-db-client.ts"),
+        ),
+        (
+            "src/lib/wb-db-widgets.tsx",
+            include_bytes!("../../export-templates/vite-react/src/lib/wb-db-widgets.tsx"),
+        ),
+        (
+            "src/lib/wb-db-submit.ts",
+            include_bytes!("../../export-templates/vite-react/src/lib/wb-db-submit.ts"),
+        ),
+        (
+            // Form↔DB: admin guard + export dbSubmit + dbModel hookup.
             "src/pages/SitePage.tsx",
             include_bytes!("../../export-templates/vite-react/src/pages/SitePage.tsx"),
         ),
@@ -484,6 +510,15 @@ fn asset_files_map(exts: &HashMap<String, String>) -> Map<String, Value> {
 
 /// Build `src/data/site.json` for the Vite renderer.
 pub fn build_site_json(doc: &PageDocument, asset_exts: &HashMap<String, String>) -> Result<String, String> {
+    build_site_json_with_db(doc, asset_exts, None)
+}
+
+/// Like `build_site_json`, optionally embedding the project's `DbModel` for Form↔DB runtime.
+pub fn build_site_json_with_db(
+    doc: &PageDocument,
+    asset_exts: &HashMap<String, String>,
+    db_model: Option<&Value>,
+) -> Result<String, String> {
     let pages = pages_for_export(doc);
     let mut root = Map::new();
     root.insert("version".into(), json!(1));
@@ -525,11 +560,14 @@ pub fn build_site_json(doc: &PageDocument, asset_exts: &HashMap<String, String>)
         "headingFontSizes".into(),
         json!((1u8..=6).map(crate::defaults::heading_font_size).collect::<Vec<f64>>()),
     );
+    if let Some(m) = db_model {
+        root.insert("dbModel".into(), m.clone());
+    }
     serde_json::to_string_pretty(&Value::Object(root)).map_err(|e| format!("site.json: {e}"))
 }
 
 /// R1: turn Code-view `site.json` text into a document. Drops renderer-only keys
-/// (`baseDefaults`, `headingFontSizes`, `assetFiles`). The file's `version` is
+/// (`baseDefaults`, `headingFontSizes`, `assetFiles`, `dbModel`). The file's `version` is
 /// always 1; the caller keeps the open document's version.
 pub fn document_from_site_json(text: &str) -> Result<PageDocument, String> {
     let mut v: Value = serde_json::from_str(text).map_err(|e| format!("JSON ไม่ถูกต้อง: {e}"))?;
@@ -537,6 +575,7 @@ pub fn document_from_site_json(text: &str) -> Result<PageDocument, String> {
         obj.remove("baseDefaults");
         obj.remove("headingFontSizes");
         obj.remove("assetFiles");
+        obj.remove("dbModel");
     } else {
         return Err("JSON ไม่ถูกต้อง: ต้องเป็นอ็อบเจกต์".into());
     }
@@ -610,6 +649,15 @@ pub fn build_zip(
     opts: &CompileOptions,
     files: &[(String, Vec<u8>)],
 ) -> Result<Vec<u8>, String> {
+    build_zip_with_db(doc, opts, files, None)
+}
+
+pub fn build_zip_with_db(
+    doc: &PageDocument,
+    opts: &CompileOptions,
+    files: &[(String, Vec<u8>)],
+    db_model: Option<&Value>,
+) -> Result<Vec<u8>, String> {
     let mut zw = ZipWriter::new(Cursor::new(Vec::with_capacity(64 * 1024)));
     let err = |e: zip::result::ZipError| format!("สร้างไฟล์ zip ไม่สำเร็จ: {e}");
 
@@ -623,7 +671,7 @@ pub fn build_zip(
         zip_put(&mut zw, name, &owned)?;
     }
 
-    let site = build_site_json(doc, &opts.asset_exts)?;
+    let site = build_site_json_with_db(doc, &opts.asset_exts, db_model)?;
     zip_put(&mut zw, "src/data/site.json", site.as_bytes())?;
     // B0: generated per document, never a template file (imported once by `src/main.tsx`).
     let site_css = build_site_css(doc, opts)?;
@@ -1018,7 +1066,17 @@ pub fn write_zip(
     opts: &CompileOptions,
     files: &[(String, Vec<u8>)],
 ) -> Result<PathBuf, String> {
-    let bytes = build_zip(doc, opts, files)?;
+    write_zip_with_db(dest, doc, opts, files, None)
+}
+
+pub fn write_zip_with_db(
+    dest: &Path,
+    doc: &PageDocument,
+    opts: &CompileOptions,
+    files: &[(String, Vec<u8>)],
+    db_model: Option<&Value>,
+) -> Result<PathBuf, String> {
+    let bytes = build_zip_with_db(doc, opts, files, db_model)?;
     let dest = zip_path(dest);
     let dir = dest
         .parent()

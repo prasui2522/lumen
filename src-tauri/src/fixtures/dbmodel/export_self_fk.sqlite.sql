@@ -1,4 +1,4 @@
--- Web Builder test schema (SQLite STRICT)
+-- Vite Studio test schema (SQLite STRICT)
 
 CREATE TABLE "employees" (
   "id" INTEGER PRIMARY KEY,

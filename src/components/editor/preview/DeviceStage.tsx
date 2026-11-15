@@ -14,6 +14,7 @@ import { usePhrase } from "@/lib/phrases";
 import { ensurePages, openPageIdOf, switchToPage } from "@/lib/project-pages";
 import { useEditorStore } from "@/stores/editor-store";
 import { useProjectsStore } from "@/stores/projects-store";
+import { toast } from "@/lib/toast";
 import {
   deviceById,
   effectiveSize,
@@ -429,6 +430,32 @@ export function DeviceStage({ source }: { source: FrameSource }) {
                         onRoute={onRuntimeRoute}
                         onExternal={onRuntimeExternal}
                         onTimeout={source.onTimeout}
+                        onDbSubmit={(msg) => {
+                          void (async () => {
+                            const doc = useProjectsStore.getState().openDocument;
+                            if (!doc) return;
+                            const [{ handlePreviewDbSubmit }, { ensureTestDbOpen }] = await Promise.all([
+                              import("@/lib/form-db/preview-bridge"),
+                              import("@/lib/form-db/ensure-test-db"),
+                            ]);
+                            const opened = await ensureTestDbOpen();
+                            if (!opened.ok) {
+                              toast.error(opened.error ?? tr("บันทึกไม่สำเร็จ"));
+                              return;
+                            }
+                            const r = await handlePreviewDbSubmit(doc.nodes, opened.model, {
+                              type: "wb:dbSubmit",
+                              ...msg,
+                            });
+                            if (r.ok) toast.success(tr("บันทึกแล้ว"));
+                            else toast.error(r.error ?? tr("บันทึกไม่สำเร็จ"));
+                          })();
+                        }}
+                        onDbQuery={async (msg) => {
+                          const { handleDbQuery } = await import("@/lib/form-db/db-query-host");
+                          const { type: _t, ...rest } = msg;
+                          return handleDbQuery(rest as Parameters<typeof handleDbQuery>[0]);
+                        }}
                         style={size ? { width: size.w, height: size.h } : { width: "100%", height: fillH }}
                         className="block border-0 bg-white"
                       />

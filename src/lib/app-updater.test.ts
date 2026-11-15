@@ -29,6 +29,10 @@ describe("app updater", () => {
     const wf = readFileSync(join(ROOT, ".github/workflows/release.yml"), "utf8");
     expect(wf).toContain("OWNER/REPO");
     expect(wf).toContain("make-latest-json.mjs");
+    expect(wf).toContain("Vite Studio");
+    expect(wf).toContain("macos-latest");
+    expect(wf).toMatch(/platform:\s*macos-latest/);
+    expect(wf).not.toMatch(/platform:\s*macos-14\b/);
     expect(existsSync(join(ROOT, "scripts/make-latest-json.mjs"))).toBe(true);
   });
 

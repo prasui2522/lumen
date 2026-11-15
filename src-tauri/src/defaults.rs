@@ -354,6 +354,58 @@ fn skip_empty_motion(v: &Option<NodeMotion>) -> bool {
     v.as_ref().map(NodeMotion::is_empty).unwrap_or(true)
 }
 
+/// Form↔DB binding (sparse). Mirrors `NodeDb` in `src/schema.ts`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeDb {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub form: Option<NodeDbForm>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub column: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lookup: Option<NodeDbLookup>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub list: Option<NodeDbList>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub related: Option<NodeDbRelated>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub admin_source: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeDbForm {
+    pub table_id: String,
+    pub op: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_column_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeDbLookup {
+    pub table_id: String,
+    pub value_column_id: String,
+    pub label_column_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeDbList {
+    pub table_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolve_fks: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub search: Option<bool>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeDbRelated {
+    pub parent_table_id: String,
+    pub fk_id: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Node {
@@ -382,6 +434,9 @@ pub struct Node {
     /// E1: entrance motion.
     #[serde(default, skip_serializing_if = "skip_empty_motion")]
     pub motion: Option<NodeMotion>,
+    /// Form↔DB / admin bindings (docs/FORM-DB-CRUD-SPEC.md).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub db: Option<NodeDb>,
 }
 
 /// Children only on page / section / container — leaf variants have none.
@@ -540,6 +595,9 @@ pub enum NodeProps {
         /// Phase 11 A3.5: native `<datalist>` options. Empty / absent → no datalist.
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         suggestions: Vec<String>,
+        /// HTML input type / asset picker (`text` when absent).
+        #[serde(default, skip_serializing_if = "Option::is_none", rename = "inputKind")]
+        input_kind: Option<String>,
     },
     Switch {
         label: String,
@@ -918,6 +976,8 @@ pub enum ObjectFit {
 pub enum ButtonAction {
     Link,
     None,
+    #[serde(rename = "dbSubmit")]
+    DbSubmit,
 }
 
 /// B1.2 (§4.2): one `box-shadow` layer. All subfields optional; empty list ≡ unset.
@@ -2333,6 +2393,7 @@ mod b7_states_tests {
                 style_breakpoints: None,
                 states: None,
                 motion: None,
+                db: None,
             },
         );
         nodes.insert(
@@ -2360,6 +2421,7 @@ mod b7_states_tests {
                     focus_visible: None,
                 }),
                 motion: None,
+                db: None,
             },
         );
         let mut doc = PageDocument {

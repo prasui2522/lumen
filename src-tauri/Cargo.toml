@@ -1,7 +1,7 @@
 [package]
 name = "webapp-project"
 version = "0.1.0"
-description = "Web Builder"
+description = "Vite Studio"
 authors = ["you"]
 edition = "2021"
 
@@ -30,6 +30,8 @@ image = { version = "0.25", default-features = false, features = ["jpeg", "png",
 sha2 = "0.10"
 tauri-plugin-updater = "2.14.1"
 tauri-plugin-process = "2.4.0"
+argon2 = { version = "0.5", features = ["password-hash", "std"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

@@ -62,6 +62,14 @@ pub enum DbType {
     Json,
     Enum,
     Identity,
+    /// Asset id string (image pipeline). SQL export as text.
+    Asset,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DbColumnSecret {
+    Argon2id,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -102,6 +110,9 @@ pub struct DbColumn {
     /// Enum only: 1–50 distinct values, each 1–63 chars.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub values: Option<Vec<String>>,
+    /// Password column: runtime hashes; never store plaintext.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secret: Option<DbColumnSecret>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -306,7 +317,9 @@ fn validate_default(t: &DbTable, c: &DbColumn, out: &mut Vec<ModelIssue>) {
                     _ => false,
                 },
                 (DbType::Date, LiteralValue::Text(s)) => is_valid_date(s),
-                (DbType::Text, LiteralValue::Text(s)) => s.chars().count() <= MAX_TEXT_DEFAULT_CHARS,
+                (DbType::Text | DbType::Asset, LiteralValue::Text(s)) => {
+                    s.chars().count() <= MAX_TEXT_DEFAULT_CHARS
+                }
                 (DbType::Enum, LiteralValue::Text(s)) => {
                     c.values.as_ref().is_some_and(|v| v.contains(s))
                 }

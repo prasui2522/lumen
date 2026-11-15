@@ -1341,7 +1341,7 @@ fn state_decls(s: &StateStyle) -> Vec<(&'static str, String)> {
 fn state_focusable(node: &Node, opts: &CompileOptions) -> bool {
     match &node.props {
         NodeProps::Button { href, action, .. } => {
-            let linkable = !matches!(action, Some(ButtonAction::None))
+            let linkable = !matches!(action, Some(ButtonAction::None) | Some(ButtonAction::DbSubmit))
                 && href.as_deref().is_some_and(|h| !h.trim().is_empty());
             if !linkable {
                 return false;
@@ -2629,7 +2629,7 @@ impl<'a> Compiler<'a> {
             NodeProps::Image { src, object_fit } => self.render_image(node, src, *object_fit, &tcls),
             NodeProps::Button { label, href, action } => {
                 let ncls = self.node_class(node, vec![]).unwrap_or_default();
-                let linkable = !matches!(action, Some(ButtonAction::None))
+                let linkable = !matches!(action, Some(ButtonAction::None) | Some(ButtonAction::DbSubmit))
                     && href.as_deref().is_some_and(|h| !h.trim().is_empty());
                 // Preview: a page link (not the open page) gets the inert marker;
                 // everything else stays the span it always was.
@@ -2682,10 +2682,18 @@ impl<'a> Compiler<'a> {
                 label,
                 placeholder,
                 suggestions,
+                input_kind,
             } => {
                 let ncls = self.node_class(node, vec![]).unwrap_or_default();
+                let html_type = match input_kind.as_deref() {
+                    Some("password") => "password",
+                    Some("number") => "number",
+                    Some("date") => "date",
+                    Some("datetime-local") => "datetime-local",
+                    _ => "text",
+                };
                 let mut attrs = vec![
-                    ("type", "text".into()),
+                    ("type", html_type.into()),
                     ("placeholder", placeholder.clone()),
                 ];
                 // Phase 11 A3.3: a parent field may inject id / aria-describedby.

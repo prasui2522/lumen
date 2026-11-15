@@ -49,7 +49,7 @@ export function ListView({
 }) {
   const p = node.props;
   if (p.type !== "list") return null;
-  const explicit = explicitOf(styleToCss(node.style), node.style.borderColor !== undefined);
+  const explicit = explicitOf(styleToCss(node.style), (node.style ?? {}).borderColor !== undefined);
   const css = a4ExtrasStyle("list", styleToCss(style), explicit);
   const Tag = p.ordered || p.marker === "decimal" ? "ol" : "ul";
   const role = p.marker === "check" || p.marker === "none" ? "list" : undefined;
@@ -90,7 +90,7 @@ export function TableView({
   if (p.type !== "table") return null;
   const columns = p.columns.slice(0, MAX_TABLE_COLS);
   const rows = normalizeTableRows(columns, p.rows).slice(0, MAX_TABLE_ROWS);
-  const explicit = explicitOf(styleToCss(node.style), node.style.borderColor !== undefined);
+  const explicit = explicitOf(styleToCss(node.style), (node.style ?? {}).borderColor !== undefined);
   const css = a4ExtrasStyle("table", styleToCss(style), explicit);
   const aria =
     p.caption?.trim() ||
@@ -155,7 +155,7 @@ export function IconView({
 }) {
   const p = node.props;
   if (p.type !== "icon") return null;
-  const explicit = explicitOf(styleToCss(node.style), node.style.borderColor !== undefined);
+  const explicit = explicitOf(styleToCss(node.style), (node.style ?? {}).borderColor !== undefined);
   const css = a4ExtrasStyle("icon", styleToCss(style), explicit);
   const size = Math.max(ICON_MIN_SIZE, Math.min(ICON_MAX_SIZE, Math.round(p.size || ICON_DEFAULT_SIZE)));
   const stroke = Math.max(

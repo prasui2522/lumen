@@ -15,6 +15,7 @@ import { ICON_PATHS, iconInnerSvg } from "@/lib/icon-paths";
 import { safeHref } from "@/lib/safe";
 import { renderChartSvg, type ChartKind, type ChartSeries } from "@/lib/chart-render";
 import { renderCalendarHtml, type CalendarEra, type CalendarWeekStart } from "@/lib/calendar-render";
+import { DbAssetField, DbListPanel, DbLookupSelect, DbRelatedPanel } from "@/lib/wb-db-widgets";
 
 type Ctx = {
   nodes: Record<string, SiteNode>;
@@ -176,6 +177,11 @@ export function RenderNode({ id, ctx, inRow }: { id: string; ctx: Ctx; inRow?: b
   const cls = [...(own.includes(tcls) ? [] : [tcls]), ...own, ...(fx.fx && !own.includes("fx") ? ["fx"] : [])].join(" ");
   const extra: Record<string, unknown> = { className: cls };
   if (inPreview()) extra[NODE_ID_ATTR] = id;
+  // Export Form↔DB: stable id for submit/collect without Preview chrome.
+  if (node.db || (node.props.type === "button" && node.props.action === "dbSubmit")) {
+    extra["data-wb-node-id"] = id;
+    if (!inPreview()) extra[NODE_ID_ATTR] = id;
+  }
   if (id === ctx.pageRoot) extra[PAGE_ATTR] = ctx.pageId ?? id;
   const fams = overriddenFamilies(node.styleBreakpoints);
   for (const f of fx.families) fams.add(f);
@@ -211,6 +217,36 @@ function renderNodeInner(id: string, ctx: Ctx, inRow?: boolean): ReactNode {
     case "aspectRatio":
     case "field": {
       const row = (p.direction ?? (t === "buttonGroup" ? "row" : "column")) === "row";
+      const list = node.db?.list;
+      const related = node.db?.related;
+      if (list?.tableId) {
+        return (
+          <div className={`n-${t}`} style={layoutStyle(p, style)}>
+            {kids(node, ctx, row)}
+            <DbListPanel
+              tableId={list.tableId}
+              resolveFks={list.resolveFks !== false}
+              search={list.search !== false}
+            />
+          </div>
+        );
+      }
+      if (related?.parentTableId && related.fkId) {
+        const parentKey =
+          typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).get("id") ?? ""
+            : "";
+        return (
+          <div className={`n-${t}`} style={layoutStyle(p, style)}>
+            {kids(node, ctx, row)}
+            <DbRelatedPanel
+              parentTableId={related.parentTableId}
+              fkId={related.fkId}
+              parentKey={parentKey}
+            />
+          </div>
+        );
+      }
       return (
         <div className={`n-${t}`} style={layoutStyle(p, style)}>
           {kids(node, ctx, row)}
@@ -261,6 +297,14 @@ function renderNodeInner(id: string, ctx: Ctx, inRow?: boolean): ReactNode {
     case "button": {
       const label = String(p.label ?? "Button");
       const href = typeof p.href === "string" ? p.href.trim() : "";
+      const action = String(p.action ?? "");
+      if (action === "dbSubmit") {
+        return (
+          <Button style={style} type="button" data-wb-action="dbSubmit">
+            {label}
+          </Button>
+        );
+      }
       if (href) {
         return (
           <SmartLink href={href} style={style} className="inline-flex">
@@ -297,14 +341,23 @@ function renderNodeInner(id: string, ctx: Ctx, inRow?: boolean): ReactNode {
     }
     case "spacer":
       return <div style={{ ...style, height: Number(p.size) || 24 }} />;
-    case "input":
+    case "input": {
+      const kind = String(p.inputKind ?? "text");
+      if (kind === "asset") {
+        return <DbAssetField label={String(p.label ?? "")} style={style} />;
+      }
+      const htmlType =
+        kind === "password" || kind === "number" || kind === "date" || kind === "datetime-local"
+          ? kind
+          : "text";
       return (
         <label style={{ ...style, display: "flex", flexDirection: "column", gap: 4 }}>
           {String(p.label ?? "") ? <span>{String(p.label)}</span> : null}
           <input
-            type="text"
+            type={htmlType}
             placeholder={String(p.placeholder ?? "")}
             className="wb-input rounded-md border border-[var(--border)] px-3 py-2"
+            data-wb-input-kind={kind}
             list={
               Array.isArray(p.suggestions) && (p.suggestions as string[]).length
                 ? `dl-${id}`
@@ -320,6 +373,7 @@ function renderNodeInner(id: string, ctx: Ctx, inRow?: boolean): ReactNode {
           ) : null}
         </label>
       );
+    }
     case "textarea":
       return (
         <label style={{ ...style, display: "flex", flexDirection: "column", gap: 4 }}>
@@ -349,6 +403,19 @@ function renderNodeInner(id: string, ctx: Ctx, inRow?: boolean): ReactNode {
       );
     }
     case "select": {
+      const lookup = node.db?.lookup;
+      if (lookup?.tableId && lookup.valueColumnId && lookup.labelColumnId) {
+        return (
+          <DbLookupSelect
+            tableId={lookup.tableId}
+            valueColumnId={lookup.valueColumnId}
+            labelColumnId={lookup.labelColumnId}
+            value={String(p.value ?? "")}
+            style={style}
+            className="wb-select"
+          />
+        );
+      }
       const options = (p.options as string[] | undefined) ?? [];
       return (
         <select className="wb-select" style={style} defaultValue={String(p.value ?? "")}>

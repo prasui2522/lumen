@@ -37,7 +37,7 @@ export function CheckboxView({
 }) {
   const p = node.props;
   if (p.type !== "checkbox") return null;
-  const explicit = explicitOf(styleToCss(node.style), node.style.borderColor !== undefined);
+  const explicit = explicitOf(styleToCss(node.style), (node.style ?? {}).borderColor !== undefined);
   const css = a3ExtrasStyle("checkbox", styleToCss(style), explicit);
   return (
     <div
@@ -75,7 +75,7 @@ export function SwitchView({
 }) {
   const p = node.props;
   if (p.type !== "switch") return null;
-  const explicit = explicitOf(styleToCss(node.style), node.style.borderColor !== undefined);
+  const explicit = explicitOf(styleToCss(node.style), (node.style ?? {}).borderColor !== undefined);
   const css = a3ExtrasStyle("switch", styleToCss(style), explicit);
   return (
     <div

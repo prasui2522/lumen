@@ -1049,6 +1049,25 @@ function replaceNode(doc: PageDocument, node: Node): PageDocument {
   return { ...doc, nodes: { ...doc.nodes, [node.id]: node } };
 }
 
+/** Replace or clear `node.db` (Form↔DB binding). */
+export function setNodeDb(
+  doc: PageDocument,
+  nodeId: NodeId,
+  db: import("@/schema").NodeDb | undefined,
+): PageDocument | null {
+  const node = doc.nodes[nodeId];
+  if (!node || isContentLocked(doc, node)) return null;
+  const prev = node.db;
+  const same = JSON.stringify(prev ?? null) === JSON.stringify(db ?? null);
+  if (same) return null;
+  if (db === undefined || Object.keys(db).length === 0) {
+    if (!prev) return null;
+    const { db: _drop, ...rest } = node;
+    return replaceNode(doc, rest);
+  }
+  return replaceNode(doc, { ...node, db });
+}
+
 /**
  * Set / reset one `node.style` key. `undefined` deletes (reset); a value equal
  * to the type default is also deleted (sparse). Returns null for locked nodes
@@ -1062,13 +1081,14 @@ export function setNodeStyle<K extends StyleKey>(
 ): PageDocument | null {
   const node = doc.nodes[nodeId];
   if (!node || isContentLocked(doc, node)) return null;
-  const had = Object.prototype.hasOwnProperty.call(node.style, key);
+  const prevStyle = node.style ?? {};
+  const had = Object.prototype.hasOwnProperty.call(prevStyle, key);
   const store = value !== undefined && !isDefaultValue(node, key, value);
   if (!store && !had) return null;
-  if (store && had && JSON.stringify(node.style[key]) === JSON.stringify(value)) {
+  if (store && had && JSON.stringify(prevStyle[key]) === JSON.stringify(value)) {
     return null;
   }
-  const style: StyleProps = { ...node.style };
+  const style: StyleProps = { ...prevStyle };
   if (store) style[key] = value;
   else delete style[key];
   return replaceNode(doc, { ...node, style });

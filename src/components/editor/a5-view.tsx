@@ -50,7 +50,7 @@ export function CarouselView({
 }) {
   const p = node.props;
   if (p.type !== "carousel") return null;
-  const explicit = explicitOf(styleToCss(node.style), node.style.borderColor !== undefined);
+  const explicit = explicitOf(styleToCss(node.style), (node.style ?? {}).borderColor !== undefined);
   const css = a5ExtrasStyle("carousel", styleToCss(style), explicit);
 
   const defaults = A5_LAYOUT_DEFAULTS.carousel;
@@ -120,7 +120,7 @@ export function ChartView({
 }) {
   const p = node.props;
   if (p.type !== "chart") return null;
-  const explicit = explicitOf(styleToCss(node.style), node.style.borderColor !== undefined);
+  const explicit = explicitOf(styleToCss(node.style), (node.style ?? {}).borderColor !== undefined);
   const css = a5ExtrasStyle("chart", styleToCss(style), explicit);
   const wrapStyle = mergeOver(
     { ...css, width: "100%", aspectRatio: "2 / 1", lineHeight: 0 },
@@ -171,7 +171,7 @@ export function CalendarView({
 }) {
   const p = node.props;
   if (p.type !== "calendar") return null;
-  const explicit = explicitOf(styleToCss(node.style), node.style.borderColor !== undefined);
+  const explicit = explicitOf(styleToCss(node.style), (node.style ?? {}).borderColor !== undefined);
   const css = a5ExtrasStyle("calendar", styleToCss(style), explicit);
   const wrapStyle = mergeOver({ ...css, width: "100%", minHeight: "12rem" }, over);
   return (

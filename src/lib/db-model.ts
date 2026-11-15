@@ -5,12 +5,16 @@
 
 export type DbType =
   | "text" | "integer" | "decimal" | "boolean" | "date"
-  | "timestamptz" | "uuid" | "json" | "enum" | "identity";
+  | "timestamptz" | "uuid" | "json" | "enum" | "identity"
+  /** Asset id string (same registry as image nodes). SQL export → text. */
+  | "asset";
 
 /** Literal defaults travel as strings (integers exceed JS safe range); booleans as bool. */
 export type DbDefault =
   | { kind: "literal"; value: string | boolean }
   | { kind: "now" | "today" | "uuid" };
+
+export type DbColumnSecret = "argon2id";
 
 export type DbColumn = {
   id: string;
@@ -22,6 +26,8 @@ export type DbColumn = {
   precision?: number;
   scale?: number;
   values?: string[];
+  /** Password column: runtime hashes with Argon2id; never store plaintext. */
+  secret?: DbColumnSecret;
 };
 
 export type DbForeignKey = {
@@ -89,6 +95,7 @@ export const DB_TYPE_LABELS: Record<DbType, string> = {
   json: "JSON",
   enum: "ตัวเลือก",
   identity: "ลำดับอัตโนมัติ",
+  asset: "ไฟล์/รูป",
 };
 export const DB_TYPES = Object.keys(DB_TYPE_LABELS) as DbType[];
 

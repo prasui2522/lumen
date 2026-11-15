@@ -1,7 +1,9 @@
--- Web Builder schema export
--- PostgreSQL 17. Row level security is enabled on every table.
+-- Vite Studio schema export
+-- PostgreSQL 17 / Supabase. Row level security is enabled on every table.
 -- No policies are generated: the anon and authenticated roles can read or
--- write nothing until you add policies.
+-- write nothing until you add policies (see docs/SUPABASE.md).
+-- Prefer Supabase Auth for login; treat app users tables as profiles, not
+-- password stores.
 
 create table public.aaaaaaaaaaaaaaaaaaaa_very_long_table_name_for_truncation_xxxxxx (
   id uuid default gen_random_uuid() not null,

@@ -140,8 +140,8 @@ function bindInteractive(
     "data-node-id": node.id,
     className: cn(
       chromeClass(ctx, node),
-      node.style.borderEffect === "led" && "wb-led",
-      node.style.backdropFilter?.blur ? "wb-glass" : undefined,
+      (node.style ?? {}).borderEffect === "led" && "wb-led",
+      (node.style ?? {}).backdropFilter?.blur ? "wb-glass" : undefined,
     ),
     draggable: canDrag,
     onClick: (e) => {
@@ -263,16 +263,17 @@ export const NodeView = memo(function NodeView({ ctx, nodeId, slot, inRow }: Nod
   if (!node || !isVisible(node)) return null;
 
   let style = resolvedStyle(node);
+  const ownStyle = node.style ?? {};
   // Kind default `width: 100%` on a row sibling takes the whole row, so the
   // other child (for example a copyright line) wraps and paints over the links.
   // An explicit width stays.
-  if (inRow && node.type === "container" && node.style.width === undefined && style.width !== undefined) {
+  if (inRow && node.type === "container" && ownStyle.width === undefined && style.width !== undefined) {
     style = { ...style, width: "auto" };
   }
   // A spacer's height is `props.size`, not a style key, so it counts as an own height: inside an aspectRatio it keeps its
   // size like the export does (A2.5 F3); its width still fills.
-  const ownH = node.style.height !== undefined || node.props.type === "spacer";
-  let over = slotStyle(slot, style.borderRadius ?? 0, node.style.width !== undefined, ownH);
+  const ownH = ownStyle.height !== undefined || node.props.type === "spacer";
+  let over = slotStyle(slot, style.borderRadius ?? 0, ownStyle.width !== undefined, ownH);
   // B7.3: selected node only — merge `states.<name>` paint keys; `transition:none` via over (covers leaf views too).
   if (shouldForceDisplayState(ctx.selectedNodeId, node.id, ctx.forceDisplayState)) {
     style = mergeForceState(style, node.states, ctx.forceDisplayState);

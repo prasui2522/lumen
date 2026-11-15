@@ -57,7 +57,7 @@ export function Phase6bView({
   const p = node.props;
   if (!isPhase6bType(p.type)) return null;
 
-  const explicit = explicitOf(styleToCss(node.style), node.style.borderColor !== undefined);
+  const explicit = explicitOf(styleToCss(node.style), (node.style ?? {}).borderColor !== undefined);
   const alignEnd = (p.type === "bubble" || p.type === "message") && p.align === "end";
   const rootStyle = mergeOver(
     rootStyleFor(node.type, styleToCss(style), explicit, {

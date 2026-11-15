@@ -372,7 +372,7 @@ fn to_sql(conn: &Connection, c: &DbColumn, v: &Value) -> Result<Option<SqlValue>
             }
             SqlValue::Text(x.to_string())
         }
-        DbType::Text => SqlValue::Text(s()?.to_string()),
+        DbType::Text | DbType::Asset => SqlValue::Text(s()?.to_string()),
     }))
 }
 

@@ -1,7 +1,10 @@
 import { isLocked, type Node, type PageDocument, type ProjectPage } from "@/schema";
 
 const RESERVED = new Set(["index", "assets", "styles"]);
+/** One path segment (Phase 8). */
 const SEGMENT = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
+/** Nested paths for admin pack, e.g. `/admin/products/new` (1–4 segments). */
+const NESTED_PATH = /^\/[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?(?:\/[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?){0,3}$/;
 
 /** Thai inline error when a path change is rejected. */
 export type PathError =
@@ -152,9 +155,12 @@ export function validatePagePath(
   if (!path.startsWith("/")) return "รูปแบบไม่ถูกต้อง";
   const seg = path.slice(1);
   if (!seg) return "ว่าง";
-  if (seg.startsWith("-") || seg.endsWith("-")) return "รูปแบบไม่ถูกต้อง";
-  if (!SEGMENT.test(seg)) return "รูปแบบไม่ถูกต้อง";
-  if (RESERVED.has(seg)) return "ชื่อสงวนไว้";
+  if (!NESTED_PATH.test(path)) return "รูปแบบไม่ถูกต้อง";
+  const parts = seg.split("/");
+  for (const part of parts) {
+    if (!SEGMENT.test(part)) return "รูปแบบไม่ถูกต้อง";
+    if (RESERVED.has(part)) return "ชื่อสงวนไว้";
+  }
   const clash = pages.some((p) => p.id !== selfId && p.path === path);
   if (clash) return "ซ้ำ";
   return null;
@@ -165,7 +171,7 @@ export function pathErrorMessage(err: PathError): string {
     case "ว่าง":
       return "กรุณาใส่เส้นทาง";
     case "รูปแบบไม่ถูกต้อง":
-      return "ใช้ a-z, 0-9, ขีดกลาง 1–40 ตัว หลัง /";
+      return "ใช้ a-z, 0-9, ขีดกลาง 1–40 ตัวต่อช่วง หลัง / (ได้หลายช่วง เช่น /admin/products/new)";
     case "ชื่อสงวนไว้":
       return "ชื่อนี้สงวนไว้";
     case "ซ้ำ":

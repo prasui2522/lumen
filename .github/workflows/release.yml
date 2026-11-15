@@ -1,4 +1,4 @@
-# Signed Web Builder release + updater feed (latest.json).
+# Signed Vite Studio release + updater feed (latest.json).
 # Requires repo secrets:
 #   TAURI_SIGNING_PRIVATE_KEY          — contents of the .key file
 #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD — optional
@@ -30,9 +30,10 @@ jobs:
             rust_target: x86_64-unknown-linux-gnu
           - platform: windows-latest
             rust_target: x86_64-pc-windows-msvc
-          - platform: macos-14
+          # macos-14-arm64 was rejected on Actions; macos-latest is Apple Silicon.
+          - platform: macos-latest
             rust_target: aarch64-apple-darwin
-          - platform: macos-13
+          - platform: macos-15
             rust_target: x86_64-apple-darwin
     runs-on: ${{ matrix.platform }}
     steps:
@@ -104,7 +105,7 @@ jobs:
             --version "$VERSION" \
             --tag "$TAG" \
             --repo "${{ github.repository }}" \
-            --notes "Web Builder $TAG" \
+            --notes "Vite Studio $TAG" \
             --out dist-upd/latest.json
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2

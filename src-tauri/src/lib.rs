@@ -108,6 +108,7 @@ pub fn run() {
             commands::db_test_close,
             commands::db_test_rows,
             commands::db_test_insert,
+            commands::hash_password,
             commands::db_test_update,
             commands::db_test_delete,
             commands::db_test_reset,

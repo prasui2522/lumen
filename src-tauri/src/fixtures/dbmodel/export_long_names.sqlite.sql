@@ -1,4 +1,4 @@
--- Web Builder test schema (SQLite STRICT)
+-- Vite Studio test schema (SQLite STRICT)
 
 CREATE TABLE "aaaaaaaaaaaaaaaaaaaa_very_long_table_name_for_truncation_xxxxxx" (
   "id" TEXT NOT NULL CONSTRAINT "aaaaaaaaaaaaaaaaaaaa_very_long_table_name_for_truncati_ff6d888e" CHECK (length("id") = 36),

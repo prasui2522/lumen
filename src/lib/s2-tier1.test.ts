@@ -74,10 +74,12 @@ describe("S2 source contracts", () => {
     expect(readFileSync(join(TPL, "src", "App.tsx"), "utf8")).not.toContain("PREVIEW_FLAG");
   });
 
-  test("render-node emits data-node-id only under the flag", () => {
+  test("render-node emits data-node-id under the flag (and for Form↔DB export nodes)", () => {
     const src = readFileSync(join(TPL, "src", "lib", "render-node.tsx"), "utf8");
     expect(src).toContain("if (inPreview()) extra[NODE_ID_ATTR] = id;");
-    expect((src.match(/NODE_ID_ATTR\] = /g) ?? []).length).toBe(1);
+    // Second assignment: export Form↔DB nodes also get data-node-id for submit/collect.
+    expect(src).toContain("if (!inPreview()) extra[NODE_ID_ATTR] = id;");
+    expect((src.match(/NODE_ID_ATTR\] = /g) ?? []).length).toBe(2);
   });
 
   test("preview.html carries the frame CSP; app frame is allow-scripts only", () => {

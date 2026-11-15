@@ -43,7 +43,7 @@ export function A2LeafView({
   over?: CSSProperties;
 }) {
   const p = node.props;
-  const explicit = explicitOf(styleToCss(node.style), node.style.borderColor !== undefined);
+  const explicit = explicitOf(styleToCss(node.style), (node.style ?? {}).borderColor !== undefined);
   const base = styleToCss(style);
   const root = (extra: Partial<Root>, css: CSSProperties): Root => ({
     ...(handlers as HTMLAttributes<HTMLElement>),
