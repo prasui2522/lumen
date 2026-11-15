@@ -2,7 +2,7 @@
 
 **Product:** Vite Studio · Channel: one `latest.json` on **GitHub Releases**. CDN may mirror the same files later. Cursor Origin is source hosting only — not the binary feed.
 
-**Public feed status:** Repo https://github.com/prasui2522/web-builder is public. Tag `v0.1.1` exists; a Release with `latest.json` must finish publishing before **About → Check for updates** works against the real endpoint. After renaming to Vite Studio, prefer a new tag (e.g. `v0.1.2`) once the rename + Phase C commits are on `main`.
+**Public feed status:** Repo https://github.com/prasui2522/vite-studio (GitHub still redirects `web-builder`). Release `v0.1.3` publishes `latest.json`. Apps built before that tag still check the old repository URL until they install a build whose endpoint was rewritten to `vite-studio`.
 
 ## Keys
 
@@ -25,14 +25,14 @@ bun run tauri build
 
 ## Public repository
 
-- **Remote:** https://github.com/prasui2522/web-builder
+- **Remote:** https://github.com/prasui2522/vite-studio
 - **First tag:** `v0.1.1` (triggers `.github/workflows/release.yml`)
 - **Secret on the repo:** `TAURI_SIGNING_PRIVATE_KEY` (no password on the current key)
 
 CI rewrites `OWNER/REPO` in `tauri.conf.json` to `github.repository` on each tagged build, then publishes binaries + `latest.json`. After the Release job finishes, installed apps check:
 
 ```text
-https://github.com/prasui2522/web-builder/releases/latest/download/latest.json
+https://github.com/prasui2522/vite-studio/releases/latest/download/latest.json
 ```
 
 Until a Release has published `latest.json`, **About → Check for updates** may still show the placeholder error if the local build still has `OWNER/REPO` in `tauri.conf.json`.
