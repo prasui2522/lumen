@@ -21,29 +21,27 @@ export TAURI_SIGNING_PRIVATE_KEY_PATH=/home/webdev/agent-tools/p11/updater-keys/
 bun run tauri build
 ```
 
-## Step-by-step: first public release
+## Public repository
 
-1. **Create a public GitHub repo** and add it as `origin` (this project has no remote yet).
-2. **Store secrets** on that repo:
-   - `TAURI_SIGNING_PRIVATE_KEY` — full contents of the `.key` file
-   - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — only if the key is password-protected
-3. **Push `main`**, then tag and push a version:
-   ```bash
-   git tag v0.1.1
-   git push origin main --tags
-   ```
-4. **GitHub Actions** (`.github/workflows/release.yml`) will:
-   - rewrite `OWNER/REPO` in `tauri.conf.json` to `github.repository`
-   - build signed updater artifacts on Linux / Windows / macOS
-   - assemble `latest.json` via `scripts/make-latest-json.mjs`
-   - publish a GitHub Release with the binaries + `latest.json`
-5. Installed apps then check:
+- **Remote:** https://github.com/prasui2522/web-builder
+- **First tag:** `v0.1.1` (triggers `.github/workflows/release.yml`)
+- **Secret on the repo:** `TAURI_SIGNING_PRIVATE_KEY` (no password on the current key)
+
+CI rewrites `OWNER/REPO` in `tauri.conf.json` to `github.repository` on each tagged build, then publishes binaries + `latest.json`. After the Release job finishes, installed apps check:
 
 ```text
-https://github.com/<your-owner>/<your-repo>/releases/latest/download/latest.json
+https://github.com/prasui2522/web-builder/releases/latest/download/latest.json
 ```
 
-Until step 1–4 finish, **About → Check for updates** hits the placeholder URL and shows a clear “OWNER/REPO not set” error.
+Until a Release has published `latest.json`, **About → Check for updates** may still show the placeholder error if the local build still has `OWNER/REPO` in `tauri.conf.json`.
+
+### Repeat a release
+
+```bash
+# bump version in package.json + src-tauri/tauri.conf.json, commit, then:
+git tag v0.1.2
+git push origin main --tags
+```
 
 ### Local / manual `latest.json`
 
