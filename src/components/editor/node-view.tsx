@@ -87,7 +87,7 @@ function canvasStyleToCss(
   return styleToCss(style, extra);
 }
 
-const DRAG_MIME = "application/x-webapp-node-id";
+const DRAG_MIME = "application/x-lumen-node-id";
 
 export function getDraggedNodeId(e: DragEvent): string | null {
   return (

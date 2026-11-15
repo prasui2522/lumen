@@ -1,5 +1,5 @@
 //! Phase 11 C6: app-wide `library_items` (user-saved presets).
-//! Additive migration on `web_builder.db`; project rows are untouched.
+//! Additive migration on `lumen.db`; project rows are untouched.
 
 use crate::defaults::{NodeStates, NodeType, StyleProps};
 use rusqlite::{params, Connection, OptionalExtension};

@@ -20,6 +20,6 @@ export function getDragPayload(): DragPayload | null {
   return current;
 }
 
-export const PALETTE_DRAG_MIME = "application/x-webapp-new-node";
+export const PALETTE_DRAG_MIME = "application/x-lumen-new-node";
 /** Distinct MIME so legacy drop handlers ignore block drags until wired. */
-export const BLOCK_DRAG_MIME = "application/x-webapp-block";
+export const BLOCK_DRAG_MIME = "application/x-lumen-block";

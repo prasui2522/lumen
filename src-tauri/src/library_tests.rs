@@ -31,7 +31,7 @@ impl Drop for MemDb {
 fn mem() -> MemDb {
     let dir = std::env::temp_dir().join(format!("wb-c6-mem-{}", Uuid::new_v4().simple()));
     std::fs::create_dir_all(&dir).unwrap();
-    let conn = open_db(&dir.join("web_builder.db")).unwrap();
+    let conn = open_db(&dir.join("lumen.db")).unwrap();
     MemDb { conn: Some(conn), dir }
 }
 
@@ -66,7 +66,7 @@ fn migrate_creates_library_items_on_fresh_db() {
 fn migrate_on_existing_file_db_is_additive() {
     let dir = std::env::temp_dir().join(format!("wb-c6-{}", Uuid::new_v4().simple()));
     std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("web_builder.db");
+    let path = dir.join("lumen.db");
     {
         let c = Connection::open(&path).unwrap();
         c.execute_batch(

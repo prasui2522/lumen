@@ -18,7 +18,7 @@ const ROOT = join(import.meta.dir, "..", "..");
 
 describe("D5 blocks insert UX", () => {
   test("MIME + DragPayload block variant exist", () => {
-    expect(BLOCK_DRAG_MIME).toBe("application/x-webapp-block");
+    expect(BLOCK_DRAG_MIME).toBe("application/x-lumen-block");
     const p: DragPayload = {
       kind: "block",
       blockId: "template-hero",

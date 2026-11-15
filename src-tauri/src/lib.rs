@@ -78,6 +78,7 @@ pub fn run() {
                 .path()
                 .app_data_dir()
                 .map_err(|e| format!("app_data_dir: {e}"))?;
+            crate::db::import_legacy_app_data(&app_data);
             let path = db_path(&app_data);
             let conn = open_db(&path)?;
             app.manage(DbState {

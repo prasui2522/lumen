@@ -118,7 +118,54 @@ fn civil_from_days(z: i64) -> (i32, u32, u32) {
 }
 
 pub fn db_path(app_data_dir: &Path) -> PathBuf {
-    app_data_dir.join("web_builder.db")
+    app_data_dir.join("lumen.db")
+}
+
+const LEGACY_IDENTIFIER: &str = "com.webapp.builder";
+
+/// First launch after the identifier change: copy `web_builder.db` and the
+/// data folders from `com.webapp.builder` when `lumen.db` is not here yet.
+pub fn import_legacy_app_data(app_data_dir: &Path) {
+    let dest_db = db_path(app_data_dir);
+    if dest_db.exists() {
+        return;
+    }
+    let Some(parent) = app_data_dir.parent() else {
+        return;
+    };
+    let legacy = parent.join(LEGACY_IDENTIFIER);
+    let legacy_db = legacy.join("web_builder.db");
+    if !legacy_db.is_file() {
+        return;
+    }
+    let _ = std::fs::create_dir_all(app_data_dir);
+    for suffix in ["", "-wal", "-shm"] {
+        let from = legacy.join(format!("web_builder.db{suffix}"));
+        if from.is_file() {
+            let _ = std::fs::copy(&from, app_data_dir.join(format!("lumen.db{suffix}")));
+        }
+    }
+    for folder in ["databases", "sites", "assets"] {
+        let from = legacy.join(folder);
+        let to = app_data_dir.join(folder);
+        if from.is_dir() && !to.exists() {
+            let _ = copy_dir_recursive(&from, &to);
+        }
+    }
+}
+
+fn copy_dir_recursive(from: &Path, to: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(to)?;
+    for entry in std::fs::read_dir(from)? {
+        let entry = entry?;
+        let dest = to.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_dir_recursive(&entry.path(), &dest)?;
+        } else {
+            std::fs::copy(entry.path(), dest)?;
+        }
+    }
+    Ok(())
 }
 
 /// Phase 10 test-data folder (PHASE-10-SPEC §4). Not created here.

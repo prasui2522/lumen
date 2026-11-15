@@ -61,7 +61,7 @@ fn dump(conn: &Connection) -> Vec<String> {
 #[test]
 fn migration_on_pre_phase10_file_db_is_additive_and_idempotent() {
     let dir = tmp_dir();
-    let path = dir.join("web_builder.db");
+    let path = dir.join("lumen.db");
     // Odd-but-valid stored JSON must survive byte-for-byte (nothing rewrites it).
     let doc_a = r#"{"version":5,"meta":{"title":"A"},"root":"r","nodes":{},"pages":[{"id":"p"}],"x":  1}"#;
     let doc_b = r#"{"version":2, "meta":{"title":"ข"}}"#;
